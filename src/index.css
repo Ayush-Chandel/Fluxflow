@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  /* Surfaces */
+  --color-background: oklch(0.10 0.00 264);
+  --color-surface:    oklch(0.14 0.00 264);
+  --color-elevated:   oklch(0.18 0.00 264);
+
+  /* Text */
+  --color-foreground: oklch(0.88 0.00 264);
+  --color-muted:      oklch(0.58 0.00 264);
+
+  /* Brand */
+  --color-brand:       oklch(0.55 0.18 264);
+  --color-brand-hover: oklch(0.62 0.18 264);
+
+  /* Border */
+  --color-edge: oklch(0.22 0.00 264);
+}
+
+[data-theme="light"] {
+  --color-background:  oklch(0.97 0.00 264);
+  --color-surface:     oklch(1.00 0.00 264);
+  --color-elevated:    oklch(0.94 0.00 264);
+  --color-foreground:  oklch(0.14 0.00 264);
+  --color-muted:       oklch(0.48 0.00 264);
+  --color-brand:       oklch(0.55 0.18 264);
+  --color-brand-hover: oklch(0.48 0.18 264);
+  --color-edge:        oklch(0.90 0.00 264);
+}
