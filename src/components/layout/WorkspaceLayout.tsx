@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './sidebar/Sidebar'
-import { ExternalLinkIcon } from '../icons'
 import { SidebarProvider } from '../ui/sidebar'
 import { CustomTrigger } from './sidebar/CustomTrigger'
 import { useSidebarPin } from '@/hooks/useSidebarPin'

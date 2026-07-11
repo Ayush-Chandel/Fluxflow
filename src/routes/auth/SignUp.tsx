@@ -8,15 +8,13 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardHeader,
-  CardTitle,
   CardDescription,
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { logInSchema, signUpSchema } from "@/lib/validation";
+import { signUpSchema } from "@/lib/validation";
 import z from "zod";
 import { authService } from "@/services/authService";
 import BoxGradient from "@/components/common/BoxGradient";

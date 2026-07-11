@@ -1,4 +1,3 @@
-import React from 'react'
 import {  ChevronDownIcon,  ExternalLinkIcon } from '../../icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'

@@ -2,8 +2,6 @@ import StaggerAccordion from '@/components/common/StaggerAccordion';
 import { BoxIcon, CopyIcon, PlayCircleIcon } from '@/components/icons'
 import { useSidebarKey } from '@/lib/utils';
 import type { Navlinks } from '@/types/sidebar';
-import React, { useState } from 'react'
-import { useMatches } from 'react-router';
 
 type Props = {}
 

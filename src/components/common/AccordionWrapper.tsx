@@ -1,7 +1,6 @@
 
-import { Navlinks } from '@/types/sidebar';
+import type { Navlinks } from '@/types/sidebar';
 import { CollapseArrowIcon } from '../icons'
-import { Button } from '../ui/button';
 import { useState } from 'react';
 
 type Props = {

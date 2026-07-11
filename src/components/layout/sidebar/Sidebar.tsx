@@ -1,6 +1,4 @@
 import { useSidebar } from "@/components/ui/sidebar"
-import SideHeader from './SideHeader'
-import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import SidebarContent from "./SidebarContent"
 

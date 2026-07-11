@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UseFormRegister, FieldError, Path, FieldValues } from "react-hook-form";
+import type { UseFormRegister, FieldError, Path, FieldValues } from "react-hook-form";
 import {
   Field,
   FieldLabel,

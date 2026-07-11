@@ -1,8 +1,7 @@
 
 import type { Navlinks } from '@/types/sidebar';
 import { CollapseArrowIcon } from '../icons'
-import { Button } from '../ui/button';
-import { AnimatePresence, m, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { Link } from 'react-router';
 
