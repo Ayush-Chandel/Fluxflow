@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import React from 'react'
 import SideHeader from './SideHeader';
+import SideContent from './SideContent';
 
 type SideBarContentProps = {
     open:boolean;
@@ -22,6 +23,7 @@ function SidebarContent({open, isHoverReveal,handleMouseLeave}: SideBarContentPr
         onMouseLeave={handleMouseLeave}
       >
         <SideHeader />
+        <SideContent />
       </motion.div>
   )
 }

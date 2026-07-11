@@ -24,6 +24,7 @@
   --color-brand:       var(--color-brand);
   --color-brand-hover: var(--color-brand-hover);
   --color-edge:        var(--color-edge);
+  --color-hover:       var(--color-hover);
 
   /* ── Shadcn token bridges ── */
   --color-card:                 var(--card);
@@ -68,6 +69,7 @@
   --color-brand:       oklch(0.55 0.18 264);
   --color-brand-hover: oklch(0.62 0.18 264);
   --color-edge:        oklch(0.22 0.00 264);
+  --color-hover:       oklch(0.94 0.00 264);
 
   /* ── Shadcn vars → your tokens ── */
   --background:           var(--color-background);
@@ -118,6 +120,7 @@
   --color-brand:       oklch(0.55 0.18 264);
   --color-brand-hover: oklch(0.48 0.18 264);
   --color-edge:        oklch(0.90 0.00 264);
+  --color-hover:         oklch(0.94 0.00 264);
 
     /* ── Shadcn vars → your tokens ── */
   --background:           var(--color-background);
