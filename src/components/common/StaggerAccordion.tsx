@@ -1,5 +1,5 @@
 
-import type { Navlinks } from '@/types/sidebar';
+import type { Navlinks, SidebarKey } from '@/types/layout';
 import { CollapseArrowIcon } from '../icons'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
@@ -9,12 +9,14 @@ type Props = {
     label: string;
     navlinks: Navlinks[],
     className?: string;
+    activeKey?: SidebarKey;
 }
 
 function StaggerAccordion({
     label,
     navlinks,
-    className
+    className,
+    activeKey
 }: Props) {
 
     const [open, setOpen] = useState(false);
@@ -62,7 +64,7 @@ function StaggerAccordion({
                 <motion.ul
                         initial={'closed'} 
                         animate={open ? 'open' : 'closed'}
-                        className={`space-y-2 pl-2`}
+                        className={`space-y-1 pl-2`}
                         exit={'closed'}
                         variants={navparentVariants}
                         >
@@ -75,7 +77,7 @@ function StaggerAccordion({
                                 duration: 0.2,
                                 ease: 'easeIn'
                             }} >
-                            <Link to={nav.path} className={`text-[13px] text-muted font-medium hover:bg-hover py-1 px-2 rounded-md flex gap-2 items-center ${className}`}>
+                            <Link to={nav.path} className={`text-[13px] text-muted font-medium ${!(activeKey === nav.key) ? 'hover:bg-hover' : ''}  py-0.5 px-2 rounded-md flex gap-2 items-center  ${activeKey === nav.key ? 'bg-selected' : ''}`}>
                             {nav.icon}
                             <span>
                                 {nav.label}

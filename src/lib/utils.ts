@@ -1,8 +1,9 @@
+import type { SidebarKey } from "@/types/layout";
 import { clsx, type ClassValue } from "clsx"
 import { useMatches } from "react-router";
 import { twMerge } from "tailwind-merge"
 
-type RouteHandle = { sidebarKey?: string }
+export type RouteHandle = { sidebarKey?: SidebarKey }
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

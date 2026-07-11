@@ -2,6 +2,7 @@
 import { createBrowserRouter,Navigate } from 'react-router'
 import Landing from '@/Landing'
 import { AuthRoute, ProtectedRoute } from '@/routes/Guards'
+import { sidebarHandle } from './types/layout'
 
 export const router = createBrowserRouter([
   {
@@ -37,22 +38,22 @@ export const router = createBrowserRouter([
             {
               path: 'issues',
               lazy: () => import('@/routes/workspace/issues/Issues'),
-              handle: { sidebarKey: 'issues' },
+              handle: sidebarHandle('issues'),
             },
             {
               path: 'issues/:id',
               lazy: () => import('@/routes/workspace/issues/Issues'),
-              handle: { sidebarKey: 'issues' },
+              handle: sidebarHandle('issues'),
             },
             {
               path: 'projects',
               lazy: () => import('@/routes/workspace/projects/Projects'),
-              handle: { sidebarKey: 'projects' },
+              handle: sidebarHandle('projects'),
             },
             {
               path: 'cycles',
               lazy: () => import('@/routes/workspace/cycles/Cycles'),
-              handle: { sidebarKey: 'issues' },
+              handle: sidebarHandle('cycles'),
             },
         ],
       },

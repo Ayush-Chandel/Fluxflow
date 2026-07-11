@@ -20,7 +20,7 @@ export function CustomTrigger({ isPinned, onPin, onUnpin }: TriggerProps) {
   }
 
   return (
-    <button onClick={handleClick} className="p-1.5 rounded-full bg-elevated border-edge border w-fit absolute left-3 top-3">
+    <button onClick={handleClick} className=" ">
       <BarLeftIcon size={14} />
     </button>
   )

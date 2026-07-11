@@ -1,5 +1,5 @@
 
-import type { Navlinks } from '@/types/sidebar';
+import type { Navlinks } from '@/types/layout';
 import { CollapseArrowIcon } from '../icons'
 import { useState } from 'react';
 
