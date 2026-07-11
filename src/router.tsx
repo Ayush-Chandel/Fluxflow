@@ -29,20 +29,31 @@ export const router = createBrowserRouter([
       {
         path: '/app',
         lazy: () => import('@/components/layout/WorkspaceLayout'),
-        handle: { sidebarKey: 'issues' },
         children: [
-           {
+            {
               index: true,  // ← matches /app exactly
               element: <Navigate to="/app/issues" replace />,
             },
-          {
-            path: 'issues',
-            lazy: () => import('@/routes/workspace/issues/IssuesPage'),
-          },
-          {
-            path: 'issues/:id',
-            lazy: () => import('@/routes/workspace/issues/IssuesPage'),
-          },
+            {
+              path: 'issues',
+              lazy: () => import('@/routes/workspace/issues/Issues'),
+              handle: { sidebarKey: 'issues' },
+            },
+            {
+              path: 'issues/:id',
+              lazy: () => import('@/routes/workspace/issues/Issues'),
+              handle: { sidebarKey: 'issues' },
+            },
+            {
+              path: 'projects',
+              lazy: () => import('@/routes/workspace/projects/Projects'),
+              handle: { sidebarKey: 'projects' },
+            },
+            {
+              path: 'cycles',
+              lazy: () => import('@/routes/workspace/cycles/Cycles'),
+              handle: { sidebarKey: 'issues' },
+            },
         ],
       },
     ],

@@ -1,6 +1,6 @@
 import { authService } from "@/services/authService"
 
-function IssuesPage() {
+function Issues() {
   return (
     <div className="pl-20">
     <div className="text-foreground p-8">Issues — Step 4+</div>
@@ -9,4 +9,4 @@ function IssuesPage() {
   )
 }
 
-export { IssuesPage as Component }
+export { Issues as Component }

@@ -8,6 +8,8 @@ import { useSidebarPin } from '@/hooks/useSidebarPin'
  function WorkspaceLayout() {
 
   const { isPinned, pin, unpin } = useSidebarPin(true); 
+  console.log('here');
+  
 
   return (
     <SidebarProvider >
