@@ -32,8 +32,11 @@ model / stores / routing / rules once so nothing is retrofitted.
   `SideHeader` project-selector popover). `router.tsx` uses `handle: { sidebarKey }` for active state.
 - ✅ **Step 4 — Shared foundation**: `types/{issue,project,cycle,template}.ts`, `lib/idb.ts`,
   `lib/broadcastChannel.ts`, `hooks/useEntitySync.ts` (the sync engine), `store/viewPreferenceStore.ts`.
-- ❌ **Steps 5+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, `api/createIssue.ts`
-  empty (MSW mocks it), no entity stores/services/hooks beyond auth.
+- ✅ **Step 5 — Issue store + `useIssues`**: `store/issueStore.ts` (optimistic CRUD + rollback,
+  reference impl), `hooks/useIssues.ts` (thin `useEntitySync` wrapper), `services/issueService.ts`
+  (client SDK + `fetch(/api/createIssue)`), `types/issue.ts` gains `CreateIssueInput`.
+- ❌ **Steps 6+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, `api/createIssue.ts`
+  empty (MSW mocks it), no entity stores/services/hooks beyond auth + issues.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `@dnd-kit/*`, `framer-motion`,
   `msw`, `sonner`. Design tokens already in `src/index.css`.
 
@@ -103,14 +106,14 @@ project-root/
 │   │
 │   ├── services/
 │   │   ├── authService.ts    ✅
-│   │   ├── issueService.ts   ★ Firestore SDK + fetch(/api/createIssue)
+│   │   ├── issueService.ts   ✅ Firestore SDK + fetch(/api/createIssue)
 │   │   ├── projectService.ts ★ Firestore SDK (client CRUD) + milestones subcollection
 │   │   ├── cycleService.ts   ★ Firestore SDK + fetch(/api/createCycle)
 │   │   └── templateService.ts★ Firestore SDK
 │   │
 │   ├── store/
 │   │   ├── authStore.ts          ✅
-│   │   ├── issueStore.ts         ★ optimistic CRUD + rollback (reference impl)
+│   │   ├── issueStore.ts         ✅ optimistic CRUD + rollback (reference impl)
 │   │   ├── projectStore.ts       ★ + milestone actions
 │   │   ├── cycleStore.ts         ★
 │   │   ├── templateStore.ts      ★
@@ -125,7 +128,7 @@ project-root/
 │   │
 │   ├── hooks/
 │   │   ├── useEntitySync.ts  ✅ generic idb-read + onSnapshot + idb-writeback (the engine)
-│   │   ├── useIssues.ts / useProjects.ts / useCycles.ts / useTemplates.ts ★ thin wrappers
+│   │   ├── useIssues.ts ✅ · useProjects.ts / useCycles.ts / useTemplates.ts ★ thin wrappers
 │   │   └── useViewPreference.ts ★
 │   │
 │   └── mocks/{browser,handlers}.ts  ✅ (extend handlers)
@@ -268,30 +271,35 @@ export function useEntitySync(collectionPath: string, cacheKey: string,
 ```
 
 ### Layer 2 — Optimistic writes (with rollback)
-Reference implementation (issues); every store mutation follows this shape:
+Reference implementation (issues); every store mutation follows this shape. The store is built with
+the **`zustand/middleware/immer`** middleware, so the `set(s => {…})` recipes mutate a draft directly
+(no manual spreads); illustrative `produce()` calls below map 1:1 to those recipes. **Cache format:**
+mutations persist `get().selectAll()` (an **array**) — the SAME shape `useEntitySync` writes back and
+`setAll` reads — never the raw `issues` map, or the next boot's hydration breaks.
 ```ts
-// store/issueStore.ts
+// store/issueStore.ts  — create<IssueState>()(immer((set, get) => ({ … })))
 updateStatus: async (id, status) => {
-  const { user } = useAuthStore.getState()
-  const previous = get().issues[id]
-  set(produce(s => { s.issues[id].status = status }))       // 1. store   (0ms)
-  await idb.set(`issues:${user.workspaceId}`, get().issues) // 2. cache   (0ms)
-  broadcastDelta({ type:'UPDATE', id, patch:{ status } })   // 3. tabs    (~1ms)
+  const { user } = useAuthStore.getState(); if (!user) return
+  const previous = get().issues[id]; if (!previous) return
+  set(s => { s.issues[id].status = status })                       // 1. store   (0ms)
+  await idb.set(cacheKey.issues(user.workspaceId), get().selectAll()) // 2. cache (array!)
+  broadcastDelta({ entity:'issues', type:'UPDATE', id, payload:{ status } }) // 3. tabs (~1ms)
   try { await issueService.updateStatus(user.workspaceId, id, status) } // 4. Firestore
-  catch { set(produce(s => { s.issues[id] = previous })); toast.error('Failed to update') }
+  catch { set(s => { s.issues[id] = previous }); /* re-persist */ toast.error('Failed to update') }
 },
 createIssue: async (data) => {                              // server-sequential create
-  const { user } = useAuthStore.getState()
+  const { user } = useAuthStore.getState(); if (!user) return
   const tempId = `optimistic-${Date.now()}`
-  set(produce(s => { s.issues[tempId] = { ...data, id:tempId, identifier:'LIN-…', status:'backlog' } }))
+  set(s => { s.issues[tempId] = { ...data, id:tempId, identifier:'LIN-…', status:'backlog', …stamps } })
   try { await issueService.create(user.workspaceId, data)  // Vercel Fn → real LIN-xxx
-        set(produce(s => { delete s.issues[tempId] })) }    // onSnapshot delivers real doc
-  catch { set(produce(s => { delete s.issues[tempId] })); toast.error('Failed to create issue') }
+        set(s => { delete s.issues[tempId] }) }             // onSnapshot delivers real doc
+  catch { set(s => { delete s.issues[tempId] }); toast.error('Failed to create issue') }
 },
 ```
 Projects/milestones/templates create **client-side** with Firestore auto-ids — id is known immediately
 via `doc()`, so no temp-id dance; still optimistic + rollback. Only issues & cycles use the temp-id
-pattern because their id/number is server-generated.
+pattern because their id/number is server-generated. **Create input** is a `CreateIssueInput` (user
+fields only); `identifier`/`id`/timestamps/`createdBy` are server-stamped — see §7.
 
 ### Full mutation pipeline
 ```
@@ -454,9 +462,10 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
 3. 🚧 **App shell** — `SidebarNav` (Issues/Projects/Cycles), fill `Topbar`, wire active state
 4. ✅ **Shared foundation** — `types/*`, `lib/idb.ts`, `lib/broadcastChannel.ts`,
    `hooks/useEntitySync.ts`, `viewPreferenceStore`
-5. **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl)
+5. ✅ **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl); immer middleware,
+   array-cache via `selectAll()`, `issueService` + `CreateIssueInput` (Vercel Fn/rules still §7)
 6. **MSW handlers** — `createIssue` (+ `createCycle` mock)
-7. **issueService + `api/createIssue`** — Firestore SDK + Vercel Fn; issue rules
+7. **`api/createIssue`** — Vercel Fn + issue rules (`issueService` already built in step 5)
 8. **Issue List view** — grouped, status dots, priority icons, inline edit
 9. **Issue Kanban view** — dnd-kit + optimistic status update
 10. **Issue detail panel** — framer-motion panel, URL deep-link, inline edit

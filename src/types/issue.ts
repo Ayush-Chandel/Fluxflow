@@ -25,3 +25,11 @@ export interface Issue {
   updatedAt: Timestamp
   createdBy: string
 }
+
+// Fields a client supplies when creating an issue. `identifier`, `id`, timestamps
+// and `createdBy` are server/system-set (Vercel Fn), never passed in. `status`
+// is optional — defaults to 'backlog'.
+export type CreateIssueInput = Pick<
+  Issue,
+  'title' | 'description' | 'priority' | 'assigneeId' | 'labelIds' | 'projectId' | 'milestoneId' | 'cycleId'
+> & { status?: IssueStatus }
