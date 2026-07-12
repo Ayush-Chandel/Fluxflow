@@ -35,7 +35,9 @@ model / stores / routing / rules once so nothing is retrofitted.
 - ✅ **Step 5 — Issue store + `useIssues`**: `store/issueStore.ts` (optimistic CRUD + rollback,
   reference impl), `hooks/useIssues.ts` (thin `useEntitySync` wrapper), `services/issueService.ts`
   (client SDK + `fetch(/api/createIssue)`), `types/issue.ts` gains `CreateIssueInput`.
-- ❌ **Steps 6+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, `api/createIssue.ts`
+- ✅ **Step 6 — MSW handlers**: `src/mocks/handlers.ts` mocks `/api/createIssue`, `/api/createCycle`
+  (both return sequential-ID shapes), and `/api/setWorkspaceClaims` — local dev needs no Admin SDK.
+- ❌ **Steps 7+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, `api/createIssue.ts`
   empty (MSW mocks it), no entity stores/services/hooks beyond auth + issues.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `@dnd-kit/*`, `framer-motion`,
   `msw`, `sonner`. Design tokens already in `src/index.css`.
@@ -464,7 +466,7 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
    `hooks/useEntitySync.ts`, `viewPreferenceStore`
 5. ✅ **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl); immer middleware,
    array-cache via `selectAll()`, `issueService` + `CreateIssueInput` (Vercel Fn/rules still §7)
-6. **MSW handlers** — `createIssue` (+ `createCycle` mock)
+6. ✅ **MSW handlers** — `createIssue` (+ `createCycle` mock)
 7. **`api/createIssue`** — Vercel Fn + issue rules (`issueService` already built in step 5)
 8. **Issue List view** — grouped, status dots, priority icons, inline edit
 9. **Issue Kanban view** — dnd-kit + optimistic status update

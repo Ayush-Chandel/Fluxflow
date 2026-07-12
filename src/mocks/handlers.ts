@@ -11,6 +11,15 @@ export const handlers = [
     })
   }),
 
+  http.post('/api/createCycle', async ({ request }) => {
+    const body = await request.json() as any
+    return HttpResponse.json({
+      id: crypto.randomUUID(),
+      number: Math.floor(Math.random() * 90) + 1,
+      ...body,
+    })
+  }),
+
   http.post('/api/setWorkspaceClaims', () => {
     return HttpResponse.json({ workspaceId: 'mock-workspace' })
   }),
