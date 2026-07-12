@@ -37,8 +37,12 @@ model / stores / routing / rules once so nothing is retrofitted.
   (client SDK + `fetch(/api/createIssue)`), `types/issue.ts` gains `CreateIssueInput`.
 - ✅ **Step 6 — MSW handlers**: `src/mocks/handlers.ts` mocks `/api/createIssue`, `/api/createCycle`
   (both return sequential-ID shapes), and `/api/setWorkspaceClaims` — local dev needs no Admin SDK.
-- ❌ **Steps 7+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, `api/createIssue.ts`
-  empty (MSW mocks it), no entity stores/services/hooks beyond auth + issues.
+- ✅ **Step 7 — `api/createIssue` + issue rules**: `api/createIssue.ts` implemented (verify ID token →
+  workspace-match check → sequential `LIN-N` → `add()` with server-stamped `createdBy`/timestamps);
+  `firestore.rules` replaced the expired permissive template — issues are `read/update/delete`
+  workspace-scoped, `create: if false` (server-only). Other collections' rules deferred to step 18.
+- ❌ **Steps 8+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, no entity
+  stores/services/hooks beyond auth + issues.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `@dnd-kit/*`, `framer-motion`,
   `msw`, `sonner`. Design tokens already in `src/index.css`.
 
@@ -137,10 +141,10 @@ project-root/
 │
 ├── api/
 │   ├── setWorkspaceClaims.ts ✅
-│   ├── createIssue.ts        🚧 empty → implement (LIN-xxx)
+│   ├── createIssue.ts        ✅ verify token → sequential LIN-xxx → add()
 │   └── createCycle.ts        ★ sequential cycle number
 │
-├── firestore.rules          ⚠️ permissive/expiring → replace (Section 8)
+├── firestore.rules          🚧 issues hardened (step 7); rest of §8 pending (step 18)
 ├── firestore.indexes.json   (add issue-by-project / -cycle / -milestone composites)
 ├── firebase.json  .firebaserc  vercel.json  vite.config.ts  tsconfig*.json  .env.local
 ```
@@ -467,7 +471,8 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
 5. ✅ **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl); immer middleware,
    array-cache via `selectAll()`, `issueService` + `CreateIssueInput` (Vercel Fn/rules still §7)
 6. ✅ **MSW handlers** — `createIssue` (+ `createCycle` mock)
-7. **`api/createIssue`** — Vercel Fn + issue rules (`issueService` already built in step 5)
+7. ✅ **`api/createIssue`** — Vercel Fn (verify token → `LIN-N` → `add()`) + issue rules
+   (client create-blocked); `issueService` already built in step 5
 8. **Issue List view** — grouped, status dots, priority icons, inline edit
 9. **Issue Kanban view** — dnd-kit + optimistic status update
 10. **Issue detail panel** — framer-motion panel, URL deep-link, inline edit
