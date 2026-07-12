@@ -8,14 +8,12 @@ import { Link } from 'react-router';
 type Props = {
     label: string;
     navlinks: Navlinks[],
-    className?: string;
     activeKey?: SidebarKey;
 }
 
 function StaggerAccordion({
     label,
     navlinks,
-    className,
     activeKey
 }: Props) {
 

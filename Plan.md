@@ -30,7 +30,9 @@ model / stores / routing / rules once so nothing is retrofitted.
 - 🚧 **Step 3 — App shell (in progress)**: `WorkspaceLayout.tsx` + pinnable/hover-reveal `Sidebar`
   (framer-motion) exist. **`Topbar/Topbar.tsx` empty**, **no sidebar nav items yet** (only
   `SideHeader` project-selector popover). `router.tsx` uses `handle: { sidebarKey }` for active state.
-- ❌ **Steps 4+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, `api/createIssue.ts`
+- ✅ **Step 4 — Shared foundation**: `types/{issue,project,cycle,template}.ts`, `lib/idb.ts`,
+  `lib/broadcastChannel.ts`, `hooks/useEntitySync.ts` (the sync engine), `store/viewPreferenceStore.ts`.
+- ❌ **Steps 5+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, `api/createIssue.ts`
   empty (MSW mocks it), no entity stores/services/hooks beyond auth.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `@dnd-kit/*`, `framer-motion`,
   `msw`, `sonner`. Design tokens already in `src/index.css`.
@@ -73,7 +75,7 @@ project-root/
 │   ├── main.tsx                  theme sync + MSW init (dev) + RouterProvider   ✅
 │   ├── router.tsx                route tree + guards + handle.sidebarKey        ✅ (extend)
 │   │
-│   ├── types/                    ★ shared entity contracts
+│   ├── types/                    ✅ shared entity contracts
 │   │   ├── issue.ts   ├── project.ts   ├── cycle.ts   └── template.ts
 │   │
 │   ├── routes/
@@ -112,17 +114,17 @@ project-root/
 │   │   ├── projectStore.ts       ★ + milestone actions
 │   │   ├── cycleStore.ts         ★
 │   │   ├── templateStore.ts      ★
-│   │   └── viewPreferenceStore.ts★ layout/groupBy/orderBy per viewId (IndexedDB)
+│   │   └── viewPreferenceStore.ts✅ layout/groupBy/orderBy per viewId (IndexedDB)
 │   │
 │   ├── lib/
 │   │   ├── firebase.ts       ✅
 │   │   ├── validation.ts     ✅
 │   │   ├── utils.ts (cn)     ✅
-│   │   ├── idb.ts            ★ idb-keyval get/set helpers
-│   │   └── broadcastChannel.ts ★ channel + broadcastDelta()
+│   │   ├── idb.ts            ✅ idb-keyval get/set helpers
+│   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()
 │   │
 │   ├── hooks/
-│   │   ├── useEntitySync.ts  ★ generic idb-read + onSnapshot + idb-writeback (the engine)
+│   │   ├── useEntitySync.ts  ✅ generic idb-read + onSnapshot + idb-writeback (the engine)
 │   │   ├── useIssues.ts / useProjects.ts / useCycles.ts / useTemplates.ts ★ thin wrappers
 │   │   └── useViewPreference.ts ★
 │   │
@@ -450,7 +452,7 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
 1. ✅ Firebase setup
 2. ✅ Auth flow + guards
 3. 🚧 **App shell** — `SidebarNav` (Issues/Projects/Cycles), fill `Topbar`, wire active state
-4. ★ **Shared foundation** — `types/*`, `lib/idb.ts`, `lib/broadcastChannel.ts`,
+4. ✅ **Shared foundation** — `types/*`, `lib/idb.ts`, `lib/broadcastChannel.ts`,
    `hooks/useEntitySync.ts`, `viewPreferenceStore`
 5. **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl)
 6. **MSW handlers** — `createIssue` (+ `createCycle` mock)
