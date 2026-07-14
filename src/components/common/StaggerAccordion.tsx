@@ -17,7 +17,8 @@ function StaggerAccordion({
     activeKey
 }: Props) {
 
-    const [open, setOpen] = useState(false);
+    const isNavRoute = navlinks.some((nav)=>(activeKey===nav.key));
+    const [open, setOpen] = useState(isNavRoute );
 
     const navparentVariants = {
         open: {
@@ -53,7 +54,9 @@ function StaggerAccordion({
         className='pl-2 space-y-3 '>
         <button onClick={()=>(setOpen((prev)=>(!prev)))} className='flex  items-center hover:bg-hover py-1 px-2 rounded-md w-full'>
             <p className='text-xs font-medium text-muted'>{label}</p>
-            <CollapseArrowIcon size={18} className='fill-muted' />
+            <span className={`${open ? 'rotate-90' : 'rotate-0'}`}>
+                <CollapseArrowIcon size={18} className='fill-muted' />
+            </span>
         </button>
         
         <AnimatePresence >

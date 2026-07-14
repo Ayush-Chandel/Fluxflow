@@ -1,11 +1,16 @@
-import { authService } from "@/services/authService"
+import IssueListView from "@/components/issues/IssueListView"
+import { useIssueStore } from "@/store/issueStore"
+import { useMemo } from "react"
+
 
 function Issues() {
+
+  // Subscribe only to the issues map; rebuild the array when it actually changes.
+  const issuesMap = useIssueStore((s) => s.issues)
+  const issues = useMemo(() => Object.values(issuesMap), [issuesMap])
+
   return (
-    <div className="pl-20">
-    <div className="text-foreground p-8">Issues — Step 4+</div>
-  <button onClick={()=>{authService.signOut()}} className="text-black">Sign Out</button>
-  </div>
+    <IssueListView issues={issues} />
   )
 }
 

@@ -1,6 +1,7 @@
 import {  ChevronDownIcon,  ExternalLinkIcon } from '../../icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
+import { authService } from '@/services/authService'
 
 type Props = {}
 
@@ -19,6 +20,7 @@ function SideHeader({}: Props) {
         </PopoverTrigger>
         <PopoverContent>
           <div>test</div>
+          <button onClick={()=>{authService.signOut()}} className="text-black">Sign Out</button>
         </PopoverContent>
       </Popover>
         

@@ -12,6 +12,7 @@
   /* Typography */
   --font-sans:    'Geist Variable', sans-serif;
   --font-heading: var(--font-sans);
+  --text-lsm: 13px;
 
   --radius: 0.5rem;
 
@@ -25,7 +26,9 @@
   --color-brand-hover: var(--color-brand-hover);
   --color-edge:        var(--color-edge);
   --color-hover:       var(--color-hover);
+  --color-light-hover: var(--color-light-hover);
   --color-selected:    var(--color-selected);
+  --color-raised:      var(--color-raised);
 
   /* ── Shadcn token bridges ── */
   --color-card:                 var(--card);
@@ -71,7 +74,9 @@
   --color-brand-hover: oklch(0.62 0.18 264);
   --color-edge:        oklch(0.22 0.00 264);
   --color-hover:       oklch(0.95 0.00 264);
+  --color-light-hover: oklch(0.97 0.00 264);
   --color-selected:    oklch(0.92 0.00 264);
+  --color-raised:      oklch(0.97 0.00 264);
 
   /* ── Shadcn vars → your tokens ── */
   --background:           var(--color-background);
@@ -123,7 +128,9 @@
   --color-brand-hover: oklch(0.48 0.18 264);
   --color-edge:        oklch(0.90 0.00 264);
   --color-hover:       oklch(0.95 0.00 264);
+  --color-light-hover: oklch(0.98 0.00 264);
   --color-selected:    oklch(0.92 0.00 264);
+  --color-raised:      oklch(0.97 0.00 264);
 
     /* ── Shadcn vars → your tokens ── */
   --background:           var(--color-background);

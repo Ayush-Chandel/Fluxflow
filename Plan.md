@@ -41,8 +41,14 @@ model / stores / routing / rules once so nothing is retrofitted.
   workspace-match check → sequential `LIN-N` → `add()` with server-stamped `createdBy`/timestamps);
   `firestore.rules` replaced the expired permissive template — issues are `read/update/delete`
   workspace-scoped, `create: if false` (server-only). Other collections' rules deferred to step 18.
-- ❌ **Steps 8+ not started**: `IssuesPage.tsx` stub, `components/issues/` empty, no entity
-  stores/services/hooks beyond auth + issues.
+- ✅ **Step 8 — Issue List view**: `components/issues/{IssueListView,IssueRow,IssueCommandBox}.tsx` +
+  `components/common/constants/constants.tsx` (`ISSUE_MAP`/`PRIORITY_MAP`). `IssuesPage` reads the store
+  (`useIssueStore(s => s.issues)` → memoized array), groups by status (hides empty groups, real counts),
+  rows show identifier/title/priority/status/relative-date with inline status/priority edit wired to the
+  optimistic store (`updateStatus`/`updateIssue`); `IssueCommandBox` is the reusable picker. Avatar/label/
+  sub-issue metadata left static (no member/label entity yet — §11+). `useIssues()` wired in
+  `WorkspaceLayout`. `tsc` clean.
+- ❌ **Steps 9+ not started**: no Kanban/detail-panel, no entity stores/services/hooks beyond auth + issues.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `@dnd-kit/*`, `framer-motion`,
   `msw`, `sonner`. Design tokens already in `src/index.css`.
 
@@ -473,7 +479,14 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
 6. ✅ **MSW handlers** — `createIssue` (+ `createCycle` mock)
 7. ✅ **`api/createIssue`** — Vercel Fn (verify token → `LIN-N` → `add()`) + issue rules
    (client create-blocked); `issueService` already built in step 5
-8. **Issue List view** — grouped, status dots, priority icons, inline edit
+8. ✅ **Issue List view** — grouped-by-status sections (header + real count, empty groups hidden), status
+   dots, priority icons, inline status/priority edit wired to the optimistic store. **Row target = full
+   Linear row** (avatar · labels · date · sub-issue count) but only renders what data exists today:
+   identifier/title/status/priority/relative-date. Deferred as no data model yet: assignee **avatars**
+   (only `assigneeId` — no member entity until §11 Projects), **label pills** (no labels entity in §4;
+   `labelIds` is bare `string[]`), **sub-issue count** (no parent/child field). Explicitly NOT here:
+   filter pills (All/Active/Backlog → §17), group-header `+` create (→ §14), row-select checkbox
+   (unscoped), row→detail navigation (→ §10).
 9. **Issue Kanban view** — dnd-kit + optimistic status update
 10. **Issue detail panel** — framer-motion panel, URL deep-link, inline edit
 11. ★ **Projects** — store/service/hook + ProjectsPage + ProjectDetail (Overview/Issues); project rules

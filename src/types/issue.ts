@@ -4,7 +4,8 @@ import type { Timestamp } from 'firebase/firestore'
 // Derive the union from a runtime tuple so views can iterate the values
 // (columns, filters) AND get compile-time narrowing from the same source.
 export const ISSUE_STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const
-export type IssueStatus = (typeof ISSUE_STATUSES)[number]
+export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
 
 export const ISSUE_PRIORITIES = ['urgent', 'high', 'medium', 'low', 'no_priority'] as const
 export type IssuePriority = (typeof ISSUE_PRIORITIES)[number]

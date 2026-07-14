@@ -5,12 +5,15 @@ import { CustomTrigger } from './sidebar/CustomTrigger'
 import { useSidebarPin } from '@/hooks/useSidebarPin'
 import type { NavLabel, SidebarKey } from '@/types/layout'
 import { useSidebarKey } from '@/lib/utils'
+import { useIssues } from '@/hooks/useIssues'
 
  function WorkspaceLayout() {
 
   const { isPinned, pin, unpin } = useSidebarPin(true); 
 
   const activeKey:SidebarKey = useSidebarKey()?.sidebarKey;
+
+  useIssues();
 
   const labelGroup:NavLabel[] = [
           {
