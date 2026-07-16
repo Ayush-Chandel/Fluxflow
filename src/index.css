@@ -25,10 +25,12 @@
   --color-brand:       var(--color-brand);
   --color-brand-hover: var(--color-brand-hover);
   --color-edge:        var(--color-edge);
+  --color-edge-subtle: var(--color-edge-subtle);
   --color-hover:       var(--color-hover);
-  --color-light-hover: var(--color-light-hover);
+  --color-hover-subtle: var(--color-hover-subtle);
   --color-selected:    var(--color-selected);
   --color-raised:      var(--color-raised);
+  --color-raised-high: var(--color-raised-high);
 
   /* ── Shadcn token bridges ── */
   --color-card:                 var(--card);
@@ -73,10 +75,12 @@
   --color-brand:       oklch(0.55 0.18 264);
   --color-brand-hover: oklch(0.62 0.18 264);
   --color-edge:        oklch(0.22 0.00 264);
+  --color-edge-subtle: oklch(0.19 0.00 264);
   --color-hover:       oklch(0.95 0.00 264);
-  --color-light-hover: oklch(0.97 0.00 264);
+  --color-hover-subtle: oklch(0.97 0.00 264);
   --color-selected:    oklch(0.92 0.00 264);
   --color-raised:      oklch(0.97 0.00 264);
+  --color-raised-high: oklch(1.00 0.00 264);
 
   /* ── Shadcn vars → your tokens ── */
   --background:           var(--color-background);
@@ -86,7 +90,7 @@
   --popover:              var(--color-elevated);
   --popover-foreground:   var(--color-foreground);
   --primary:              var(--color-brand);
-  --primary-foreground:   oklch(1.00 0.00 264);
+  --primary-foreground:   oklch(0.99 0.00 264);
   --secondary:            var(--color-elevated);
   --secondary-foreground: var(--color-foreground);
   --muted:                var(--color-elevated);
@@ -109,7 +113,7 @@
   --sidebar:                    var(--color-surface);
   --sidebar-foreground:         var(--color-foreground);
   --sidebar-primary:            var(--color-brand);
-  --sidebar-primary-foreground: oklch(1.00 0.00 264);
+  --sidebar-primary-foreground: oklch(0.99 0.00 264);
   --sidebar-accent:             var(--color-elevated);
   --sidebar-accent-foreground:  var(--color-foreground);
   --sidebar-border:             var(--color-edge);
@@ -120,17 +124,19 @@
 [data-theme="light"] {
   /* Only override your tokens — shadcn vars cascade automatically */
   --color-background:  oklch(0.97 0.00 264);
-  --color-surface:     oklch(1.00 0.00 264);
+  --color-surface:     oklch(0.99 0.00 264);
   --color-elevated:    oklch(0.94 0.00 264);
   --color-foreground:  oklch(0.14 0.00 264);
   --color-muted:       oklch(0.48 0.00 264);
   --color-brand:       oklch(0.55 0.18 264);
   --color-brand-hover: oklch(0.48 0.18 264);
   --color-edge:        oklch(0.90 0.00 264);
+  --color-edge-subtle: oklch(0.95 0.00 264);
   --color-hover:       oklch(0.95 0.00 264);
-  --color-light-hover: oklch(0.98 0.00 264);
+  --color-hover-subtle: oklch(0.98 0.00 264);
   --color-selected:    oklch(0.92 0.00 264);
   --color-raised:      oklch(0.97 0.00 264);
+  --color-raised-high: oklch(1.00 0.00 264);
 
     /* ── Shadcn vars → your tokens ── */
   --background:           var(--color-background);
@@ -140,7 +146,7 @@
   --popover:              var(--color-elevated);
   --popover-foreground:   var(--color-foreground);
   --primary:              var(--color-brand);
-  --primary-foreground:   oklch(1.00 0.00 264);
+  --primary-foreground:   oklch(0.99 0.00 264);
   --secondary:            var(--color-elevated);
   --secondary-foreground: var(--color-foreground);
   --muted:                var(--color-elevated);
@@ -156,7 +162,7 @@
   --sidebar:                    var(--color-surface);
   --sidebar-foreground:         var(--color-foreground);
   --sidebar-primary:            var(--color-brand);
-  --sidebar-primary-foreground: oklch(1.00 0.00 264);
+  --sidebar-primary-foreground: oklch(0.99 0.00 264);
   --sidebar-accent:             var(--color-elevated);
   --sidebar-accent-foreground:  var(--color-foreground);
   --sidebar-border:             var(--color-edge);

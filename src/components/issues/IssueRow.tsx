@@ -17,10 +17,10 @@ function IssueRow({issue}: IssueProps) {
     const updateIssue = useIssueStore((s)=>s.updateIssue);
 
     return (
-    <div className='w-full h-fit px-5 my-1 py-1 hover:bg-light-hover
+    <div className='w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle
                    flex items-center gap-1 justify-between rounded-md text-foreground text-lsm'>
 
-        <div className='flex items-center gap-1'>
+        <div className='flex items-center gap-1 flex-1 min-w-0'>
             <IssueCommandBox
                 value={issue.priority}
                 onValueChange={(value)=>{updateIssue(issue.id,{priority:value})}}
@@ -38,15 +38,15 @@ function IssueRow({issue}: IssueProps) {
                 placeholder="Change Status to..."
                 triggerClassName='!px-1'
             />
-            <span className='text-lsm'>{issue?.title}</span>
+            <span className='text-lsm min-w-0 max-w-[70%] truncate'>{issue.title}</span>
         </div>
-        <div className='flex items-center gap-2'>
-            <Badge variant="outline" className='border-edge text-muted flex items-center gap-1.5 bg-surface'>
+        <div className='flex items-center gap-2 shrink-0'>
+            <Badge variant="outline" className='hidden  border-edge text-muted md:flex items-center gap-1.5 bg-surface'>
                 <span className='rounded-full bg-[oklch(0.72_0.17_302)] h-2 w-2'></span>
                 Outline
             </Badge>
             <AssigneeIcon color='currentColor' className='text-muted'/>
-            <span className='text-muted'>{formatRelativeTime(issue?.updatedAt)}</span>
+            <span className='text-muted hidden sm:inline'>{formatRelativeTime(issue?.updatedAt)}</span>
         </div>
     </div>
   )

@@ -14,7 +14,7 @@ function SidebarContent({open, isHoverReveal,handleMouseLeave}: SideBarContentPr
 
       <motion.div
         className={cn(
-          "fixed left-0 top-0 z-40 h-screen w-[17%] p-4 pr-3 bg-background",
+          "fixed left-0 top-0 z-40 h-screen w-[200px] p-4 pr-3 bg-background",
           isHoverReveal && "shadow-2xl rounded-r-xl"
         )}
         animate={{ x: open ? 0 : "-100%" }}
