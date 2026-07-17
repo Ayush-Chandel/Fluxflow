@@ -41,7 +41,7 @@ export const MOCK_ISSUES: Issue[] = [
   },
   {
     id: 'mock-3',
-    identifier: 'UIP-2',
+    identifier: 'UIP-3',
     title: 'Set up your teams',
     description: '',
     status: 'todo',
@@ -57,7 +57,7 @@ export const MOCK_ISSUES: Issue[] = [
   },
   {
     id: 'mock-4',
-    identifier: 'UIP-2',
+    identifier: 'UIP-4',
     title: 'Set up your teams',
     description: '',
     status: 'todo',
@@ -73,7 +73,7 @@ export const MOCK_ISSUES: Issue[] = [
   },
   {
     id: 'mock-5',
-    identifier: 'UIP-3',
+    identifier: 'UIP-5',
     title: 'Connect your tools',
     description: '',
     status: 'todo',
@@ -89,7 +89,7 @@ export const MOCK_ISSUES: Issue[] = [
   },
   {
     id: 'mock-6',
-    identifier: 'UIP-4',
+    identifier: 'UIP-6',
     title: 'Import your data',
     description: '',
     status: 'todo',

@@ -197,6 +197,9 @@ workspaces/{workspaceId}/
 │     projectId    string|null   ★     ← issue belongs to a project
 │     milestoneId  string|null   ★     ← issue belongs to a project milestone
 │     cycleId      string|null   ★     ← issue scoped into a cycle
+│     sortOrder    number?             ← manual position in list/board group (fractional
+│                                        indexing; absent → createdAt-millis fallback,
+│                                        see lib/issueOrdering.ts)
 │     createdAt, updatedAt, createdBy
 │
 ├── projects/{projectId}                ★

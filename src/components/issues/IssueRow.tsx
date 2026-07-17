@@ -1,25 +1,30 @@
-import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue, type IssuePriority, type IssueStatus } from '@/types/issue';
-import { useState } from 'react'
+import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue } from '@/types/issue';
+import { memo } from 'react'
 import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
 import IssueCommandBox from './IssueCommandBox';
 import { Badge } from '../ui/badge';
 import { AssigneeIcon } from '../icons';
 import { formatRelativeTime } from '@/lib/date';
 import { useIssueStore } from '@/store/issueStore';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 type IssueProps = {
     issue: Issue
+    /** true when rendered inside <DragOverlay> — not a drag source itself */
+    isOverlay?: boolean
 }
 
-function IssueRow({issue}: IssueProps) {
+// Row body, memoized. dnd-kit re-renders every sortable on each drag move; the
+// shell below is cheap, and since `issue` is reference-stable between store
+// writes, memo skips this whole subtree (pickers, badge, date) during drags.
+const IssueRowContent = memo(function IssueRowContent({issue}: {issue: Issue}) {
 
     const updateStatus = useIssueStore((s)=>s.updateStatus);
     const updateIssue = useIssueStore((s)=>s.updateIssue);
 
     return (
-    <div className='w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle
-                   flex items-center gap-1 justify-between rounded-md text-foreground text-lsm'>
-
+    <>
         <div className='flex items-center gap-1 flex-1 min-w-0'>
             <IssueCommandBox
                 value={issue.priority}
@@ -48,6 +53,29 @@ function IssueRow({issue}: IssueProps) {
             <AssigneeIcon color='currentColor' className='text-muted'/>
             <span className='text-muted hidden sm:inline'>{formatRelativeTime(issue?.updatedAt)}</span>
         </div>
+    </>
+    )
+});
+
+function IssueRow({issue, isOverlay}: IssueProps) {
+
+    // Sortable = draggable + a position inside its group's SortableContext,
+    // so sibling rows animate apart while a drag hovers over them.
+    const {setNodeRef, listeners, attributes, isDragging, transform, transition} = useSortable({
+        id: issue.id,
+        disabled: isOverlay,
+    });
+
+    return (
+    <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        style={{transform: CSS.Transform.toString(transform), transition}}
+        className={`w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle touch-none
+                   flex items-center gap-1 justify-between hover:rounded-md text-foreground text-lsm
+                   ${isDragging ? 'opacity-40' : ''} ${isOverlay ? 'shadow-lg bg-surface' : ''}`}>
+        <IssueRowContent issue={issue}/>
     </div>
   )
 }

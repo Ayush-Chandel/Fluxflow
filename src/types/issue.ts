@@ -22,6 +22,9 @@ export interface Issue {
   projectId: string | null // issue belongs to a project
   milestoneId: string | null // issue belongs to a project milestone
   cycleId: string | null // issue scoped into a cycle
+  // Manual position within a status group (fractional indexing: drops write the
+  // midpoint of the new neighbours' keys).
+  sortOrder?: number
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
