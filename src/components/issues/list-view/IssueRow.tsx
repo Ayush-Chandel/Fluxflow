@@ -1,9 +1,9 @@
 import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue } from '@/types/issue';
 import { memo } from 'react'
-import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
-import IssueCommandBox from './IssueCommandBox';
-import { Badge } from '../ui/badge';
-import { AssigneeIcon } from '../icons';
+import { ISSUE_MAP, PRIORITY_MAP } from '../../common/constants/constants';
+import IssueCommandBox from '../IssueCommandBox';
+import { Badge } from '../../ui/badge';
+import { AssigneeIcon } from '../../icons';
 import { formatRelativeTime } from '@/lib/date';
 import { useIssueStore } from '@/store/issueStore';
 import { useSortable } from '@dnd-kit/sortable';

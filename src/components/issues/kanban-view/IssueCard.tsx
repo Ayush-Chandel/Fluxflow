@@ -1,11 +1,11 @@
 import { useIssueStore } from '@/store/issueStore';
 import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue } from '@/types/issue'
 import { memo } from 'react'
-import IssueCommandBox from './IssueCommandBox';
-import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
-import { AssigneeIcon } from '../icons';
+import IssueCommandBox from '../IssueCommandBox';
+import { ISSUE_MAP, PRIORITY_MAP } from '../../common/constants/constants';
+import { AssigneeIcon } from '../../icons';
 import { formatRelativeTime } from '@/lib/date';
-import { Badge } from '../ui/badge';
+import { Badge } from '../../ui/badge';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';

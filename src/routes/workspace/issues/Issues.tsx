@@ -1,8 +1,8 @@
-import IssueListView from "@/components/issues/IssueListView"
+import IssueListView from "@/components/issues/list-view/IssueListView"
 import { useIssueStore } from "@/store/issueStore"
 import { useMemo } from "react"
 import { MOCK_ISSUES } from "@/components/issues/__mockIssues" // TEMP: remove with the mock file
-import IssueKanbanView from "@/components/issues/IssueKanbanView"
+import IssueKanbanView from "@/components/issues/kanban-view/IssueKanbanView"
 
 function Issues() {
 

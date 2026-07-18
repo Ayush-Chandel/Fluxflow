@@ -1,5 +1,5 @@
-import { MoreIcon } from '../icons';
-import { ISSUE_MAP } from '../common/constants/constants';
+import { MoreIcon } from '../../icons';
+import { ISSUE_MAP } from '../../common/constants/constants';
 import IssueCard from './IssueCard';
 import { PlusIcon } from 'lucide-react';
 import { useDroppable,

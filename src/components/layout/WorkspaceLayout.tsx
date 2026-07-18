@@ -41,7 +41,7 @@ import { useIssues } from '@/hooks/useIssues'
               <CustomTrigger isPinned={isPinned} onPin={pin} onUnpin={unpin} />
               <span className='text-sm text-foreground'>{topLabel}</span>
             </div>
-          <div className='flex-1 min-h-0 overflow-auto flex flex-col'>
+          <div className='flex-1 min-h-0 relative flex flex-col'>
             <Outlet />
           </div>
         </main>

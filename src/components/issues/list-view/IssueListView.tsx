@@ -1,9 +1,9 @@
 import { useViewPreferenceStore } from '@/store/viewPreferenceStore';
 import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
 import { useState } from 'react'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { CollapseArrowIcon } from '../icons';
-import { ISSUE_MAP } from '../common/constants/constants';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion';
+import { CollapseArrowIcon } from '../../icons';
+import { ISSUE_MAP } from '../../common/constants/constants';
 import IssueRow from './IssueRow';
 import { useIssueStore } from '@/store/issueStore';
 import { getDropAfterPatch, sortIssues } from '@/lib/issueOrdering';
