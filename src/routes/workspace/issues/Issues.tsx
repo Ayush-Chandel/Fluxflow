@@ -15,8 +15,8 @@ function Issues() {
 
   return (
     <>
-     {/* <IssueListView issues={rows} /> */}
-     <IssueKanbanView issues={rows} />
+     <IssueListView issues={rows} />
+     {/* <IssueKanbanView issues={rows} /> */}
     </>
   )
 }

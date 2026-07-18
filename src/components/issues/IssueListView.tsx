@@ -1,21 +1,40 @@
 import { useViewPreferenceStore } from '@/store/viewPreferenceStore';
-import { ISSUE_STATUSES, type Issue } from '@/types/issue'
+import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
 import { useState } from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { CollapseArrowIcon } from '../icons';
 import { ISSUE_MAP } from '../common/constants/constants';
 import IssueRow from './IssueRow';
 import { useIssueStore } from '@/store/issueStore';
-import { getDropPatch, sortIssues } from '@/lib/issueOrdering';
+import { getDropAfterPatch, sortIssues } from '@/lib/issueOrdering';
 import {
     closestCorners,
-    DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
+    DndContext, DragOverlay, PointerSensor, useDroppable, useSensor, useSensors,
     type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
+
+const keepRowsInPlace: SortingStrategy = () => null;
 
 type IssueListProps = {
     issues:Issue[];
+}
+
+function GroupHeader({status, count}: {status: IssueStatus; count: number}) {
+    const {setNodeRef, isOver} = useDroppable({id: status});
+
+    return (
+        <div ref={setNodeRef} className={`w-full h-fit px-2
+            flex items-center gap-2  bg-raised hover:rounded-md text-foreground text-lsm
+            ${isOver ? 'shadow-[0_1px_0_0_var(--color-brand)] ' : ''}`}>
+            <AccordionTrigger className='py-2'>
+                <CollapseArrowIcon size={18}/>
+            </AccordionTrigger>
+            {ISSUE_MAP[status].icon}
+            <span >{ISSUE_MAP[status].label}</span>
+            <span>{count}</span>
+        </div>
+    )
 }
 
 function IssueListView({issues}: IssueListProps) {
@@ -43,8 +62,9 @@ function IssueListView({issues}: IssueListProps) {
     if (!over) return;
     const issue = issues.find((i)=>i.id === active.id);
     if (!issue) return;
-    // Persist status + position in one optimistic write (rollback in the store).
-    const patch = getDropPatch(issue, String(over.id), groupedIssues);
+    // Land the row right below the one the indicator line was under —
+    // one optimistic write (rollback in the store).
+    const patch = getDropAfterPatch(issue, String(over.id), groupedIssues);
     if (patch) updateIssue(issue.id, patch);
   };
 
@@ -66,17 +86,9 @@ function IssueListView({issues}: IssueListProps) {
                     type="single" collapsible defaultValue="item-1">
                     <AccordionItem value="item-1"
                     >
-                           <div className='w-full h-fit px-2
-                            flex items-center gap-2 rounded-md bg-raised text-foreground text-lsm'>
-                            <AccordionTrigger className='py-2'>
-                                <CollapseArrowIcon size={18}/>
-                            </AccordionTrigger>
-                            {ISSUE_MAP[status].icon}
-                            <span >{ISSUE_MAP[status].label}</span>
-                            <span>{group.length}</span>
-                           </div>
+                           <GroupHeader status={status} count={group.length}/>
                         <AccordionContent className='pb-0'>
-                            <SortableContext items={group.map((issue)=>issue.id)} strategy={verticalListSortingStrategy}>
+                            <SortableContext items={group.map((issue)=>issue.id)} strategy={keepRowsInPlace}>
                                 {group.map((issue)=>(
                                     <IssueRow key={issue.id} issue={issue} />
                                 ))}

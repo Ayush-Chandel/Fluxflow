@@ -11,7 +11,6 @@ import { CSS } from '@dnd-kit/utilities';
 
 type IssueProps = {
     issue: Issue
-    /** true when rendered inside <DragOverlay> — not a drag source itself */
     isOverlay?: boolean
 }
 
@@ -59,12 +58,16 @@ const IssueRowContent = memo(function IssueRowContent({issue}: {issue: Issue}) {
 
 function IssueRow({issue, isOverlay}: IssueProps) {
 
-    // Sortable = draggable + a position inside its group's SortableContext,
-    // so sibling rows animate apart while a drag hovers over them.
-    const {setNodeRef, listeners, attributes, isDragging, transform, transition} = useSortable({
+
+    const {setNodeRef, listeners, attributes, isDragging, over, active, transform, transition} = useSortable({
         id: issue.id,
         disabled: isOverlay,
+        animateLayoutChanges: () => true,
     });
+
+    // A drag is hovering this row (and it isn't the dragged row itself).
+    const isDropTarget = !isOverlay && active != null
+        && over?.id === issue.id && active.id !== issue.id;
 
     return (
     <div
@@ -74,7 +77,8 @@ function IssueRow({issue, isOverlay}: IssueProps) {
         style={{transform: CSS.Transform.toString(transform), transition}}
         className={`w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle touch-none
                    flex items-center gap-1 justify-between hover:rounded-md text-foreground text-lsm
-                   ${isDragging ? 'opacity-40' : ''} ${isOverlay ? 'shadow-lg bg-surface' : ''}`}>
+                   ${isDragging ? 'opacity-40' : ''} ${isOverlay ? 'shadow-lg bg-surface' : ''}
+                   ${isDropTarget ? 'shadow-[0_1px_0_0_var(--color-brand)]' : ''}`}>
         <IssueRowContent issue={issue}/>
     </div>
   )

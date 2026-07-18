@@ -19,6 +19,47 @@ export function sortIssues(issues: Issue[]): Issue[] {
   return [...issues].sort((a, b) => getIssueSortKey(a) - getIssueSortKey(b))
 }
 
+// Key that sorts strictly between two neighbours (either side may be absent —
+// start/end of a group; both absent = empty group, stay on the shared scale).
+export function orderBetween(prev?: Issue, next?: Issue): number {
+  return prev && next ? (getIssueSortKey(prev) + getIssueSortKey(next)) / 2
+    : prev ? getIssueSortKey(prev) + ORDER_STEP
+    : next ? getIssueSortKey(next) - ORDER_STEP
+    : Date.now()
+}
+
+// "Insert directly after the hovered row" drop — the list view's line-indicator
+// pattern: rows never move during the drag; a line under the hovered row marks
+// the landing slot. Returns null when the drop wouldn't change anything.
+export function getDropAfterPatch(
+  active: Issue,
+  overId: string,
+  groups: Record<string, Issue[]>, // keyed by status, each group already sorted
+): { status: IssueStatus; sortOrder: number } | null {
+  if (overId === active.id) return null
+
+  const overIssue = Object.values(groups).flat().find((i) => i.id === overId)
+  const status = overIssue?.status
+    ?? (ISSUE_STATUSES.includes(overId as IssueStatus) ? (overId as IssueStatus) : null)
+  if (!status) return null
+
+  const column = groups[status] ?? []
+  const without = column.filter((i) => i.id !== active.id)
+
+  // Dropped on the group header (overId is the status itself) → top of the group.
+  if (!overIssue) {
+    if (status === active.status && column[0]?.id === active.id) return null // already first
+    return { status, sortOrder: orderBetween(undefined, without[0]) }
+  }
+
+  // Already sitting directly after the hovered row → no-op.
+  const activeIdx = column.findIndex((i) => i.id === active.id)
+  if (status === active.status && activeIdx !== -1 && column[activeIdx - 1]?.id === overId) return null
+
+  const idx = without.findIndex((i) => i.id === overId)
+  return { status, sortOrder: orderBetween(without[idx], without[idx + 1]) }
+}
+
 // Translate a dnd drop (the dragged issue + whatever it was released over: a
 // card/row id or a status-column id) into the fields to persist.
 // Returns null when the drop wouldn't change anything.
@@ -57,11 +98,5 @@ export function getDropPatch(
     if (column[fromIdx - 1]?.id === prev?.id && column[fromIdx + 1]?.id === next?.id) return null
   }
 
-  const sortOrder =
-    prev && next ? (getIssueSortKey(prev) + getIssueSortKey(next)) / 2
-    : prev ? getIssueSortKey(prev) + ORDER_STEP
-    : next ? getIssueSortKey(next) - ORDER_STEP
-    : Date.now() // empty column: any key works; stay on the shared scale
-
-  return { status, sortOrder }
+  return { status, sortOrder: orderBetween(prev, next) }
 }

@@ -65,9 +65,10 @@ function IssueCard({issue, isOverlay}: IssueCardProps) {
     const {setNodeRef, listeners, attributes, isDragging, transform, transition} = useSortable({
         id: issue.id,
         disabled: isOverlay,
+        animateLayoutChanges: () => true,
         transition: {
         duration: 300,
-        easing: 'cubic-bezier(0.25, 1, 0.5, 1)',   // fast start, long soft landing
+        easing: 'cubic-bezier(0.25, 1, 0.5, 1)',   // fast start, long soft landing,
     },
 
     });
