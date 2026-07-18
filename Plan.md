@@ -48,9 +48,22 @@ model / stores / routing / rules once so nothing is retrofitted.
   optimistic store (`updateStatus`/`updateIssue`); `IssueCommandBox` is the reusable picker. Avatar/label/
   sub-issue metadata left static (no member/label entity yet — §11+). `useIssues()` wired in
   `WorkspaceLayout`. `tsc` clean.
-- ❌ **Steps 9+ not started**: no Kanban/detail-panel, no entity stores/services/hooks beyond auth + issues.
-- **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `@dnd-kit/*`, `framer-motion`,
-  `msw`, `sonner`. Design tokens already in `src/index.css`.
+- ✅ **Step 9 — Issue Kanban view + manual reordering (both views)**:
+  `components/issues/{IssueKanbanView,KanbanColumn,IssueCard}.tsx` — dnd-kit sortable columns with a
+  `DragOverlay` ghost. Cross-column drag uses the ephemeral-groups `onDragOver` pattern (board renders
+  a drag-local copy; hovered column parts live; drop commits exactly the visual slot;
+  `MeasuringStrategy.Always`). Position persists via `sortOrder?: number` on Issue (§4): fractional
+  indexing on the createdAt-millis scale — helpers in `lib/issueOrdering.ts` (`getIssueSortKey` /
+  `sortIssues` / `orderBetween`; `getDropPatch` = arrayMove semantics for the board,
+  `getDropAfterPatch` = insert-after for the list). List view reorders with the indicator-line
+  pattern instead of rows parting (no-op `SortingStrategy`; brand line under hovered row = "lands
+  after me"; droppable group header = top-of-group target). Card/row bodies memoized
+  (`IssueCardContent`/`IssueRowContent`) so dnd's per-move re-renders stay cheap. One optimistic
+  `updateIssue({status, sortOrder})` per drop, rollback in the store. Known gap: list view can't
+  target empty groups (hidden — no header to drop on).
+- ❌ **Steps 10+ not started**: no detail panel, no entity stores/services/hooks beyond auth + issues.
+- **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
+  `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
 **Locked decisions:** Milestones included now · Cycles = manual MVP (no auto-schedule / no rollover) ·
 Templates = issue templates only · full data pipeline (IndexedDB + onSnapshot + optimistic +
@@ -109,8 +122,8 @@ project-root/
 │   │   │   ├── Topbar/Topbar.tsx    🚧 empty → fill (title, view toggle, filter chips, create btn)
 │   │   │   └── sidebar/{Sidebar,SidebarContent,SideHeader,CustomTrigger}.tsx ✅
 │   │   │        └── SidebarNav.tsx  ★ Issues / Projects / Cycles / Settings nav
-│   │   ├── issues/     ★ IssueListView, IssueKanbanView, IssueRow, IssueCard,
-│   │   │                 IssueDetailPanel, TemplatePicker
+│   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow,
+│   │   │                 IssueCard, IssueCommandBox ✅ · IssueDetailPanel, TemplatePicker ★
 │   │   ├── projects/   ★ ProjectListView, ProjectCard, ProjectDetail, MilestoneList, ProgressBar
 │   │   ├── cycles/     ★ CycleListView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
@@ -136,6 +149,7 @@ project-root/
 │   │   ├── validation.ts     ✅
 │   │   ├── utils.ts (cn)     ✅
 │   │   ├── idb.ts            ✅ idb-keyval get/set helpers
+│   │   ├── issueOrdering.ts  ✅ fractional sortOrder keys + drop → {status, sortOrder} patches
 │   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()
 │   │
 │   ├── hooks/
@@ -490,7 +504,9 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
    `labelIds` is bare `string[]`), **sub-issue count** (no parent/child field). Explicitly NOT here:
    filter pills (All/Active/Backlog → §17), group-header `+` create (→ §14), row-select checkbox
    (unscoped), row→detail navigation (→ §10).
-9. **Issue Kanban view** — dnd-kit + optimistic status update
+9. ✅ **Issue Kanban view** — dnd-kit sortable columns + DragOverlay; ephemeral `onDragOver` groups
+   for cross-column; fractional `sortOrder` reordering in BOTH views (list = indicator-line
+   pattern, header = top-of-group); `lib/issueOrdering.ts` helpers
 10. **Issue detail panel** — framer-motion panel, URL deep-link, inline edit
 11. ★ **Projects** — store/service/hook + ProjectsPage + ProjectDetail (Overview/Issues); project rules
 12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
