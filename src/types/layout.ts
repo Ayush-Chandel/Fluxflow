@@ -6,6 +6,7 @@ export type SidebarKey = 'projects' | 'issues' | 'cycles' | undefined;
 export type NavLabel = {
     label: string;
     key: SidebarKey;
+    path: string;
 }
 
 export type Navlinks = NavLabel & {

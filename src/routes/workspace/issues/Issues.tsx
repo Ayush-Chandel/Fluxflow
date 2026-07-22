@@ -3,8 +3,12 @@ import { useIssueStore } from "@/store/issueStore"
 import { useMemo } from "react"
 import { MOCK_ISSUES } from "@/components/issues/__mockIssues" // TEMP: remove with the mock file
 import IssueKanbanView from "@/components/issues/kanban-view/IssueKanbanView"
+import { useParams } from "react-router"
+import IssueDetailView from "@/components/issues/IssueDetailView"
 
 function Issues() {
+
+  const {identifier} = useParams();
 
   // Subscribe only to the issues map; rebuild the array when it actually changes.
   const issuesMap = useIssueStore((s) => s.issues)
@@ -12,11 +16,20 @@ function Issues() {
 
   // TEMP: fall back to seed data so the list renders before real issues exist.
   const rows = issues.length > 0 ? issues : MOCK_ISSUES
-
+  
   return (
     <>
+    <div className="flex-1 min-h-0 overflow-y-auto" inert={!!identifier}>
      <IssueListView issues={rows} />
-     {/* <IssueKanbanView issues={rows} /> */}
+    </div>
+    {/* <div className="flex-1 min-h-0 flex flex-col">
+      <IssueKanbanView issues={rows} />
+    </div> */}
+    {identifier &&
+    <IssueDetailView
+    identifier={identifier}
+    />
+    }
     </>
   )
 }

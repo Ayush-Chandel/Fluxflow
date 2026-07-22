@@ -508,6 +508,17 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
    for cross-column; fractional `sortOrder` reordering in BOTH views (list = indicator-line
    pattern, header = top-of-group); `lib/issueOrdering.ts` helpers
 10. **Issue detail panel** — framer-motion panel, URL deep-link, inline edit
+
+    **10.5** ★ **Create-issue modal** — ONE global `CreateIssueDialog` mounted in `WorkspaceLayout`,
+    opened via a small UI store: `openWith(prefill?: Partial<CreateIssueInput>)` — the dialog is
+    trigger-agnostic. Primary trigger = sidebar-header "New issue" button (Linear's placement);
+    later triggers reuse the same call: group-header/column `+` (prefill `status`), project/cycle
+    pages (prefill `projectId`/`cycleId`), keyboard `C`, command palette. Fields: title,
+    description, status/priority via `IssueCommandBox` → `issueStore.createIssue`. The pipeline
+    (store → service → MSW/`api/createIssue`) is already live since steps 5–7 — this is UI only;
+    pass `null`/`[]` for the remaining `CreateIssueInput` refs. Entity selectors slot in with
+    steps 11–13; `TemplatePicker` + template-default merges into `prefill` with step 14. Once real
+    issues exist, delete the `MOCK_ISSUES` fallback in `IssuesPage`.
 11. ★ **Projects** — store/service/hook + ProjectsPage + ProjectDetail (Overview/Issues); project rules
 12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,

@@ -11,7 +11,7 @@ export const MOCK_ISSUES: Issue[] = [
     id: 'mock-1',
     identifier: 'UIP-8',
     title: 'Submit form',
-    description: '',
+    description: 'submit the form man',
     status: 'in_progress',
     priority: 'no_priority',
     assigneeId: null,

@@ -41,7 +41,7 @@ export const router = createBrowserRouter([
               handle: sidebarHandle('issues'),
             },
             {
-              path: 'issues/:id',
+              path: 'issues/:identifier/:slug?',
               lazy: () => import('@/routes/workspace/issues/Issues'),
               handle: sidebarHandle('issues'),
             },

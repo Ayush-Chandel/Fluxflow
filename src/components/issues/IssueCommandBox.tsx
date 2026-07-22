@@ -12,6 +12,7 @@ type Props<T extends string> = {
     map: Record<T, OptionMeta>;
     placeholder?: string;
     triggerClassName?: string;
+    label?:string;
 };
 
 function IssueCommandBox<T extends string>({
@@ -20,7 +21,8 @@ function IssueCommandBox<T extends string>({
     options,
     map,
     placeholder = 'Change value to...',
-    triggerClassName = '!px-2'
+    triggerClassName = '!px-2',
+    label,
 }: Props<T>) {
     const [open, setOpen] = React.useState(false);
 
@@ -29,6 +31,11 @@ function IssueCommandBox<T extends string>({
             <PopoverTrigger asChild className={triggerClassName}>
                 <Button variant="default">
                     {map[value].icon}
+                    {label &&
+                    <span>
+                        {label}
+                    </span>
+                    }
                 </Button>
             </PopoverTrigger>
             <PopoverContent side='bottom' align='start' className="w-60 bg-surface p-0 border-0">
