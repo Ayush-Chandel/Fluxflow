@@ -18,9 +18,8 @@ function SideHeader({}: Props) {
             <ChevronDownIcon size={12}/>
         </Button>
         </PopoverTrigger>
-        <PopoverContent>
-          <div>test</div>
-          <button onClick={()=>{authService.signOut()}} className="text-black">Sign Out</button>
+        <PopoverContent className='w-[150px] bg-surface text-lsm rounded-xl p-2' align="start" side="bottom" sideOffset={6}>
+          <button onClick={()=>{authService.signOut()}} className="text-foreground hover:bg-hover px-1 py-1 rounded-md w-full text-left">Sign Out</button>
         </PopoverContent>
       </Popover>
         

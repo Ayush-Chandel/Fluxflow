@@ -12,6 +12,7 @@ import { CSS } from '@dnd-kit/utilities';
 type IssueProps = {
     issue: Issue
     isOverlay?: boolean
+    onOpen?: () => void
 }
 
 // Row body, memoized. dnd-kit re-renders every sortable on each drag move; the
@@ -56,8 +57,7 @@ const IssueRowContent = memo(function IssueRowContent({issue}: {issue: Issue}) {
     )
 });
 
-function IssueRow({issue, isOverlay}: IssueProps) {
-
+function IssueRow({issue, isOverlay, onOpen}: IssueProps) {
 
     const {setNodeRef, listeners, attributes, isDragging, over, active, transform, transition} = useSortable({
         id: issue.id,
@@ -74,8 +74,13 @@ function IssueRow({issue, isOverlay}: IssueProps) {
         ref={setNodeRef}
         {...listeners}
         {...attributes}
+        data-issue-surface
+        onClick={isOverlay ? undefined : (e) => {
+            if ((e.target as HTMLElement).closest('button')) return;
+            onOpen?.();
+        }}
         style={{transform: CSS.Transform.toString(transform), transition}}
-        className={`w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle touch-none
+        className={`w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle touch-none cursor-pointer
                    flex items-center gap-1 justify-between hover:rounded-md text-foreground text-lsm
                    ${isDragging ? 'opacity-40' : ''} ${isOverlay ? 'shadow-lg bg-surface' : ''}
                    ${isDropTarget ? 'shadow-[0_1px_0_0_var(--color-brand)]' : ''}`}>

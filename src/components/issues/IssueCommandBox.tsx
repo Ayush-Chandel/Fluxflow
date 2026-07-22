@@ -29,7 +29,7 @@ function IssueCommandBox<T extends string>({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild className={triggerClassName}>
-                <Button variant="default">
+                <Button variant="default" onClick={(e) => e.stopPropagation()}>
                     {map[value].icon}
                     {label &&
                     <span>

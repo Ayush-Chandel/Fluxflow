@@ -10,9 +10,10 @@ import type { Issue, IssueStatus } from '@/types/issue';
 type KanbanColumnProps = {
     status: IssueStatus;
     group: Issue[];
+    onOpenCard?: (issue: Issue) => void;
 }
 
-function KanbanColumn({status, group}: KanbanColumnProps) {
+function KanbanColumn({status, group, onOpenCard}: KanbanColumnProps) {
 
     // Column = drop target; its id is the status a dropped card will get.
     const {setNodeRef,over} = useDroppable({id: status});
@@ -40,6 +41,7 @@ function KanbanColumn({status, group}: KanbanColumnProps) {
                             <IssueCard
                                 key={issue.id}
                                 issue={issue}
+                                onOpen={() => onOpenCard?.(issue)}
                             />
                         ))}
                     </SortableContext>

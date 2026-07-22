@@ -5,10 +5,12 @@ import { MOCK_ISSUES } from "@/components/issues/__mockIssues" // TEMP: remove w
 import IssueKanbanView from "@/components/issues/kanban-view/IssueKanbanView"
 import { useParams } from "react-router"
 import IssueDetailView from "@/components/issues/IssueDetailView"
+import { useOpenIssue } from "@/hooks/useOpenIssue"
 
 function Issues() {
 
   const {identifier} = useParams();
+  const openIssue = useOpenIssue();
 
   // Subscribe only to the issues map; rebuild the array when it actually changes.
   const issuesMap = useIssueStore((s) => s.issues)
@@ -20,10 +22,10 @@ function Issues() {
   return (
     <>
     <div className="flex-1 min-h-0 overflow-y-auto" inert={!!identifier}>
-     <IssueListView issues={rows} />
+     <IssueListView issues={rows} onOpenIssue={openIssue} />
     </div>
     {/* <div className="flex-1 min-h-0 flex flex-col">
-      <IssueKanbanView issues={rows} />
+      <IssueKanbanView issues={rows} onOpenIssue={openIssue} />
     </div> */}
     {identifier &&
     <IssueDetailView

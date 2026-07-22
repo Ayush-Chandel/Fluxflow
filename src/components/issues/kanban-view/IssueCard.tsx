@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 
 type IssueCardProps = {
     issue: Issue
-    /** true when rendered inside <DragOverlay> — not a drag source itself */
     isOverlay?: boolean
+    onOpen?: () => void
 }
 
 
@@ -60,7 +60,7 @@ const IssueCardContent = memo(function IssueCardContent({issue}: {issue: Issue})
     )
 });
 
-function IssueCard({issue, isOverlay}: IssueCardProps) {
+function IssueCard({issue, isOverlay, onOpen}: IssueCardProps) {
 
     const {setNodeRef, listeners, attributes, isDragging, transform, transition} = useSortable({
         id: issue.id,
@@ -78,8 +78,13 @@ function IssueCard({issue, isOverlay}: IssueCardProps) {
         ref={setNodeRef}
         {...listeners}
         {...attributes}
+        data-issue-surface
+        onClick={isOverlay ? undefined : (e) => {
+            if ((e.target as HTMLElement).closest('button')) return;
+            onOpen?.();
+        }}
         style={{transform: CSS.Transform.toString(transform), transition}}
-        className={cn(`bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none`,isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '', isOverlay ? 'shadow-lg cursor-grabbing' : '')}>
+        className={cn(`bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer`,isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '', isOverlay ? 'shadow-lg cursor-grabbing' : '')}>
         <IssueCardContent issue={issue}/>
     </div>
   )

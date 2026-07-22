@@ -28,8 +28,11 @@ model / stores / routing / rules once so nothing is retrofitted.
   claim), `routes/Guards.tsx` (AuthRoute/ProtectedRoute + AppSplash), Login/SignUp with Zod
   (`lib/validation.ts`), `api/setWorkspaceClaims.ts` implemented.
 - 🚧 **Step 3 — App shell (in progress)**: `WorkspaceLayout.tsx` + pinnable/hover-reveal `Sidebar`
-  (framer-motion) exist. **`Topbar/Topbar.tsx` empty**, **no sidebar nav items yet** (only
-  `SideHeader` project-selector popover). `router.tsx` uses `handle: { sidebarKey }` for active state.
+  (framer-motion) exist. **`Topbar/Topbar.tsx` now renders a breadcrumb** — the `Issues` crumb, plus
+  `› LIN-N <title>` when a detail is open; the `Issues` crumb `Link` owns back-navigation to the list.
+  Still pending on the topbar: list⇄board view toggle, filter chips, primary create button. **No
+  sidebar nav items yet** (only `SideHeader` project-selector popover). `router.tsx` uses
+  `handle: { sidebarKey }` for active state.
 - ✅ **Step 4 — Shared foundation**: `types/{issue,project,cycle,template}.ts`, `lib/idb.ts`,
   `lib/broadcastChannel.ts`, `hooks/useEntitySync.ts` (the sync engine), `store/viewPreferenceStore.ts`.
 - ✅ **Step 5 — Issue store + `useIssues`**: `store/issueStore.ts` (optimistic CRUD + rollback,
@@ -61,7 +64,12 @@ model / stores / routing / rules once so nothing is retrofitted.
   (`IssueCardContent`/`IssueRowContent`) so dnd's per-move re-renders stay cheap. One optimistic
   `updateIssue({status, sortOrder})` per drop, rollback in the store. Known gap: list view can't
   target empty groups (hidden — no header to drop on).
-- ❌ **Steps 10+ not started**: no detail panel, no entity stores/services/hooks beyond auth + issues.
+- 🚧 **Step 10 partially landed**: `IssueDetailView.tsx` renders as an absolute overlay over the list
+  at `issues/:identifier/:slug?` (URL deep-link; slug cosmetic), with inline title/description edit
+  (auto-growing fields via `common/AutoGrowTextarea`) wired to the optimistic store; **click-to-open**
+  works in both list and kanban via a host-agnostic `onOpenIssue` callback. Remaining: framer-motion
+  side-panel treatment + entity selectors (project/milestone/cycle/assignee/labels/template).
+- ❌ **Steps 11+ not started**: no entity stores/services/hooks beyond auth + issues.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -119,11 +127,12 @@ project-root/
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── WorkspaceLayout.tsx  ✅  Sidebar + Topbar + <Outlet> (NEVER remounts)
-│   │   │   ├── Topbar/Topbar.tsx    🚧 empty → fill (title, view toggle, filter chips, create btn)
+│   │   │   ├── Topbar/Topbar.tsx    🚧 breadcrumb done (owns back-nav) → add view toggle, filter chips, create btn
 │   │   │   └── sidebar/{Sidebar,SidebarContent,SideHeader,CustomTrigger}.tsx ✅
 │   │   │        └── SidebarNav.tsx  ★ Issues / Projects / Cycles / Settings nav
-│   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow,
-│   │   │                 IssueCard, IssueCommandBox ✅ · IssueDetailPanel, TemplatePicker ★
+│   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
+│   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
+│   │   │                 IssueDetailView 🚧 (overlay + deep-link; side-panel treatment pending) · TemplatePicker ★
 │   │   ├── projects/   ★ ProjectListView, ProjectCard, ProjectDetail, MilestoneList, ProgressBar
 │   │   ├── cycles/     ★ CycleListView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
@@ -179,7 +188,7 @@ project-root/
 /app                      ProtectedRoute guard → WorkspaceLayout (shell never remounts)
   ├── /app  (index)       → redirect /app/issues
   ├── issues              IssuesPage           handle:{sidebarKey:'issues'}
-  ├── issues/:id          IssuesPage           detail panel OVER list, URL deep-link
+  ├── issues/:identifier/:slug?  IssuesPage    detail OVER list, URL deep-link (slug cosmetic)
   ├── projects            ProjectsPage         handle:{sidebarKey:'projects'}       ★
   ├── projects/:id        ProjectDetailPage    tabs: Overview | Issues | Milestones ★
   ├── cycles              CyclesPage           handle:{sidebarKey:'cycles'}         ★
@@ -449,10 +458,22 @@ active state from `useMatches()` → `handle.sidebarKey`, styled with tokens (`t
 
 ### B. Issues — *the fundamental unit; reference implementation of the whole pipeline*
 **Why:** every other feature reuses the issue views (`Accepts Issue[]`) and the store pattern.
+**View contract (host-agnostic):** `IssueListView`/`IssueKanbanView` take `issues: Issue[]` **and an
+optional `onOpenIssue(issue)` callback** — they report "open this issue" and never touch routing, so
+Project/Cycle pages can reuse them with their own handler (or omit it to disable opening). The Issues
+page passes `useOpenIssue()` → `navigate('/app/issues/:identifier/:slug')`. Two click-vs-drag guards
+keep opening honest: rows/cards swallow the stray post-drop click dnd-kit fires via a `justDragged`
+ref (set on drag-start, cleared a tick after drag-end), and in-row/in-card `IssueCommandBox` pickers
+`stopPropagation` so a status/priority click never bubbles up to open the issue. The `onClick` lives on
+the real row/card only, never the `DragOverlay` copy.
+**Back-navigation (decided):** the **Topbar breadcrumb owns it** — the `Issues` crumb is a `Link` to
+`/app/issues` that drops the `:identifier`, unmounting the detail overlay while the list stays mounted
+underneath (scroll preserved). The detail view has no separate close/back button.
 **Build:** `IssueListView` (grouped, status dots, priority icons, inline edit), `IssueKanbanView`
-(dnd-kit columns + optimistic `updateStatus`), `IssueDetailPanel` (framer-motion right panel, URL
-deep-link at `issues/:id`, inline edit; selectors for project/milestone/cycle/assignee/labels/template),
-`issueStore` + `useIssues`, `issueService` + `api/createIssue`.
+(dnd-kit columns + optimistic `updateStatus`), `IssueDetailView` (absolute overlay, URL deep-link at
+`issues/:identifier/:slug?`, inline title/description edit; selectors for
+project/milestone/cycle/assignee/labels/template still ★), `issueStore` + `useIssues`, `issueService`
++ `api/createIssue`.
 
 ### C. Projects — *coordinate work that spans many issues toward an outcome*
 **Why:** Linear's core organizing unit above the issue; gives goal/lead/target-date + progress
@@ -488,7 +509,8 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
 
 1. ✅ Firebase setup
 2. ✅ Auth flow + guards
-3. 🚧 **App shell** — `SidebarNav` (Issues/Projects/Cycles), fill `Topbar`, wire active state
+3. 🚧 **App shell** — `SidebarNav` (Issues/Projects/Cycles); `Topbar` breadcrumb ✅ (owns
+   back-navigation; view toggle + filter chips + create btn still pending); wire active state
 4. ✅ **Shared foundation** — `types/*`, `lib/idb.ts`, `lib/broadcastChannel.ts`,
    `hooks/useEntitySync.ts`, `viewPreferenceStore`
 5. ✅ **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl); immer middleware,
@@ -503,11 +525,14 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
    (only `assigneeId` — no member entity until §11 Projects), **label pills** (no labels entity in §4;
    `labelIds` is bare `string[]`), **sub-issue count** (no parent/child field). Explicitly NOT here:
    filter pills (All/Active/Backlog → §17), group-header `+` create (→ §14), row-select checkbox
-   (unscoped), row→detail navigation (→ §10).
+   (unscoped). Row→detail navigation now wired in §10 ✅ (host-agnostic `onOpenIssue`).
 9. ✅ **Issue Kanban view** — dnd-kit sortable columns + DragOverlay; ephemeral `onDragOver` groups
    for cross-column; fractional `sortOrder` reordering in BOTH views (list = indicator-line
    pattern, header = top-of-group); `lib/issueOrdering.ts` helpers
-10. **Issue detail panel** — framer-motion panel, URL deep-link, inline edit
+10. 🚧 **Issue detail** — `IssueDetailView` absolute overlay + URL deep-link (`:identifier/:slug?`) +
+    inline title/description edit (auto-growing fields) ✅; host-agnostic `onOpenIssue` click-to-open
+    from list/kanban ✅; breadcrumb owns back-nav ✅. **Pending:** framer-motion side-panel treatment +
+    entity selectors (project/milestone/cycle/assignee/labels/template)
 
     **10.5** ★ **Create-issue modal** — ONE global `CreateIssueDialog` mounted in `WorkspaceLayout`,
     opened via a small UI store: `openWith(prefill?: Partial<CreateIssueInput>)` — the dialog is

@@ -1,8 +1,9 @@
 import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import IssueCard from './IssueCard';
 import { useIssueStore } from '@/store/issueStore';
 import { getDropPatch, orderBetween, sortIssues } from '@/lib/issueOrdering';
+import { pointerDownStartedOnIssueSurface } from '@/lib/issueOpenGuard';
 import {
     closestCorners,
     DndContext, DragOverlay, MeasuringStrategy, PointerSensor, useSensor, useSensors,
@@ -12,6 +13,7 @@ import KanbanColumn from './KanbanColumn';
 
 type IssueKanbanProps = {
     issues:Issue[];
+    onOpenIssue?: (issue: Issue) => void;
 }
 
 type Groups = Record<string, Issue[]>;
@@ -22,12 +24,14 @@ const findGroupOf = (groups: Groups, id: string): IssueStatus | null =>
     ISSUE_STATUSES.find((status)=>groups[status].some((i)=>i.id === id))
     ?? (ISSUE_STATUSES.includes(id as IssueStatus) ? (id as IssueStatus) : null);
 
-function IssueKanbanView({issues}: IssueKanbanProps) {
+function IssueKanbanView({issues, onOpenIssue}: IssueKanbanProps) {
 
   const updateIssue = useIssueStore((s)=>s.updateIssue);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
 
   const [dragGroups, setDragGroups] = useState<Groups | null>(null);
+
+  const justDragged = useRef(false);
 
   const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 5}}));
 
@@ -38,6 +42,7 @@ function IssueKanbanView({issues}: IssueKanbanProps) {
   const groups = dragGroups ?? groupedIssues;
 
   const handleDragStart = (event: DragStartEvent) => {
+    justDragged.current = true;
     setActiveIssue(issues.find((issue)=>issue.id === event.active.id) ?? null);
     setDragGroups(groupedIssues);
   };
@@ -77,6 +82,7 @@ function IssueKanbanView({issues}: IssueKanbanProps) {
     const finalGroups = dragGroups ?? groupedIssues;
     setActiveIssue(null);
     setDragGroups(null);
+    setTimeout(() => { justDragged.current = false; }, 0);
     if (!over) return;
     const issue = issues.find((i)=>i.id === active.id);
     if (!issue) return;
@@ -101,6 +107,14 @@ function IssueKanbanView({issues}: IssueKanbanProps) {
   const handleDragCancel = () => {
     setActiveIssue(null);
     setDragGroups(null);
+    setTimeout(() => { justDragged.current = false; }, 0);
+  };
+
+  // Skip a stray open: the post-drop click dnd-kit fires, or the fall-through
+  // click after a picker popover closes.
+  const openCard = (issue: Issue) => {
+    if (justDragged.current || !pointerDownStartedOnIssueSurface()) return;
+    onOpenIssue?.(issue);
   };
 
   return (
@@ -115,7 +129,7 @@ function IssueKanbanView({issues}: IssueKanbanProps) {
     >
         <div className='pt-4  pl-3 pr-2 flex gap-x-2 overflow-x-auto  flex-1 min-h-0'>
             {ISSUE_STATUSES.map((status)=>(
-                <KanbanColumn key={status} status={status} group={groups[status]}/>
+                <KanbanColumn key={status} status={status} group={groups[status]} onOpenCard={openCard}/>
             ))}
         </div>
         {/* Card that follows the pointer; the original stays in place, dimmed. */}

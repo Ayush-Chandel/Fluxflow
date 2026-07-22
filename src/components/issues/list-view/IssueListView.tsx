@@ -1,12 +1,13 @@
 import { useViewPreferenceStore } from '@/store/viewPreferenceStore';
 import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion';
 import { CollapseArrowIcon } from '../../icons';
 import { ISSUE_MAP } from '../../common/constants/constants';
 import IssueRow from './IssueRow';
 import { useIssueStore } from '@/store/issueStore';
 import { getDropAfterPatch, sortIssues } from '@/lib/issueOrdering';
+import { pointerDownStartedOnIssueSurface } from '@/lib/issueOpenGuard';
 import {
     closestCorners,
     DndContext, DragOverlay, PointerSensor, useDroppable, useSensor, useSensors,
@@ -18,6 +19,7 @@ const keepRowsInPlace: SortingStrategy = () => null;
 
 type IssueListProps = {
     issues:Issue[];
+    onOpenIssue?: (issue: Issue) => void;
 }
 
 function GroupHeader({status, count}: {status: IssueStatus; count: number}) {
@@ -37,12 +39,14 @@ function GroupHeader({status, count}: {status: IssueStatus; count: number}) {
     )
 }
 
-function IssueListView({issues}: IssueListProps) {
+function IssueListView({issues, onOpenIssue}: IssueListProps) {
 
   const groupBy =  useViewPreferenceStore().getPreference('issues').groupBy;
 
   const updateIssue = useIssueStore((s)=>s.updateIssue);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
+
+  const justDragged = useRef(false);
 
   // Require 5px of movement before a drag starts, so plain clicks still reach
   // the pickers inside the row.
@@ -53,11 +57,13 @@ function IssueListView({issues}: IssueListProps) {
   )));
 
   const handleDragStart = (event: DragStartEvent) => {
+    justDragged.current = true;
     setActiveIssue(issues.find((issue)=>issue.id === event.active.id) ?? null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveIssue(null);
+    setTimeout(() => { justDragged.current = false; }, 0);
     const {active, over} = event;
     if (!over) return;
     const issue = issues.find((i)=>i.id === active.id);
@@ -74,7 +80,10 @@ function IssueListView({issues}: IssueListProps) {
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragCancel={()=>setActiveIssue(null)}
+        onDragCancel={()=>{
+            setActiveIssue(null);
+            setTimeout(() => { justDragged.current = false; }, 0);
+        }}
     >
     <div className='mt-4  px-2'>
         {ISSUE_STATUSES.map((status,index)=>{
@@ -90,7 +99,15 @@ function IssueListView({issues}: IssueListProps) {
                         <AccordionContent className='pb-0'>
                             <SortableContext items={group.map((issue)=>issue.id)} strategy={keepRowsInPlace}>
                                 {group.map((issue)=>(
-                                    <IssueRow key={issue.id} issue={issue} />
+                                    <IssueRow
+                                        key={issue.id}
+                                        issue={issue}
+                                        onOpen={() => {
+                                            // Skip the post-drop stray click and the picker-close fall-through.
+                                            if (justDragged.current || !pointerDownStartedOnIssueSurface()) return;
+                                            onOpenIssue?.(issue);
+                                        }}
+                                    />
                                 ))}
                             </SortableContext>
                         </AccordionContent>
