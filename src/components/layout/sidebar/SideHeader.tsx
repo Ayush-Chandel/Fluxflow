@@ -2,10 +2,13 @@ import {  ChevronDownIcon,  ExternalLinkIcon } from '../../icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { authService } from '@/services/authService'
+import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 
 type Props = {}
 
 function SideHeader({}: Props) {
+  const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
+
   return (
     <div className='flex justify-between items-center'>
       <Popover>
@@ -22,11 +25,16 @@ function SideHeader({}: Props) {
           <button onClick={()=>{authService.signOut()}} className="text-foreground hover:bg-hover px-1 py-1 rounded-md w-full text-left">Sign Out</button>
         </PopoverContent>
       </Popover>
-        
+
         <div className='flex gap-1'>
-          <div className='p-1.5 rounded-full bg-surface border-edge border'>
-              <ExternalLinkIcon size={14} />
-          </div>
+          <button
+            type='button'
+            aria-label='Create issue'
+            onClick={() => openCreateIssue()}
+            className='p-1.5 rounded-full bg-surface border-edge border'
+          >
+            <ExternalLinkIcon size={14} />
+          </button>
         </div>
     </div>
   )

@@ -1,12 +1,12 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './sidebar/Sidebar'
 import { SidebarProvider } from '../ui/sidebar'
-import { CustomTrigger } from './sidebar/CustomTrigger'
 import { useSidebarPin } from '@/hooks/useSidebarPin'
 import type { NavLabel, SidebarKey } from '@/types/layout'
 import { useSidebarKey } from '@/lib/utils'
 import { useIssues } from '@/hooks/useIssues'
 import Topbar from './Topbar/Topbar'
+import CreateIssueDialog from '@/components/modals/CreateIssueDialog'
 
  function WorkspaceLayout() {
 
@@ -46,6 +46,7 @@ import Topbar from './Topbar/Topbar'
             <Outlet />
           </div>
         </main>
+        <CreateIssueDialog />
     </div>
     </SidebarProvider>
   )

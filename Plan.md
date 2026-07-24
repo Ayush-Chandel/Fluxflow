@@ -64,11 +64,13 @@ model / stores / routing / rules once so nothing is retrofitted.
   (`IssueCardContent`/`IssueRowContent`) so dnd's per-move re-renders stay cheap. One optimistic
   `updateIssue({status, sortOrder})` per drop, rollback in the store. Known gap: list view can't
   target empty groups (hidden — no header to drop on).
-- 🚧 **Step 10 partially landed**: `IssueDetailView.tsx` renders as an absolute overlay over the list
+- ✅ **Step 10 core landed**: `IssueDetailView.tsx` renders as an absolute overlay over the list
   at `issues/:identifier/:slug?` (URL deep-link; slug cosmetic), with inline title/description edit
   (auto-growing fields via `common/AutoGrowTextarea`) wired to the optimistic store; **click-to-open**
-  works in both list and kanban via a host-agnostic `onOpenIssue` callback. Remaining: framer-motion
-  side-panel treatment + entity selectors (project/milestone/cycle/assignee/labels/template).
+  works in both list and kanban via a host-agnostic `onOpenIssue` callback; breadcrumb owns back-nav.
+  **Deferred to future (not current scope):** framer-motion side-panel treatment + entity selectors
+  (project/milestone/cycle/assignee/labels/template) — the selectors naturally fold into their entities'
+  steps (§11–§14); the side-panel treatment is a later polish pass.
 - ❌ **Steps 11+ not started**: no entity stores/services/hooks beyond auth + issues.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
@@ -132,7 +134,7 @@ project-root/
 │   │   │        └── SidebarNav.tsx  ★ Issues / Projects / Cycles / Settings nav
 │   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
 │   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
-│   │   │                 IssueDetailView 🚧 (overlay + deep-link; side-panel treatment pending) · TemplatePicker ★
+│   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
 │   │   ├── projects/   ★ ProjectListView, ProjectCard, ProjectDetail, MilestoneList, ProgressBar
 │   │   ├── cycles/     ★ CycleListView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
@@ -471,9 +473,9 @@ the real row/card only, never the `DragOverlay` copy.
 underneath (scroll preserved). The detail view has no separate close/back button.
 **Build:** `IssueListView` (grouped, status dots, priority icons, inline edit), `IssueKanbanView`
 (dnd-kit columns + optimistic `updateStatus`), `IssueDetailView` (absolute overlay, URL deep-link at
-`issues/:identifier/:slug?`, inline title/description edit; selectors for
-project/milestone/cycle/assignee/labels/template still ★), `issueStore` + `useIssues`, `issueService`
-+ `api/createIssue`.
+`issues/:identifier/:slug?`, inline title/description edit — core ✅; framer-motion side-panel treatment +
+selectors for project/milestone/cycle/assignee/labels/template deferred to future — fold into §11–§14),
+`issueStore` + `useIssues`, `issueService` + `api/createIssue`.
 
 ### C. Projects — *coordinate work that spans many issues toward an outcome*
 **Why:** Linear's core organizing unit above the issue; gives goal/lead/target-date + progress
@@ -529,10 +531,11 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
 9. ✅ **Issue Kanban view** — dnd-kit sortable columns + DragOverlay; ephemeral `onDragOver` groups
    for cross-column; fractional `sortOrder` reordering in BOTH views (list = indicator-line
    pattern, header = top-of-group); `lib/issueOrdering.ts` helpers
-10. 🚧 **Issue detail** — `IssueDetailView` absolute overlay + URL deep-link (`:identifier/:slug?`) +
+10. ✅ **Issue detail (core)** — `IssueDetailView` absolute overlay + URL deep-link (`:identifier/:slug?`) +
     inline title/description edit (auto-growing fields) ✅; host-agnostic `onOpenIssue` click-to-open
-    from list/kanban ✅; breadcrumb owns back-nav ✅. **Pending:** framer-motion side-panel treatment +
-    entity selectors (project/milestone/cycle/assignee/labels/template)
+    from list/kanban ✅; breadcrumb owns back-nav ✅. **Deferred to future (not now):** framer-motion
+    side-panel treatment + entity selectors (project/milestone/cycle/assignee/labels/template) — the
+    selectors fold into steps 11–14 as those entities land; the side-panel treatment is a later polish item.
 
     **10.5** ★ **Create-issue modal** — ONE global `CreateIssueDialog` mounted in `WorkspaceLayout`,
     opened via a small UI store: `openWith(prefill?: Partial<CreateIssueInput>)` — the dialog is
