@@ -1,48 +1,59 @@
 import { useState } from 'react'
+import { XIcon } from 'lucide-react'
 import {
   NoteIcon,
   AssigneeIcon,
   BoxIcon,
   PlayCircleIcon,
   MoreIcon,
+  MinimizeIcon,
+  MaximizeIcon,
+  ChevronDownIcon,
 } from '../icons'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import OptionPill from '../common/OptionPill'
 import AutoGrowTextarea from '../common/AutoGrowTextarea'
 import { Switch } from '@/components/ui/switch'
 import IssueCommandBox from '../issues/IssueCommandBox'
 import { useIssueStore } from '@/store/issueStore'
+import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import {
   ISSUE_PRIORITIES,
   ISSUE_STATUSES,
   type CreateIssueInput,
-  type IssuePriority,
-  type IssueStatus,
 } from '@/types/issue'
 import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants'
 
 type Props = {
   prefill?: Partial<CreateIssueInput>
   onClose?: () => void
+  maximized?: boolean
+  onMinimize?: () => void
+  onToggleMaximize?: () => void
 }
 
 const PILL_TRIGGER =
   'gap-1.5 !h-6 rounded-full border border-edge !bg-transparent !px-2 !py-0.5 text-xs !font-normal !text-muted !shadow-none hover:!bg-elevated'
 
-function CreateIssueModal({ prefill, onClose }: Props) {
-  const [title, setTitle] = useState(prefill?.title ?? '')
-  const [description, setDescription] = useState(prefill?.description ?? '')
-  const [status, setStatus] = useState<IssueStatus>(prefill?.status ?? 'todo')
-  const [priority, setPriority] = useState<IssuePriority>(prefill?.priority ?? 'no_priority')
+const HEADER_BTN =
+  'flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-foreground'
+
+function CreateIssueModal({
+  prefill,
+  onClose,
+  maximized = false,
+  onMinimize,
+  onToggleMaximize,
+}: Props) {
+  // Draft lives in the store so it survives the Radix content remount that
+  // occurs when the dialog switches modal/non-modal (minimize ⇄ restore).
+  const { title, description, status, priority } = useCreateIssueDialog((s) => s.draft)
+  const patchDraft = useCreateIssueDialog((s) => s.patchDraft)
   const [createMore, setCreateMore] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const createIssue = useIssueStore((s) => s.createIssue)
-
-  const resetForm = () => {
-    setTitle('')
-    setDescription('')
-  }
 
   const handleCreate = async () => {
     const trimmedTitle = title.trim()
@@ -61,7 +72,7 @@ function CreateIssueModal({ prefill, onClose }: Props) {
         milestoneId: prefill?.milestoneId ?? null,
         cycleId: prefill?.cycleId ?? null,
       })
-      if (createMore) resetForm()
+      if (createMore) patchDraft({ title: '', description: '' })
       else onClose?.()
     } finally {
       setSubmitting(false)
@@ -69,19 +80,41 @@ function CreateIssueModal({ prefill, onClose }: Props) {
   }
 
   return (
-    <div className='flex min-h-[260px] max-h-[80vh] flex-col pl-2.5 p-4'>
+    <div
+      className={cn(
+        'flex flex-col pl-2.5 p-4',
+        maximized ? 'min-h-[70vh] max-h-[88vh]' : 'min-h-[260px] max-h-[80vh]',
+      )}
+    >
       {/* Breadcrumb header */}
       <div className='flex shrink-0 items-center gap-2'>
         <div className='flex items-center gap-1.5 rounded-full border border-edge px-2 py-0.5 text-xs text-muted'>
           <NoteIcon size={13} />
           Template
         </div>
+        {/* Window controls */}
+        <div className='ml-auto flex items-center gap-1'>
+          <button type='button' onClick={onMinimize} className={HEADER_BTN} aria-label='Minimize'>
+            <ChevronDownIcon size={12} />
+          </button>
+          <button
+            type='button'
+            onClick={onToggleMaximize}
+            className={HEADER_BTN}
+            aria-label={maximized ? 'Restore' : 'Maximize'}
+          >
+            {maximized ? <MinimizeIcon size={15} /> : <MaximizeIcon size={15} />}
+          </button>
+          <button type='button' onClick={onClose} className={HEADER_BTN} aria-label='Close'>
+            <XIcon className='h-4 w-4' />
+          </button>
+        </div>
       </div>
 
       {/* Title — wraps to the next line as it grows; capped at 512 chars. Enter creates. */}
       <AutoGrowTextarea
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => patchDraft({ title: e.target.value })}
         onKeyDown={(e) => {
           // Title is a single logical line: Enter submits instead of adding a newline.
           if (e.key === 'Enter') {
@@ -98,7 +131,7 @@ function CreateIssueModal({ prefill, onClose }: Props) {
       {/* Description — grows with content, then scrolls once the modal hits 80vh */}
       <AutoGrowTextarea
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e) => patchDraft({ description: e.target.value })}
         onKeyDown={(e) => {
           // Cmd/Ctrl+Enter creates from anywhere in the description.
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -114,7 +147,7 @@ function CreateIssueModal({ prefill, onClose }: Props) {
       <div className='mt-4 flex shrink-0 flex-wrap items-center gap-1.5'>
         <IssueCommandBox
           value={status}
-          onValueChange={setStatus}
+          onValueChange={(status) => patchDraft({ status })}
           options={ISSUE_STATUSES}
           map={ISSUE_MAP}
           placeholder='Set status to...'
@@ -123,7 +156,7 @@ function CreateIssueModal({ prefill, onClose }: Props) {
         />
         <IssueCommandBox
           value={priority}
-          onValueChange={setPriority}
+          onValueChange={(priority) => patchDraft({ priority })}
           options={ISSUE_PRIORITIES}
           map={PRIORITY_MAP}
           placeholder='Set priority to...'

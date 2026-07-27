@@ -79,13 +79,18 @@ export const useIssueStore = create<IssueState>()(
       broadcastDelta({ entity: 'issues', type: 'CREATE', id: tempId, payload: optimistic })
 
       try {
-        await issueService.create(user.workspaceId, data)
-        // Real doc arrives via onSnapshot; discard the placeholder.
+        const { id, identifier } = await issueService.create(user.workspaceId, data)
+        // Swap the placeholder for the real doc keyed by its server id. When
+        // onSnapshot echoes the same id it just upserts (no duplicate); in dev the
+        // mock never writes to Firestore, so this swap is what keeps it on screen.
+        const created: Issue = { ...optimistic, id, identifier }
         set((s) => {
           delete s.issues[tempId]
+          s.issues[id] = created
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({ entity: 'issues', type: 'DELETE', id: tempId })
+        broadcastDelta({ entity: 'issues', type: 'CREATE', id, payload: created })
       } catch {
         set((s) => {
           delete s.issues[tempId]
