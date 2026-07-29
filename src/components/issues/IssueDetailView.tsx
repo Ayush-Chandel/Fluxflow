@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import IssueCommandBox from './IssueCommandBox';
 import AutoGrowTextarea from '../common/AutoGrowTextarea';
+import { useCommitOnExit } from '@/hooks/useCommitOnExit';
 import { useIssueStore } from '@/store/issueStore';
-import { ISSUE_PRIORITIES, ISSUE_STATUSES } from '@/types/issue';
+import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue } from '@/types/issue';
 import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
 import { MOCK_ISSUES } from './__mockIssues';
 
@@ -11,9 +12,6 @@ type IssueDetailViewProps = {
 }
 
 function IssueDetailView({identifier}: IssueDetailViewProps) {
-
-     const updateStatus = useIssueStore((s)=>s.updateStatus);
-    const updateIssue = useIssueStore((s)=>s.updateIssue);
 
     const storeIssue = useIssueStore(s =>
         Object.values(s.issues).find(i => i.identifier === identifier.toUpperCase()))
@@ -27,6 +25,34 @@ function IssueDetailView({identifier}: IssueDetailViewProps) {
             </motion.div>
         )
     }
+
+    return <IssueDetail issue={issue} />
+}
+
+// Split from the lookup above so the edit hooks can sit below the "not found"
+// early return without breaking the rules of hooks.
+function IssueDetail({ issue }: { issue: Issue }) {
+
+    const updateStatus = useIssueStore((s)=>s.updateStatus);
+    const updateIssue = useIssueStore((s)=>s.updateIssue);
+
+    // Title/description commit once per editing session — on blur, on unmount
+    // (breadcrumb back-nav) or on tab-hide/refresh, whichever comes first.
+    const title = useCommitOnExit(
+        issue.title,
+        (next: string) => {
+            const trimmed = next.trim()
+            if (!trimmed) return false // an issue may never lose its title
+            updateIssue(issue.id, { title: trimmed })
+        },
+        issue.id,
+    )
+
+    const description = useCommitOnExit(
+        issue.description,
+        (next: string) => { updateIssue(issue.id, { description: next }) },
+        issue.id,
+    )
 
   return (
     <motion.div
@@ -42,20 +68,16 @@ function IssueDetailView({identifier}: IssueDetailViewProps) {
                 // Title is a single logical line: Enter shouldn't insert a newline.
                 if (e.key === 'Enter') e.preventDefault()
               }}
-              onBlur={(e) => {
-                const title = e.target.value.trim()
-                if (title && title !== issue.title) updateIssue(issue.id, { title })
-              }}
+              onInput={(e) => title.track(e.currentTarget.value)}
+              onBlur={title.flush}
               className='w-full shrink-0 resize-none overflow-hidden bg-transparent outline-none text-2xl text-foreground font-semibold'
               placeholder='Issue title'
             />
             <AutoGrowTextarea
               key={`${issue.id}-desc`}
               defaultValue={issue.description}
-              onBlur={(e) => {
-                if (e.target.value !== issue.description)
-                  updateIssue(issue.id, { description: e.target.value })
-              }}
+              onInput={(e) => description.track(e.currentTarget.value)}
+              onBlur={description.flush}
               className='mt-4 w-full shrink-0 min-h-40 resize-none overflow-hidden bg-transparent text-lsm outline-none text-muted'
               placeholder='Add description…'
             />

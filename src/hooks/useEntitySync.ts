@@ -37,15 +37,18 @@ export function useEntitySync<T extends { id: string }>(
     if (!user || !collectionPath) return
 
     let cancelled = false
+    let hasSnapshot = false
 
     // 1. Instant read from IndexedDB → store (0–5ms, no spinner). Guard against a
     //    late resolve after unmount so we never write into a torn-down store.
     idb.get<T[]>(cacheKey).then((cached) => {
-      if (!cancelled && cached) setAll(cached)
+      if (cancelled || hasSnapshot || !cached) return
+      setAll(cached)
     })
 
     // 2. Firestore realtime subscription → merge only what changed → write back.
     const unsubscribe = onSnapshot(collection(db, collectionPath), (snapshot) => {
+      hasSnapshot = true
       snapshot.docChanges().forEach((change) => {
         applyDelta({
           type: change.type,

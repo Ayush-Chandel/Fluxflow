@@ -1,6 +1,11 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,7 +18,10 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
-export const db   = getFirestore(app)
+
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+})
 
 // Point to local emulators in dev — no real Firebase traffic during development
 if (import.meta.env.DEV) {

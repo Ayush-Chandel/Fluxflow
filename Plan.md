@@ -71,6 +71,14 @@ model / stores / routing / rules once so nothing is retrofitted.
   **Deferred to future (not current scope):** framer-motion side-panel treatment + entity selectors
   (project/milestone/cycle/assignee/labels/template) — the selectors naturally fold into their entities'
   steps (§11–§14); the side-panel treatment is a later polish pass.
+- ✅ **Step 10.5 — Create-issue modal**: one global `CreateIssueDialog` (`components/modals/`) mounted in
+  `WorkspaceLayout` + `store/createIssueDialogStore` (`openWith(prefill?)`, trigger-agnostic; draft &
+  prefill held in the store so they survive minimize⇄restore). `SideHeader` create button opens it;
+  `CreateIssueModal` collects title/description (`AutoGrowTextarea`) + status/priority (`IssueCommandBox`)
+  → `issueStore.createIssue`; remaining `CreateIssueInput` refs pass `null`/`[]`. Extras beyond scope:
+  minimize-to-corner bar (`CreateIssueMinimizedBar`), maximize toggle, "Create more". Entity selectors
+  deferred (§11–§14; Assignee/Project pills static today). Remaining cleanup: `MOCK_ISSUES` fallback in
+  `Issues.tsx` still present (harmless — only shows at zero real issues).
 - ❌ **Steps 11+ not started**: no entity stores/services/hooks beyond auth + issues.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
@@ -135,6 +143,7 @@ project-root/
 │   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
 │   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
 │   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
+│   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal + CreateIssueMinimizedBar
 │   │   ├── projects/   ★ ProjectListView, ProjectCard, ProjectDetail, MilestoneList, ProgressBar
 │   │   ├── cycles/     ★ CycleListView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
@@ -150,6 +159,7 @@ project-root/
 │   ├── store/
 │   │   ├── authStore.ts          ✅
 │   │   ├── issueStore.ts         ✅ optimistic CRUD + rollback (reference impl)
+│   │   ├── createIssueDialogStore.ts ✅ create-modal open/minimize/maximize + draft (§10.5)
 │   │   ├── projectStore.ts       ★ + milestone actions
 │   │   ├── cycleStore.ts         ★
 │   │   ├── templateStore.ts      ★
@@ -537,16 +547,20 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     side-panel treatment + entity selectors (project/milestone/cycle/assignee/labels/template) — the
     selectors fold into steps 11–14 as those entities land; the side-panel treatment is a later polish item.
 
-    **10.5** ★ **Create-issue modal** — ONE global `CreateIssueDialog` mounted in `WorkspaceLayout`,
-    opened via a small UI store: `openWith(prefill?: Partial<CreateIssueInput>)` — the dialog is
-    trigger-agnostic. Primary trigger = sidebar-header "New issue" button (Linear's placement);
-    later triggers reuse the same call: group-header/column `+` (prefill `status`), project/cycle
-    pages (prefill `projectId`/`cycleId`), keyboard `C`, command palette. Fields: title,
-    description, status/priority via `IssueCommandBox` → `issueStore.createIssue`. The pipeline
-    (store → service → MSW/`api/createIssue`) is already live since steps 5–7 — this is UI only;
-    pass `null`/`[]` for the remaining `CreateIssueInput` refs. Entity selectors slot in with
-    steps 11–13; `TemplatePicker` + template-default merges into `prefill` with step 14. Once real
-    issues exist, delete the `MOCK_ISSUES` fallback in `IssuesPage`.
+    **10.5** ✅ **Create-issue modal** — ONE global `CreateIssueDialog` (`components/modals/`) mounted
+    in `WorkspaceLayout`, opened via the `store/createIssueDialogStore` UI store:
+    `openWith(prefill?: Partial<CreateIssueInput>)` — trigger-agnostic. Primary trigger = sidebar-header
+    create button (`SideHeader`); later triggers reuse the same call: group-header/column `+` (prefill
+    `status`), project/cycle pages (prefill `projectId`/`cycleId`), keyboard `C`, command palette.
+    `CreateIssueModal` fields: title + description (`AutoGrowTextarea`; Enter creates, Cmd/Ctrl+Enter
+    from description), status/priority via `IssueCommandBox` → `issueStore.createIssue`. The pipeline
+    (store → service → MSW/`api/createIssue`) is live since steps 5–7 — this is UI only; remaining
+    `CreateIssueInput` refs pass `null`/`[]`. **Extras built beyond scope:** draft + prefill held in the
+    store so they survive the Radix remount on minimize⇄restore; minimize-to-corner bar
+    (`CreateIssueMinimizedBar`), maximize toggle, "Create more". Entity selectors slot in with steps
+    11–13 (Assignee/Project pills are static placeholders today); `TemplatePicker` + template-default
+    merges into `prefill` with step 14. **Remaining cleanup:** `MOCK_ISSUES` fallback in
+    `IssuesPage` (`Issues.tsx`) not yet removed — harmless, only renders at zero real issues.
 11. ★ **Projects** — store/service/hook + ProjectsPage + ProjectDetail (Overview/Issues); project rules
 12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
