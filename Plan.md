@@ -601,3 +601,97 @@ activity log · Notifications · Command palette + keyboard shortcuts · GitHub/
   `projects`/`milestones`/`templates` client writes succeed; cross-workspace reads denied.
 - `npm run build` (tsc + vite) passes; `npm run lint` clean (remove leftover `console.log` in
   `routes/Guards.tsx`).
+
+---
+
+## 14. Notes — known gaps found while debugging issue persistence (2026-07-27)
+
+### 14.1 Why edits don't persist locally (DEV-ONLY — production path is unaffected)
+
+Editing an issue in `IssueDetailView` updates the store, then rolls back with a "Failed to update
+issue" toast. The Firestore emulator rejects the write:
+
+```
+firestore-debug.log → Operation failed:
+  Property workspaceId is undefined on object. for 'update' @ L16
+  EvaluationException: firestore.rules line [16], column [40]
+```
+
+**Cause chain (all dev-only):**
+1. `firestore.rules:16` reads `request.auth.token.workspaceId`, but the ID token carries no such
+   claim → the rule expression *throws* → `PERMISSION_DENIED` on the Write channel.
+2. The claim is never minted in dev: MSW intercepts `/api/setWorkspaceClaims`
+   (`src/mocks/handlers.ts:23`) and returns `{workspaceId:'mock-workspace'}` without ever calling
+   `setCustomUserClaims` — that only happens in the real Fn (`api/setWorkspaceClaims.ts:35`), which
+   never runs under `npm run dev` (`"dev": "vite"`, not `vercel dev`).
+3. `authService.signUp:34` hand-patches the store with that mock id, so the app *believes* it has a
+   workspace while the JWT sent to Firestore carries nothing. Rules only see the JWT.
+4. Second blocker behind it: `/api/createIssue` is mocked too (`handlers.ts:5`) — it returns a random
+   UUID and never writes to Firestore. Even with the claim fixed, `updateDoc` would fail
+   `NOT_FOUND: No document to update`. Issues currently live only in Zustand + IndexedDB.
+
+**Not a production bug.** MSW is gated to `import.meta.env.DEV` (`main.tsx:16`) and so is the
+emulator wiring (`lib/firebase.ts:19`). On Vercel the real Fns run with Admin credentials: the claim
+is minted, the doc is written, `updateDoc` succeeds. Fix is about making **dev faithful** — see §15.
+
+### 14.2 These DO ship to production — fix before step 19
+
+- **`MOCK_ISSUES` is imported unconditionally** (`IssueDetailView.tsx:7,21`) so it lands in the prod
+  bundle, and the fallback makes a genuine "issue not found" silently render seed data instead.
+  Already tracked in step 10.5; also delete the copy in `IssuesPage`.
+- **`LIN-N` is not race-free** (`api/createIssue.ts:48`). `count() + 1` is exactly the race the
+  server hop exists to prevent — concurrent creates collide, and deleting an issue makes the next
+  create reuse a retired identifier. Needs a counter doc incremented in a transaction.
+- **`updateIssue` spreads an arbitrary client patch** (`issueService.ts:27`) and rules don't validate
+  fields, so a client can overwrite `identifier` / `createdBy` / `createdAt`. Fold into the step 18
+  rules-hardening pass (field-level `request.resource.data` diff check).
+- **A half-failed signup is unrecoverable.** `authService.signUp:26` throws if
+  `/api/setWorkspaceClaims` fails, but the auth user already exists — no claim, no workspace doc, and
+  `logIn` never retries. Make `logIn` call the endpoint when the claim is absent, and make the Fn
+  idempotent (`setWorkspaceClaims.ts:29` uses `.set()`, which would reset `createdAt` — needs
+  `{merge:true}` or an existence check).
+- **Rules throw instead of denying cleanly** on a missing claim. Evaluation errors *do* deny, so it's
+  not a security hole, but `request.auth.token.get('workspaceId','') == ws` is the correct form
+  (also handles `request.auth == null`). Fold into step 18.
+
+---
+
+## 15. Making the full pipeline work locally (supersedes §11's dev block)
+
+MSW was the right call for steps 5–6 (mock the endpoint before it exists), but both endpoints are
+real now — mocking them is what breaks local persistence. Switch dev to run the actual Vercel
+Functions against the emulators:
+
+**Done (2026-07-27) — `npm run dev` now runs the real functions:**
+
+1. ✅ **`api/_firebase.ts`** — when `FIRESTORE_EMULATOR_HOST` is set, init with a bare `projectId`
+   instead of `cert(...)`; the Admin SDK auto-routes to the emulators and skips JWT signature
+   verification (required — with a real cert it would reject the emulator's unsigned tokens). The
+   `cert(...)` branch is untouched for prod.
+2. ✅ **`.env.local`** — added `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` and
+   `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` (server-side, no `VITE_` prefix). Do **not** add these
+   to the Vercel dashboard env vars.
+3. ✅ **`src/mocks/handlers.ts`** — dropped the `createIssue` + `setWorkspaceClaims` handlers;
+   `worker.start` uses `onUnhandledRequest:'bypass'`, so they now pass through to the real routes.
+   `createCycle` stays mocked until step 13.
+4. ✅ **`vite/localApi.ts`** ★ — dev-only Vite plugin (`apply:'serve'`) that mounts each `api/<name>.ts`
+   on the dev server behind a minimal `VercelRequest`/`VercelResponse` shim (body parse + `status`/
+   `json`/`send`), loading the full `.env` into `process.env` since Vite only exposes `VITE_*`.
+   `_`-prefixed files are skipped as shared helpers. `ssrLoadModule` means editing a function
+   hot-reloads without a restart.
+   **Chosen over `vercel dev`** because the repo isn't linked to a Vercel project and `vercel dev`
+   would require an interactive `vercel link` that creates a remote project. Switch to `vercel dev` at
+   step 19 if preferred — the other three changes work unmodified with it.
+5. ⚠️ **Reset your local state before testing in the browser** (not done for you — it's your data).
+   The existing account has `workspaceId:'mock-workspace'` with no claim, and IndexedDB holds phantom
+   issues whose random UUIDs don't exist in Firestore; both keep failing after the fix. Clear site data
+   (IndexedDB), delete the user in the Auth emulator UI, and sign up fresh so the real Fn mints the
+   claim and creates the workspace doc.
+
+The §11 dev block is unchanged — still `firebase emulators:start` + `npm run dev` — but `/api/*` now
+hits `api/` for real instead of MSW.
+
+**Verified end-to-end** (auth emulator → real Fns via the plugin → Firestore emulator): claims Fn
+returns 200 and `customAttributes` becomes `{"workspaceId":"<uid>"}`; a refreshed token carries the
+claim; `createIssue` returns a real `LIN-1` backed by an actual document; and an authenticated
+`PATCH status` — the exact call that was `PERMISSION_DENIED` — returns 200 and persists.
