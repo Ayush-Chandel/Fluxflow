@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client'
 import { StrictMode } from 'react'
 import { RouterProvider } from 'react-router'
 import { router } from '@/router'
+import { Toaster } from '@/components/ui/sonner'
 import '@/index.css'
 
 // 1. Sync theme before React renders — prevents flash
@@ -23,6 +24,7 @@ enableMocking().then(() => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <RouterProvider router={router} />
+      <Toaster />
     </StrictMode>
   )
 })

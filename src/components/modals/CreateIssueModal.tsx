@@ -51,32 +51,30 @@ function CreateIssueModal({
   const { title, description, status, priority } = useCreateIssueDialog((s) => s.draft)
   const patchDraft = useCreateIssueDialog((s) => s.patchDraft)
   const [createMore, setCreateMore] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
 
   const createIssue = useIssueStore((s) => s.createIssue)
 
-  const handleCreate = async () => {
+  // Fire-and-forget: the store inserts the issue optimistically and owns the
+  // success/failure toast, so the modal closes on click instead of sitting on
+  // the server round-trip that assigns the identifier.
+  const handleCreate = () => {
     const trimmedTitle = title.trim()
-    if (!trimmedTitle || submitting) return
+    if (!trimmedTitle) return
 
-    setSubmitting(true)
-    try {
-      await createIssue({
-        title: trimmedTitle,
-        description: description.trim(),
-        status,
-        priority,
-        assigneeId: prefill?.assigneeId ?? null,
-        labelIds: prefill?.labelIds ?? [],
-        projectId: prefill?.projectId ?? null,
-        milestoneId: prefill?.milestoneId ?? null,
-        cycleId: prefill?.cycleId ?? null,
-      })
-      if (createMore) patchDraft({ title: '', description: '' })
-      else onClose?.()
-    } finally {
-      setSubmitting(false)
-    }
+    void createIssue({
+      title: trimmedTitle,
+      description: description.trim(),
+      status,
+      priority,
+      assigneeId: prefill?.assigneeId ?? null,
+      labelIds: prefill?.labelIds ?? [],
+      projectId: prefill?.projectId ?? null,
+      milestoneId: prefill?.milestoneId ?? null,
+      cycleId: prefill?.cycleId ?? null,
+    })
+
+    if (createMore) patchDraft({ title: '', description: '' })
+    else onClose?.()
   }
 
   return (
@@ -119,7 +117,7 @@ function CreateIssueModal({
           // Title is a single logical line: Enter submits instead of adding a newline.
           if (e.key === 'Enter') {
             e.preventDefault()
-            void handleCreate()
+            handleCreate()
           }
         }}
         maxLength={512}
@@ -136,7 +134,7 @@ function CreateIssueModal({
           // Cmd/Ctrl+Enter creates from anywhere in the description.
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault()
-            void handleCreate()
+            handleCreate()
           }
         }}
         placeholder='Add description...'
@@ -193,7 +191,7 @@ function CreateIssueModal({
         </label>
         <Button
           onClick={handleCreate}
-          disabled={!title.trim() || submitting}
+          disabled={!title.trim()}
           className=' rounded-2xl bg-brand px-3 h-7 !text-lsm text-white hover:bg-brand-hover'
         >
           Create issue

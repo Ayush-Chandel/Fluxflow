@@ -6,7 +6,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { Timestamp } from 'firebase/firestore'
-import { toast } from 'sonner'
+import { notify } from '@/lib/notify'
 import type { CreateIssueInput, Issue, IssueStatus } from '@/types/issue'
 import type { SnapshotDelta } from '@/hooks/useEntitySync'
 import { issueService } from '@/services/issueService'
@@ -78,6 +78,17 @@ export const useIssueStore = create<IssueState>()(
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({ entity: 'issues', type: 'CREATE', id: tempId, payload: optimistic })
 
+      let live = true
+      const dismissed = () => {
+        live = false
+      }
+      const toastId = notify.success('Issue created', {
+        description: optimistic.title,
+        pending: true,
+        onAutoClose: dismissed,
+        onDismiss: dismissed,
+      })
+
       try {
         const { id, identifier } = await issueService.create(user.workspaceId, data)
         // Swap the placeholder for the real doc keyed by its server id. When
@@ -91,13 +102,22 @@ export const useIssueStore = create<IssueState>()(
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({ entity: 'issues', type: 'DELETE', id: tempId })
         broadcastDelta({ entity: 'issues', type: 'CREATE', id, payload: created })
+        if (live)
+          notify.success('Issue created', {
+            id: toastId,
+            description: `${identifier} – ${created.title}`,
+          })
       } catch {
         set((s) => {
           delete s.issues[tempId]
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({ entity: 'issues', type: 'DELETE', id: tempId })
-        toast.error('Failed to create issue')
+        notify.error('Failed to create issue', {
+          id: toastId,
+          description: optimistic.title,
+          action: { label: 'Retry', onClick: () => void get().createIssue(data) },
+        })
       }
     },
 
@@ -121,7 +141,7 @@ export const useIssueStore = create<IssueState>()(
           s.issues[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
-        toast.error('Failed to update issue')
+        notify.error('Failed to update issue')
       }
     },
 
@@ -145,7 +165,7 @@ export const useIssueStore = create<IssueState>()(
           s.issues[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
-        toast.error('Failed to update issue')
+        notify.error('Failed to update issue')
       }
     },
 
@@ -169,7 +189,7 @@ export const useIssueStore = create<IssueState>()(
           s.issues[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
-        toast.error('Failed to delete issue')
+        notify.error('Failed to delete issue')
       }
     },
   })),
