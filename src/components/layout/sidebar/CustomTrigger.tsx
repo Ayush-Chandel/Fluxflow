@@ -29,7 +29,7 @@ export function CustomTrigger({ isPinned, onPin, onUnpin }: TriggerProps) {
   }
 
   return (
-    <button onClick={handleClick} className=" ">
+    <button onClick={handleClick} className="hover:bg-hover px-1.5 py-1.5 rounded-full">
       <BarLeftIcon size={14} />
     </button>
   )

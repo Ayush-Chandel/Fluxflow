@@ -5,16 +5,24 @@ import { useSidebarPin } from '@/hooks/useSidebarPin'
 import type { NavLabel, SidebarKey } from '@/types/layout'
 import { useSidebarKey } from '@/lib/utils'
 import { useIssues } from '@/hooks/useIssues'
+import { useProjects } from '@/hooks/useProjects'
 import Topbar from './Topbar/Topbar'
 import CreateIssueDialog from '@/components/modals/CreateIssueDialog'
+import CreateProjectModal from '../modals/CreateProjectModal'
+import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
 
  function WorkspaceLayout() {
 
-  const { isPinned, pin, unpin } = useSidebarPin(true); 
+  const { isPinned, pin, unpin } = useSidebarPin(true);
 
   const activeKey:SidebarKey = useSidebarKey()?.sidebarKey;
 
+  const projectDialogOpen = useCreateProjectDialog((s) => s.open);
+  const projectPrefill = useCreateProjectDialog((s) => s.prefill);
+  const closeProjectDialog = useCreateProjectDialog((s) => s.close);
+
   useIssues();
+  useProjects();
 
   const labelGroupList:NavLabel[] = [
           {
@@ -41,12 +49,17 @@ import CreateIssueDialog from '@/components/modals/CreateIssueDialog'
       <div className="flex h-screen bg-background w-full">
         <Sidebar isPinned={isPinned} onPin={pin} onUnpin={unpin} />
         <main className="flex flex-col w-full bg-surface overflow-hidden lg:ml-2 lg:mr-3 lg:mt-3 lg:mb-5 lg:rounded-xl lg:shadow-md" >
-            <Topbar isPinned={isPinned} pin={pin} unpin={unpin}topLabel={labelGroup?.label} path={labelGroup?.path}/>
+            <Topbar activeKey={activeKey} isPinned={isPinned} pin={pin} unpin={unpin}topLabel={labelGroup?.label} path={labelGroup?.path}/>
           <div className='flex-1 min-h-0 relative flex flex-col'>
             <Outlet />
           </div>
         </main>
         <CreateIssueDialog />
+        <CreateProjectModal
+          open={projectDialogOpen}
+          prefill={projectPrefill ?? undefined}
+          onClose={closeProjectDialog}
+        />
     </div>
     </SidebarProvider>
   )

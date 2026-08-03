@@ -260,6 +260,104 @@ export const NoteIcon = createIcon(
   "lch(40% 1 282 / 1)"
 );
 
+// Project status icons (Linear-style squircle with an inner progress ring).
+const PROJECT_OUTLINE =
+  "M2.95778 3.02069L5.70777 1.36023C6.50244 0.88041 7.49756 0.88041 8.29223 1.36024L11.0422 3.02074C11.7918 3.47336 12.25 4.2852 12.25 5.16086V8.84803C12.25 9.7251 11.7904 10.5381 11.0388 10.9902L8.29114 12.6433C7.49693 13.1211 6.50355 13.1203 5.71011 12.6412L2.95775 10.9792C2.20815 10.5266 1.75 9.7148 1.75 8.83911V5.16082C1.75 4.28516 2.20816 3.47332 2.95778 3.02069Z";
+const PROJECT_HOLE =
+  "M8.3779 4.74233C8.14438 4.60607 7.85562 4.60607 7.6221 4.74233L5.37209 6.05513C5.14168 6.18957 5 6.4363 5 6.70311V9.34216C5 9.60897 5.14168 9.85573 5.37209 9.99016L7.6221 11.303C7.85562 11.4392 8.14438 11.4392 8.3779 11.303L10.6279 9.99016C10.8583 9.85573 11 9.60897 11 9.34216V6.70311C11 6.4363 10.8583 6.18957 10.6279 6.05513L8.3779 4.74233Z";
+const PROJECT_CHECK_CUT =
+  "M10.7803 5.28033C11.0732 4.98744 11.0732 4.51256 10.7803 4.21967C10.4874 3.92678 10.0126 3.92678 9.7197 4.21967L5.75 8.18934L4.28033 6.71967C3.98744 6.42678 3.51256 6.42678 3.21967 6.71967C2.92678 7.01256 2.92678 7.48744 3.21967 7.78033L5.21967 9.7803C5.51256 10.0732 5.98744 10.0732 6.28033 9.7803L10.7803 5.28033Z";
+const PROJECT_X_CUT =
+  "M3.73657 3.73657C4.05199 3.42114 4.56339 3.42114 4.87881 3.73657L5.93941 4.79716L7 5.85775L9.12117 3.73657C9.4366 3.42114 9.94801 3.42114 10.2634 3.73657C10.5789 4.05199 10.5789 4.56339 10.2634 4.87881L8.14225 7L10.2634 9.12118C10.5789 9.4366 10.5789 9.94801 10.2634 10.2634C9.94801 10.5789 9.4366 10.5789 9.12117 10.2634L7 8.14225L4.87881 10.2634C4.56339 10.5789 4.05199 10.5789 3.73657 10.2634C3.42114 9.94801 3.42114 9.4366 3.73657 9.12118L4.79716 8.06059L5.85775 7L3.73657 4.87881C3.42114 4.56339 3.42114 4.05199 3.73657 3.73657Z";
+
+function createProjectStatusIcon(
+  displayName: string,
+  defaultColor: string,
+  options: {
+    outerDashArray?: string;
+    outerDashOffset?: string;
+    progress?: number; // arc length of the ring, 0 (empty) to 25.12 (full)
+    glyph?: "check" | "x";
+  } = {}
+) {
+  const { outerDashArray = "3.14 0", outerDashOffset = "1", progress = 0, glyph } = options;
+  const Icon: React.FC<IconProps> = ({ size = 16, color = defaultColor, style, ...props }) => {
+    // unique per instance so multiple icons on a page don't share a mask id
+    const maskId = `project-status-mask-${React.useId()}`;
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="-1 -1 16 16"
+        fill="none"
+        role="img"
+        aria-hidden="true"
+        focusable="false"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ width: size, height: size, ...style }}
+        {...props}
+      >
+        <path
+          d={PROJECT_OUTLINE}
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinejoin="bevel"
+          strokeDasharray={outerDashArray}
+          strokeDashoffset={outerDashOffset}
+          fill="none"
+        />
+        <g mask={`url(#${maskId})`}>
+          <circle
+            r="4"
+            cx="7"
+            cy="7"
+            stroke={color}
+            fill="none"
+            strokeWidth="8"
+            strokeDasharray={`${progress} 25.12`}
+            transform="rotate(-90) translate(-14, 0)"
+          />
+        </g>
+        <mask id={maskId} maskUnits="userSpaceOnUse">
+          <path
+            transform={glyph ? "translate(-7.5, -7.5) scale(1.8)" : "translate(-1, -1)"}
+            d={PROJECT_HOLE}
+            fill="white"
+          />
+          {glyph === "check" && <path stroke="none" fill="black" d={PROJECT_CHECK_CUT} />}
+          {glyph === "x" && <path stroke="none" fill="black" d={PROJECT_X_CUT} />}
+        </mask>
+      </svg>
+    );
+  };
+  Icon.displayName = displayName;
+  return Icon;
+}
+
+export const ProjectBacklogIcon = createProjectStatusIcon("ProjectBacklogIcon", "lch(67.969% 62.082 61.651)", {
+  outerDashArray: "1.65 1.35",
+  outerDashOffset: "2.3",
+  progress: 0,
+});
+
+export const ProjectPlannedIcon = createProjectStatusIcon("ProjectPlannedIcon", "lch(67.969% 1.608 272.005)", {
+  progress: 0,
+});
+
+export const ProjectInProgressIcon = createProjectStatusIcon("ProjectInProgressIcon", "lch(80% 90 85)", {
+  progress: 12.56,
+});
+
+export const ProjectCompletedIcon = createProjectStatusIcon("ProjectCompletedIcon", "lch(48% 59.31 288.43)", {
+  progress: 25.12,
+  glyph: "check",
+});
+
+export const ProjectCancelledIcon = createProjectStatusIcon("ProjectCancelledIcon", "#8A8F98", {
+  progress: 25.12,
+  glyph: "x",
+});
+
 export const PlayCircleIcon = createIcon(
   "PlayCircleIcon",
   "0 0 16 16",

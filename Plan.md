@@ -79,7 +79,28 @@ model / stores / routing / rules once so nothing is retrofitted.
   minimize-to-corner bar (`CreateIssueMinimizedBar`), maximize toggle, "Create more". Entity selectors
   deferred (§11–§14; Assignee/Project pills static today). Remaining cleanup: `MOCK_ISSUES` fallback in
   `Issues.tsx` still present (harmless — only shows at zero real issues).
-- ❌ **Steps 11+ not started**: no entity stores/services/hooks beyond auth + issues.
+- 🚧 **Step 11 — Projects (logic landed, UI pending)**: the whole non-UI half is built —
+  `types/project.ts` gains `CreateProjectInput`/`NewProjectDoc`, `services/projectService.ts`
+  (client-only CRUD; `newId()` pre-generates the doc id so create needs no temp-id dance),
+  `store/projectStore.ts` (optimistic create/update/delete + rollback, array cache via `selectAll()`,
+  `broadcastDelta({entity:'projects'})`), `hooks/useProjects.ts` wired in `WorkspaceLayout`,
+  `lib/progress.ts` (derived done/total/pct for project **and** milestone/cycle),
+  `hooks/useProjectSelectors.ts` (`useProjectList`/`useProject`/`useProjectIssues`/`useProjectProgress`),
+  and the `projects` rules block. **Schema changed here (2026-08-02):** projects gained a
+  **`priority`** field and dropped the `paused` status — see §4. `ProjectPriority`/`PROJECT_PRIORITIES`
+  *alias* `IssuePriority`/`ISSUE_PRIORITIES` instead of re-declaring them, so the scale can never drift
+  and `PRIORITY_MAP` + `IssueCommandBox` are reused as-is (no `PROJECT_PRIORITY_MAP`); the store
+  defaults it to `no_priority` exactly like `status` → `backlog`. **Create-project modal wiring ✅:**
+  `store/createProjectDialogStore.ts` (the §10.5 pattern minus draft/minimize — the project modal has
+  no minimize, so Radix never remounts it mid-edit and the form keeps local state);
+  `CreateProjectModal` is mounted once in `WorkspaceLayout` off that store, and the **Topbar `+` now
+  dispatches by `activeKey`** (projects → project modal, everything else → issue dialog) instead of
+  the layout gating the modal on the route. **Still to build:** `PROJECT_MAP`
+  constants (5 statuses; only `planned` needs a new glyph), the modal's form fields →
+  `createProject`, ProjectsPage + ProjectListView/ProjectCard/ProgressBar,
+  ProjectDetail (Overview|Issues), the `projects/:id` route, the Topbar project crumb, and the
+  project selector on issues.
+- ❌ **Steps 12+ not started**: no entity stores/services/hooks beyond auth + issues + projects.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -152,7 +173,7 @@ project-root/
 │   ├── services/
 │   │   ├── authService.ts    ✅
 │   │   ├── issueService.ts   ✅ Firestore SDK + fetch(/api/createIssue)
-│   │   ├── projectService.ts ★ Firestore SDK (client CRUD) + milestones subcollection
+│   │   ├── projectService.ts ✅ Firestore SDK (client CRUD; newId → no temp-id) · milestones ★ (§12)
 │   │   ├── cycleService.ts   ★ Firestore SDK + fetch(/api/createCycle)
 │   │   └── templateService.ts★ Firestore SDK
 │   │
@@ -160,7 +181,7 @@ project-root/
 │   │   ├── authStore.ts          ✅
 │   │   ├── issueStore.ts         ✅ optimistic CRUD + rollback (reference impl)
 │   │   ├── createIssueDialogStore.ts ✅ create-modal open/minimize/maximize + draft (§10.5)
-│   │   ├── projectStore.ts       ★ + milestone actions
+│   │   ├── projectStore.ts       ✅ optimistic CRUD + rollback · milestone actions ★ (§12)
 │   │   ├── cycleStore.ts         ★
 │   │   ├── templateStore.ts      ★
 │   │   └── viewPreferenceStore.ts✅ layout/groupBy/orderBy per viewId (IndexedDB)
@@ -171,11 +192,13 @@ project-root/
 │   │   ├── utils.ts (cn)     ✅
 │   │   ├── idb.ts            ✅ idb-keyval get/set helpers
 │   │   ├── issueOrdering.ts  ✅ fractional sortOrder keys + drop → {status, sortOrder} patches
+│   │   ├── progress.ts       ✅ derived done/total/pct for project · milestone · cycle
 │   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()
 │   │
 │   ├── hooks/
 │   │   ├── useEntitySync.ts  ✅ generic idb-read + onSnapshot + idb-writeback (the engine)
-│   │   ├── useIssues.ts ✅ · useProjects.ts / useCycles.ts / useTemplates.ts ★ thin wrappers
+│   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts / useTemplates.ts ★ thin wrappers
+│   │   ├── useProjectSelectors.ts ✅ useProjectList/useProject/useProjectIssues/useProjectProgress
 │   │   └── useViewPreference.ts ★
 │   │
 │   └── mocks/{browser,handlers}.ts  ✅ (extend handlers)
@@ -185,7 +208,7 @@ project-root/
 │   ├── createIssue.ts        ✅ verify token → sequential LIN-xxx → add()
 │   └── createCycle.ts        ★ sequential cycle number
 │
-├── firestore.rules          🚧 issues hardened (step 7); rest of §8 pending (step 18)
+├── firestore.rules          🚧 issues (step 7) + projects (step 11); rest of §8 pending (step 18)
 ├── firestore.indexes.json   (add issue-by-project / -cycle / -milestone composites)
 ├── firebase.json  .firebaserc  vercel.json  vite.config.ts  tsconfig*.json  .env.local
 ```
@@ -239,7 +262,10 @@ workspaces/{workspaceId}/
 │
 ├── projects/{projectId}                ★
 │     name (req), description, icon, color
-│     status       backlog|planned|in_progress|paused|completed|cancelled
+│     status       backlog|planned|in_progress|completed|cancelled
+│     priority     urgent|high|medium|low|no_priority   ← SAME scale as issues
+│                                        (ProjectPriority aliases IssuePriority,
+│                                         so PRIORITY_MAP is shared, not copied)
 │     leadId       string|null
 │     memberIds    string[]
 │     startDate, targetDate  Timestamp|null
@@ -489,8 +515,10 @@ selectors for project/milestone/cycle/assignee/labels/template deferred to futur
 
 ### C. Projects — *coordinate work that spans many issues toward an outcome*
 **Why:** Linear's core organizing unit above the issue; gives goal/lead/target-date + progress
-visibility. **Build:** `ProjectListView`/`ProjectCard` (icon, name, status pill, lead avatar, target
-date, `ProgressBar`), `ProjectDetailPage` tabs — **Overview** (metadata + progress), **Issues** (reuses
+visibility. A project also carries a **`priority`** on the same scale as issues (§4) — one vocabulary
+across entities, so the pill, the map and the picker are shared code, not a parallel set.
+**Build:** `ProjectListView`/`ProjectCard` (icon, name, status pill, **priority pill**, lead avatar,
+target date, `ProgressBar`), `ProjectDetailPage` tabs — **Overview** (metadata + progress), **Issues** (reuses
 `IssueListView`/`IssueKanbanView` filtered by `projectId`), **Milestones**. Issue detail panel gets a
 project selector; `projectStore`/`projectService`/`useProjects`.
 
@@ -561,7 +589,12 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     11–13 (Assignee/Project pills are static placeholders today); `TemplatePicker` + template-default
     merges into `prefill` with step 14. **Remaining cleanup:** `MOCK_ISSUES` fallback in
     `IssuesPage` (`Issues.tsx`) not yet removed — harmless, only renders at zero real issues.
-11. ★ **Projects** — store/service/hook + ProjectsPage + ProjectDetail (Overview/Issues); project rules
+11. 🚧 **Projects** — store/service/hook ✅ + project rules ✅ + derived progress ✅
+    (`lib/progress.ts`, `hooks/useProjectSelectors.ts`) + **`priority` on projects** ✅ (shared
+    `IssuePriority` scale / `PRIORITY_MAP`, §4); **UI pending**: ProjectsPage,
+    ProjectDetail (Overview/Issues), CreateProjectModal, `projects/:id` route, Topbar crumb,
+    project selector on issues (`updateIssue({projectId})` + `openWith({projectId})` prefill —
+    both pipelines already live)
 12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
     issue↔cycle assignment, progress; cycle rules

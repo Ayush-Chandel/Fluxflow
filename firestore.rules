@@ -16,6 +16,13 @@ service cloud.firestore {
         allow read, update, delete: if request.auth.token.workspaceId == ws;
         allow create: if false;
       }
+
+      // Projects carry no server-generated field, so the client SDK creates them
+      // directly (build order 11). The milestones subcollection stays denied by
+      // default until build order 12 adds its own match block.
+      match /projects/{id} {
+        allow read, create, update, delete: if request.auth.token.workspaceId == ws;
+      }
     }
   }
 }
