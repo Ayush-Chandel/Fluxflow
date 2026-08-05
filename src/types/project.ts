@@ -20,7 +20,10 @@ export type ProjectPriority = IssuePriority
 export interface Project {
   id: string
   name: string // required
+  /** One-line summary — what list rows and hover cards show. */
   description: string
+  /** Long-form project brief. Plain text for now; the editor lands later. */
+  content: string
   icon: string
   color: string
   status: ProjectStatus
@@ -50,7 +53,15 @@ export interface Milestone {
 // `priority` are optional — they default to 'backlog' / 'no_priority'.
 export type CreateProjectInput = Pick<
   Project,
-  'name' | 'description' | 'icon' | 'color' | 'leadId' | 'memberIds' | 'startDate' | 'targetDate'
+  | 'name'
+  | 'description'
+  | 'content'
+  | 'icon'
+  | 'color'
+  | 'leadId'
+  | 'memberIds'
+  | 'startDate'
+  | 'targetDate'
 > & { status?: ProjectStatus; priority?: ProjectPriority }
 
 // The exact document body written to Firestore on create: the user fields plus

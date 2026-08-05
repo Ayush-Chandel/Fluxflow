@@ -43,3 +43,15 @@ export function formatDate(value: TimeInput): string {
   if (!date) return ''
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+// "Jul 13" — for pills and other tight spots. The year is only spelled out when
+// it isn't the current one, so the common case stays short without losing it.
+export function formatDateShort(value: TimeInput): string {
+  const date = toDate(value)
+  if (!date) return ''
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }),
+  })
+}
