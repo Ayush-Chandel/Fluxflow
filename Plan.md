@@ -30,7 +30,9 @@ model / stores / routing / rules once so nothing is retrofitted.
 - 🚧 **Step 3 — App shell (in progress)**: `WorkspaceLayout.tsx` + pinnable/hover-reveal `Sidebar`
   (framer-motion) exist. **`Topbar/Topbar.tsx` now renders a breadcrumb** — the `Issues` crumb, plus
   `› LIN-N <title>` when a detail is open; the `Issues` crumb `Link` owns back-navigation to the list.
-  Still pending on the topbar: list⇄board view toggle, filter chips, primary create button. **No
+  The primary create button ✅ landed with §10.5 (dispatches by `activeKey`). Still pending on the
+  topbar: filter chips (→ step 17) and the list⇄board view toggle — the toggle is explicitly **step
+  15**'s job now, shipping for issues/projects/cycles at once rather than once per entity. **No
   sidebar nav items yet** (only `SideHeader` project-selector popover). `router.tsx` uses
   `handle: { sidebarKey }` for active state.
 - ✅ **Step 4 — Shared foundation**: `types/{issue,project,cycle,template}.ts`, `lib/idb.ts`,
@@ -58,7 +60,9 @@ model / stores / routing / rules once so nothing is retrofitted.
   `MeasuringStrategy.Always`). Position persists via `sortOrder?: number` on Issue (§4): fractional
   indexing on the createdAt-millis scale — helpers in `lib/issueOrdering.ts` (`getIssueSortKey` /
   `sortIssues` / `orderBetween`; `getDropPatch` = arrayMove semantics for the board,
-  `getDropAfterPatch` = insert-after for the list). List view reorders with the indicator-line
+  `getDropAfterPatch` = insert-after for the list). *Since 2026-08-06 those names are thin
+  issue-typed wrappers — the rules themselves moved to the generic `lib/ordering.ts`, shared with the
+  project board; every call site and signature is unchanged.* List view reorders with the indicator-line
   pattern instead of rows parting (no-op `SortingStrategy`; brand line under hovered row = "lands
   after me"; droppable group header = top-of-group target). Card/row bodies memoized
   (`IssueCardContent`/`IssueRowContent`) so dnd's per-move re-renders stay cheap. One optimistic
@@ -95,13 +99,19 @@ model / stores / routing / rules once so nothing is retrofitted.
   no minimize, so Radix never remounts it mid-edit and the form keeps local state);
   `CreateProjectModal` is mounted once in `WorkspaceLayout` off that store, and the **Topbar `+` now
   dispatches by `activeKey`** (projects → project modal, everything else → issue dialog) instead of
-  the layout gating the modal on the route. **Still to build:** `PROJECT_MAP`
-  constants ✅ (`PROJECT_MAP` + dedicated `Project*Icon` glyphs) and the **projects table** ✅ —
-  `components/projects/{projectColumns,ProjectRow,ProjectListView}.tsx` + `ProjectsPage`
-  (view strip, empty state, sortable sticky header). **Still to build:** the modal's form fields →
-  `createProject`, ProjectDetail (Overview|Issues) + `ProgressBar`, the `projects/:id` route (until it
-  exists `onOpenProject` is intentionally unwired, so rows don't navigate), the Topbar project crumb,
-  and the project selector on issues.
+  the layout gating the modal on the route. **Landed since:** `PROJECT_MAP` constants (+ dedicated
+  `Project*Icon` glyphs); the **projects table** —
+  `components/projects/{projectColumns,ProjectRow,SortHeader,ProjectListView}.tsx` + `ProjectsPage`
+  (empty state, sortable sticky header); and the modal's form fields → `createProject`.
+  **Board groundwork (2026-08-06):** `Project` gained **`sortOrder`** (§4) and `lib/issueOrdering.ts`
+  was reduced to issue-typed wrappers over a new generic `lib/ordering.ts`, so issues and projects
+  share ONE fractional-indexing engine instead of two copies; `lib/projectOrdering.ts` is the matching
+  project-typed set and `useProjectBoardGroups()` hands the view pre-grouped, pre-ordered columns.
+  **Still to build:** the board's own components (`ProjectBoardView`/`ProjectBoardColumn`/`ProjectCard`),
+  ProjectDetail (Overview|Issues) + `ProgressBar`, the `projects/:id` route (until it exists
+  `onOpenProject` is intentionally unwired, so rows don't navigate), the Topbar project crumb, and the
+  project selector on issues. The list⇄board **switcher is deliberately not here** — it ships for
+  issues/projects/cycles together in step 15.
 - ✅ **Table sorting groundwork (2026-08-02)**: `ViewPreference` gains **`sortDir`** and `OrderBy`
   widens with the project columns (`name`/`status`/`lead`/`target`/`issues`/`progress`);
   `toggleSort(viewId, column)` implements header-click semantics (same column flips, new column starts
@@ -168,15 +178,17 @@ project-root/
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── WorkspaceLayout.tsx  ✅  Sidebar + Topbar + <Outlet> (NEVER remounts)
-│   │   │   ├── Topbar/Topbar.tsx    🚧 breadcrumb done (owns back-nav) → add view toggle, filter chips, create btn
+│   │   │   ├── Topbar/Topbar.tsx    🚧 breadcrumb ✅ (owns back-nav) + create btn ✅ → view toggle (step 15), filter chips (step 17)
 │   │   │   └── sidebar/{Sidebar,SidebarContent,SideHeader,CustomTrigger}.tsx ✅
 │   │   │        └── SidebarNav.tsx  ★ Issues / Projects / Cycles / Settings nav
 │   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
 │   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
 │   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
 │   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal + CreateIssueMinimizedBar
-│   │   ├── projects/   ★ ProjectListView, ProjectCard, ProjectDetail, MilestoneList, ProgressBar
-│   │   ├── cycles/     ★ CycleListView, CycleCard, CycleDetail, CycleProgress
+│   │   ├── projects/   🚧 projectColumns, ProjectRow, SortHeader, ProjectListView ✅ ·
+│   │   │                 ProjectBoardView, ProjectBoardColumn, ProjectCard ★ (board; data layer ✅) ·
+│   │   │                 ProjectDetail, MilestoneList, ProgressBar ★
+│   │   ├── cycles/     ★ CycleListView, CycleBoardView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
 │   │   └── ui/         ✅ shadcn primitives (button, card, popover, sheet, sidebar, tooltip…)
 │   │
@@ -267,7 +279,8 @@ workspaces/{workspaceId}/
 │     cycleId      string|null   ★     ← issue scoped into a cycle
 │     sortOrder    number?             ← manual position in list/board group (fractional
 │                                        indexing; absent → createdAt-millis fallback,
-│                                        see lib/issueOrdering.ts)
+│                                        engine in lib/ordering.ts, issue wrappers in
+│                                        lib/issueOrdering.ts)
 │     createdAt, updatedAt, createdBy
 │
 ├── projects/{projectId}                ★
@@ -279,6 +292,10 @@ workspaces/{workspaceId}/
 │     leadId       string|null
 │     memberIds    string[]
 │     startDate, targetDate  Timestamp|null
+│     sortOrder    number?      ★     ← manual position in a BOARD column; same
+│                                        fractional indexing as issues, same shared
+│                                        engine (lib/ordering.ts). The table sorts by
+│                                        column, so it only reads this under 'manual'.
 │     createdAt, updatedAt, createdBy
 │     └── milestones/{milestoneId}      ★  name (req), targetDate|null, sortOrder,
 │                                          createdAt, updatedAt
@@ -501,8 +518,9 @@ Add composite indexes in `firestore.indexes.json` for issues filtered by `projec
 **Why:** the shell (`WorkspaceLayout`) must never remount so navigation feels instant and store
 subscriptions stay alive. **Build:** `SidebarNav.tsx` with Issues/Projects/Cycles/Settings `Link`s,
 active state from `useMatches()` → `handle.sidebarKey`, styled with tokens (`text-muted` idle →
-`text-brand`/active). Fill `Topbar.tsx`: breadcrumb/title, list⇄board toggle (writes
-`viewPreferenceStore`), filter chips (`useSearchParams`), one `bg-brand` primary create action.
+`text-brand`/active). Fill `Topbar.tsx`: breadcrumb/title ✅ and one `bg-brand` primary create action ✅;
+the list⇄board toggle (writes `viewPreferenceStore`) moved out to **step 15** so it can be wired for
+issues/projects/cycles in one pass, and filter chips (`useSearchParams`) to **step 17**.
 
 ### B. Issues — *the fundamental unit; reference implementation of the whole pipeline*
 **Why:** every other feature reuses the issue views (`Accepts Issue[]`) and the store pattern.
@@ -536,7 +554,33 @@ their counts from `useProjectRows()`. **No Health column at all** — Linear der
 updates, which §4 doesn't model, so there is nothing to render or sort; it is not stubbed either
 (decided 2026-08-02). **Lead** stays a placeholder cell: `leadId` has no member entity to
 resolve against (same gap as issue assignee avatars). The milestone chip beside the name is §12.
-**Build:** the table above + `ProjectDetailPage` tabs — **Overview** (metadata + progress), **Issues** (reuses
+
+**Board view (added 2026-08-06):** projects get a **board too**, not only the table — one column per
+`ProjectStatus` in `PROJECT_STATUSES` order, labels and glyphs from the shared `PROJECT_MAP`, cards
+grouped by status and manually orderable inside a column exactly like the issue kanban. This is why
+`Project` gained **`sortOrder`** (§4). The ordering engine is **shared, not copied**:
+`lib/issueOrdering.ts` became issue-typed wrappers over a new generic `lib/ordering.ts`, and
+`lib/projectOrdering.ts` is the project-typed set — `orderProjectRows(rows)` (manual order inside one
+column, the counterpart to the table's `sortProjectRows(rows, orderBy, dir)`), `orderBetween(prev,
+next)`, and `getDropPatch(active, overId, groups)`. **No `getDropAfterPatch` for projects**: that is
+the issue *list's* line-indicator drag, and the projects list is a sorted table, so there is nothing
+to drag there. These take groups of **`ProjectRow`**, not `Project` — the board renders rows exactly
+like the table does, so the view hands back the same structure it holds instead of unwrapping at the
+drop site. `useProjectBoardGroups()` supplies them: `Record<ProjectStatus, ProjectRow[]>`, every
+status present (empty columns included), already grouped, already in manual order, each row still
+carrying its derived `progress` — so a card renders its issue count without touching the issue store.
+A drop is one optimistic write, `updateProject(id, {status, sortOrder})`, through the same pipeline
+as the table. **Board order is always manual** — like the issue kanban it ignores the table's
+`orderBy`, which stays a property of the list; that is what lets both views read the same
+`viewId` preference without fighting over it. (The table's `orderBy: 'manual'` is no longer a dead
+branch either — it now reads `sortOrder`, so a table left on manual mirrors the board's sequence.)
+
+**The list⇄board switcher is NOT part of this step** — the toggle ships once, for issues, projects and
+cycles together, in **step 15** (decided 2026-08-06). Until it lands each page renders whichever view
+it hardcodes. Nothing about the board has to change when the toggle arrives: `viewPreferenceStore`
+already keys `layout` per `viewId`, so the switcher is pure wiring on top of finished views.
+
+**Build:** the table + the board above + `ProjectDetailPage` tabs — **Overview** (metadata + progress), **Issues** (reuses
 `IssueListView`/`IssueKanbanView` filtered by `projectId`), **Milestones**. Issue detail panel gets a
 project selector; `projectStore`/`projectService`/`useProjects`.
 
@@ -549,8 +593,13 @@ selector in the issue panel scoped to the issue's project's milestones.
 ### E. Cycles (manual MVP) — *time-boxed sprints to keep momentum*
 **Why:** agile cadence; a committed scope with a progress bar focuses the team. **Build:**
 `CyclesPage` with Active / Upcoming / Completed sections; status derived by
-`cycleStatusFromDates(start,end,now)` in `types/cycle.ts` (not stored). `CycleDetailPage` reuses issue
-views filtered by `cycleId` + a `CycleProgress` bar. Assign issues via a cycle selector.
+`cycleStatusFromDates(start,end,now)` in `types/cycle.ts` (not stored). **Both views ship in step 13**
+(decided 2026-08-06) — `CycleListView` plus a `CycleBoardView` whose columns are the three derived
+statuses — with the list⇄board **switcher deferred to step 15**, same as projects. One difference from
+the project board: cycle cards are **not drag-orderable across columns**, because cycle status is
+derived from `startDate`/`endDate` — a cross-column drop would have to rewrite the date range, which
+is out of scope. So `Cycle` needs no `sortOrder` and the board is read-only in that axis.
+`CycleDetailPage` reuses issue views filtered by `cycleId` + a `CycleProgress` bar. Assign issues via a cycle selector.
 `cycleStore`/`cycleService` + `api/createCycle` for the sequential number. **Explicitly deferred:**
 auto-repeating schedule, cooldown, and auto-rollover of incomplete issues.
 
@@ -568,7 +617,7 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
 1. ✅ Firebase setup
 2. ✅ Auth flow + guards
 3. 🚧 **App shell** — `SidebarNav` (Issues/Projects/Cycles); `Topbar` breadcrumb ✅ (owns
-   back-navigation; view toggle + filter chips + create btn still pending); wire active state
+   back-navigation) + create btn ✅; view toggle → step 15, filter chips → step 17; wire active state
 4. ✅ **Shared foundation** — `types/*`, `lib/idb.ts`, `lib/broadcastChannel.ts`,
    `hooks/useEntitySync.ts`, `viewPreferenceStore`
 5. ✅ **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl); immer middleware,
@@ -609,15 +658,24 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     `IssuesPage` (`Issues.tsx`) not yet removed — harmless, only renders at zero real issues.
 11. 🚧 **Projects** — store/service/hook ✅ + project rules ✅ + derived progress ✅
     (`lib/progress.ts`, `hooks/useProjectSelectors.ts`) + **`priority` on projects** ✅ (shared
-    `IssuePriority` scale / `PRIORITY_MAP`, §4); **UI pending**: ProjectsPage,
-    ProjectDetail (Overview/Issues), CreateProjectModal, `projects/:id` route, Topbar crumb,
-    project selector on issues (`updateIssue({projectId})` + `openWith({projectId})` prefill —
-    both pipelines already live)
+    `IssuePriority` scale / `PRIORITY_MAP`, §4) + `CreateProjectModal` ✅ + the **projects table** ✅
+    (`ProjectListView` + sortable sticky header) + the **board data layer** ✅ (`sortOrder` on
+    `Project`, generic `lib/ordering.ts`, `lib/projectOrdering.ts`, `useProjectBoardGroups()`);
+    **UI pending**: **`ProjectBoardView` + `ProjectBoardColumn` + `ProjectCard`**, ProjectDetail
+    (Overview/Issues), `projects/:id` route, Topbar crumb, project selector on issues
+    (`updateIssue({projectId})` + `openWith({projectId})` prefill — both pipelines already live).
+    **No switcher in this step** → step 15.
 12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
-    issue↔cycle assignment, progress; cycle rules
+    **both `CycleListView` and `CycleBoardView`** (no switcher → step 15; no cross-column drag, since
+    cycle status is derived from dates), issue↔cycle assignment, progress; cycle rules
 14. ★ **Issue Templates** — store/service, TemplatesSettingsPage, TemplatePicker + default behavior
-15. **View preference store** — persist list/board toggle to IndexedDB
+15. **List⇄board switcher — all three views in one pass** — the `viewPreferenceStore` itself landed
+    back in step 4 ✅ (persisted to IndexedDB, `layout` keyed per `viewId`). What remains is the UI:
+    the Topbar toggle wired for **issues, projects AND cycles**, each page choosing its view from
+    `getPreference(viewId).layout` instead of hardcoding one. Batched here on purpose (decided
+    2026-08-06) — every view is built ahead of it, so this step is pure wiring and the toggle behaves
+    identically everywhere instead of being re-invented per entity.
 16. **BroadcastChannel** — wire tab-sync into all store mutations
 17. **Filters** — `useSearchParams` per page + Topbar chips (priority/assignee/project/cycle)
 18. ★ **Rules hardening + indexes** — final `firestore.rules` (§8) + composite indexes

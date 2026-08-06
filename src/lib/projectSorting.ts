@@ -10,6 +10,7 @@ import { ISSUE_PRIORITIES } from '@/types/issue'
 import { PROJECT_STATUSES, type Project } from '@/types/project'
 import type { OrderBy, SortDir } from '@/store/viewPreferenceStore'
 import { toDate } from '@/lib/date'
+import { getSortKey } from '@/lib/ordering'
 import type { Progress } from '@/lib/progress'
 
 /** A table row: the project plus its derived counts, computed once by the hook. */
@@ -47,10 +48,12 @@ function sortValue({ project, progress }: ProjectRow, orderBy: OrderBy): string 
       return progress.pct
     case 'updated':
       return millis(project.updatedAt)
-    // Projects carry no `sortOrder` (unlike issues), so 'manual' has nothing to
-    // read and behaves as 'created' — newest ordering is the only manual-free default.
-    case 'created':
+    // 'manual' is the board's order — the `sortOrder` a drop wrote, on the same
+    // epoch-millis scale as createdAt, which is exactly what an undragged project
+    // falls back to. So a table left on 'manual' mirrors the board's sequence.
     case 'manual':
+      return getSortKey(project)
+    case 'created':
     default:
       return millis(project.createdAt)
   }

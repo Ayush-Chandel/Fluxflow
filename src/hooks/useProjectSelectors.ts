@@ -7,9 +7,10 @@ import { useIssueStore } from '@/store/issueStore'
 import { useProjectStore } from '@/store/projectStore'
 import { DEFAULT_PREFERENCE, useViewPreferenceStore } from '@/store/viewPreferenceStore'
 import { EMPTY_PROGRESS, progressByKey, projectProgress, type Progress } from '@/lib/progress'
+import { orderProjectRows } from '@/lib/projectOrdering'
 import { sortProjectRows, type ProjectRow } from '@/lib/projectSorting'
 import type { Issue } from '@/types/issue'
-import type { Project } from '@/types/project'
+import { PROJECT_STATUSES, type Project, type ProjectStatus } from '@/types/project'
 
 /** Default viewId for the projects table — its sort lives under this key. */
 export const PROJECTS_VIEW_ID = 'projects'
@@ -38,6 +39,17 @@ export function useProjectIssues(projectId: string | undefined): Issue[] {
   )
 }
 
+function buildRows(
+  projectsMap: Record<string, Project>,
+  issuesMap: Record<string, Issue>,
+): ProjectRow[] {
+  const progress = progressByKey(Object.values(issuesMap), 'projectId')
+  return Object.values(projectsMap).map((project) => ({
+    project,
+    progress: progress[project.id] ?? EMPTY_PROGRESS,
+  }))
+}
+
 export function useProjectRows(viewId: string = PROJECTS_VIEW_ID): ProjectRow[] {
   const projectsMap = useProjectStore((s) => s.projects)
   const issuesMap = useIssueStore((s) => s.issues)
@@ -51,14 +63,25 @@ export function useProjectRows(viewId: string = PROJECTS_VIEW_ID): ProjectRow[] 
     (s) => (s.preferences[viewId] ?? DEFAULT_PREFERENCE).sortDir ?? DEFAULT_PREFERENCE.sortDir,
   )
 
+  return useMemo(
+    () => sortProjectRows(buildRows(projectsMap, issuesMap), orderBy, sortDir),
+    [projectsMap, issuesMap, orderBy, sortDir],
+  )
+}
+
+export function useProjectBoardGroups(): Record<ProjectStatus, ProjectRow[]> {
+  const projectsMap = useProjectStore((s) => s.projects)
+  const issuesMap = useIssueStore((s) => s.issues)
+
   return useMemo(() => {
-    const progress = progressByKey(Object.values(issuesMap), 'projectId')
-    const rows = Object.values(projectsMap).map((project) => ({
-      project,
-      progress: progress[project.id] ?? EMPTY_PROGRESS,
-    }))
-    return sortProjectRows(rows, orderBy, sortDir)
-  }, [projectsMap, issuesMap, orderBy, sortDir])
+    const rows = buildRows(projectsMap, issuesMap)
+    return Object.fromEntries(
+      PROJECT_STATUSES.map((status) => [
+        status,
+        orderProjectRows(rows.filter((row) => row.project.status === status)),
+      ]),
+    ) as Record<ProjectStatus, ProjectRow[]>
+  }, [projectsMap, issuesMap])
 }
 
 /** done / total / pct for a project's issues (§4 — derived, never stored). */

@@ -32,6 +32,7 @@ export interface Project {
   memberIds: string[]
   startDate: Timestamp | null
   targetDate: Timestamp | null
+  sortOrder?: number
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
