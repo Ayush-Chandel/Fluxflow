@@ -78,7 +78,7 @@ function IssueCard({issue, isOverlay, onOpen}: IssueCardProps) {
         ref={setNodeRef}
         {...listeners}
         {...attributes}
-        data-issue-surface
+        data-card-surface
         onClick={isOverlay ? undefined : (e) => {
             if ((e.target as HTMLElement).closest('button')) return;
             onOpen?.();

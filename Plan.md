@@ -100,18 +100,29 @@ model / stores / routing / rules once so nothing is retrofitted.
   `CreateProjectModal` is mounted once in `WorkspaceLayout` off that store, and the **Topbar `+` now
   dispatches by `activeKey`** (projects → project modal, everything else → issue dialog) instead of
   the layout gating the modal on the route. **Landed since:** `PROJECT_MAP` constants (+ dedicated
-  `Project*Icon` glyphs); the **projects table** —
-  `components/projects/{projectColumns,ProjectRow,SortHeader,ProjectListView}.tsx` + `ProjectsPage`
-  (empty state, sortable sticky header); and the modal's form fields → `createProject`.
-  **Board groundwork (2026-08-06):** `Project` gained **`sortOrder`** (§4) and `lib/issueOrdering.ts`
+  `Project*Icon` glyphs); the **projects table** — `components/projects/list-view/{ProjectRow,
+  ProjectListView}.tsx` + `projectColumns`/`SortHeader` + `ProjectsPage` (empty state, sortable sticky
+  header); the modal's form fields → `createProject` (+ `MilestoneDraftList`, whose drafts are still
+  discarded on create until §12 exists).
+  **Board data layer (2026-08-06):** `Project` gained **`sortOrder`** (§4) and `lib/issueOrdering.ts`
   was reduced to issue-typed wrappers over a new generic `lib/ordering.ts`, so issues and projects
   share ONE fractional-indexing engine instead of two copies; `lib/projectOrdering.ts` is the matching
   project-typed set and `useProjectBoardGroups()` hands the view pre-grouped, pre-ordered columns.
-  **Still to build:** the board's own components (`ProjectBoardView`/`ProjectBoardColumn`/`ProjectCard`),
-  ProjectDetail (Overview|Issues) + `ProgressBar`, the `projects/:id` route (until it exists
-  `onOpenProject` is intentionally unwired, so rows don't navigate), the Topbar project crumb, and the
-  project selector on issues. The list⇄board **switcher is deliberately not here** — it ships for
-  issues/projects/cycles together in step 15.
+  **Board UI ✅ (2026-08-07):** `components/projects/kanban-view/{ProjectKanbanView,ProjectKanbanColumn,
+  ProjectCard}.tsx` — the issue kanban's structure with project data. Card = icon + name, in-place
+  status/priority pickers (`IssueCommandBox`, same as the table cells), lead placeholder, summary when
+  set, target-date chip (`text-destructive` once its day is past, unless completed/cancelled), and
+  `N issues` from the row's derived progress. Both column `+`s call
+  `openWith({status})`, so a project is created in the column that asked for it. `lib/issueOpenGuard.ts`
+  became **`lib/openGuard.ts`** (`data-issue-surface` → `data-card-surface`) — the popover
+  fall-through guard is no longer issue-only now that project cards host pickers too.
+  **Deliberately absent from the card:** the milestone chip (needs §12's subcollection; drafts don't
+  persist) and health (§4 doesn't model it — same call as the table's missing Health column).
+  **Still to build:** ProjectDetail (Overview|Issues) + `ProgressBar`, the `projects/:id` route (until
+  it exists `onOpenProject` is intentionally unwired, so cards/rows don't navigate), the Topbar project
+  crumb, and the project selector on issues. `ProjectsPage` hardcodes the board today — the list⇄board
+  **switcher is deliberately not here**, it ships for issues/projects/cycles together in step 15, and
+  the two views need different page shells (the board must not sit in a vertical scroller).
 - ✅ **Table sorting groundwork (2026-08-02)**: `ViewPreference` gains **`sortDir`** and `OrderBy`
   widens with the project columns (`name`/`status`/`lead`/`target`/`issues`/`progress`);
   `toggleSort(viewId, column)` implements header-click semantics (same column flips, new column starts
@@ -185,8 +196,9 @@ project-root/
 │   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
 │   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
 │   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal + CreateIssueMinimizedBar
-│   │   ├── projects/   🚧 projectColumns, ProjectRow, SortHeader, ProjectListView ✅ ·
-│   │   │                 ProjectBoardView, ProjectBoardColumn, ProjectCard ★ (board; data layer ✅) ·
+│   │   ├── projects/   🚧 projectColumns, SortHeader, MilestoneDraftList ✅ ·
+│   │   │                 list-view/{ProjectListView,ProjectRow} ✅ ·
+│   │   │                 kanban-view/{ProjectKanbanView,ProjectKanbanColumn,ProjectCard} ✅ ·
 │   │   │                 ProjectDetail, MilestoneList, ProgressBar ★
 │   │   ├── cycles/     ★ CycleListView, CycleBoardView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
@@ -661,10 +673,11 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     `IssuePriority` scale / `PRIORITY_MAP`, §4) + `CreateProjectModal` ✅ + the **projects table** ✅
     (`ProjectListView` + sortable sticky header) + the **board data layer** ✅ (`sortOrder` on
     `Project`, generic `lib/ordering.ts`, `lib/projectOrdering.ts`, `useProjectBoardGroups()`);
-    **UI pending**: **`ProjectBoardView` + `ProjectBoardColumn` + `ProjectCard`**, ProjectDetail
-    (Overview/Issues), `projects/:id` route, Topbar crumb, project selector on issues
-    (`updateIssue({projectId})` + `openWith({projectId})` prefill — both pipelines already live).
-    **No switcher in this step** → step 15.
+    + the **board UI** ✅ (`kanban-view/{ProjectKanbanView,ProjectKanbanColumn,ProjectCard}`, dnd-kit
+    reorder + cross-column drop → `updateProject({status,sortOrder})`, column `+` prefills the status);
+    **UI pending**: ProjectDetail (Overview/Issues), `projects/:id` route, Topbar crumb, project
+    selector on issues (`updateIssue({projectId})` + `openWith({projectId})` prefill — both pipelines
+    already live). **No switcher in this step** → step 15.
 12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
     **both `CycleListView` and `CycleBoardView`** (no switcher → step 15; no cross-column drag, since

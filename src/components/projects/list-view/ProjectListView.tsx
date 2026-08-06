@@ -1,20 +1,22 @@
 
 import { cn } from '@/lib/utils'
-import type { ProjectRow as ProjectRowData } from '@/lib/projectSorting'
 import type { Project } from '@/types/project'
-import { PROJECTS_VIEW_ID } from '@/hooks/useProjectSelectors'
+import { PROJECTS_VIEW_ID, useProjectRows } from '@/hooks/useProjectSelectors'
 import { DEFAULT_PREFERENCE, useViewPreferenceStore } from '@/store/viewPreferenceStore'
 import ProjectRow from './ProjectRow'
-import SortHeader from './SortHeader'
-import { PROJECT_COLUMNS, PROJECT_GRID } from './projectColumns'
+import SortHeader from '../SortHeader'
+import { PROJECT_COLUMNS, PROJECT_GRID } from '../projectColumns'
 
 type Props = {
-  rows: ProjectRowData[]
   viewId?: string
   onOpenProject?: (project: Project) => void
 }
 
-function ProjectListView({ rows, viewId = PROJECTS_VIEW_ID, onOpenProject }: Props) {
+function ProjectListView({ viewId = PROJECTS_VIEW_ID, onOpenProject }: Props) {
+  // Rows come from the same viewId the header sorts by — sourcing them from a
+  // parent let the two drift apart.
+  const rows = useProjectRows(viewId)
+
   // Primitives, not getPreference() — that builds a fresh object on every call.
   const orderBy = useViewPreferenceStore(
     (s) => (s.preferences[viewId] ?? DEFAULT_PREFERENCE).orderBy,

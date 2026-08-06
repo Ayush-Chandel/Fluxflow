@@ -21,12 +21,12 @@ function Issues() {
   
   return (
     <>
-    <div className="flex-1 min-h-0 overflow-y-auto" inert={!!identifier}>
+    {/* <div className="flex-1 min-h-0 overflow-y-auto" inert={!!identifier}>
      <IssueListView issues={rows} onOpenIssue={openIssue} />
-    </div>
-    {/* <div className="flex-1 min-h-0 flex flex-col">
-      <IssueKanbanView issues={rows} onOpenIssue={openIssue} />
     </div> */}
+    <div className="flex-1 min-h-0 flex flex-col">
+      <IssueKanbanView issues={rows} onOpenIssue={openIssue} />
+    </div>
     {identifier &&
     <IssueDetailView
     identifier={identifier}

@@ -1,7 +1,8 @@
-import ProjectListView from '@/components/projects/ProjectListView'
-import { useProjectRows } from '@/hooks/useProjectSelectors'
+import { useProjectStore } from '@/store/projectStore'
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
 import { BoxIcon } from '@/components/icons'
+import ProjectKanbanView from '@/components/projects/kanban-view/ProjectKanbanView'
+import ProjectListView from '@/components/projects/list-view/ProjectListView'
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
@@ -23,19 +24,23 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 }
 
 function Projects() {
-  const rows = useProjectRows()
+  // Only the emptiness matters here — each view derives its own rows/groups.
+  const isEmpty = useProjectStore((s) => Object.keys(s.projects).length === 0)
   const openCreateProject = useCreateProjectDialog((s) => s.openWith)
 
-  return (
-    <div className='flex min-h-0 flex-1 flex-col'>
-      <div className='min-h-0 flex-1 overflow-y-auto pt-2'>
-        {rows.length === 0 ? (
-          <EmptyState onCreate={() => openCreateProject()} />
-        ) : (
-          // onOpenProject stays unwired until the projects/:id route exists.
-          <ProjectListView rows={rows} />
-        )}
+  if (isEmpty) {
+    return (
+      <div className='min-h-0 flex-1 pt-2'>
+        <EmptyState onCreate={() => openCreateProject()} />
       </div>
+    )
+  }
+
+  // onOpenProject stays unwired until the projects/:id route exists.
+  return (
+    // <div className='min-h-0 flex-1 overflow-y-auto pt-2'><ProjectListView /></div>
+    <div className='flex min-h-0 flex-1 flex-col'>
+      <ProjectKanbanView />
     </div>
   )
 }

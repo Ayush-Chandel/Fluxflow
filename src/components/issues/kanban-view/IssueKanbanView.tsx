@@ -1,9 +1,9 @@
-import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
+import { ISSUE_STATUSES, type Issue } from '@/types/issue'
 import { useRef, useState } from 'react'
 import IssueCard from './IssueCard';
 import { useIssueStore } from '@/store/issueStore';
-import { getDropPatch, orderBetween, sortIssues } from '@/lib/issueOrdering';
-import { pointerDownStartedOnIssueSurface } from '@/lib/issueOpenGuard';
+import { findGroupOf, getDropPatch, orderBetween, sortIssues, type IssueGroups } from '@/lib/issueOrdering';
+import { pointerDownStartedOnCardSurface } from '@/lib/openGuard';
 import {
     closestCorners,
     DndContext, DragOverlay, MeasuringStrategy, PointerSensor, useSensor, useSensors,
@@ -16,20 +16,12 @@ type IssueKanbanProps = {
     onOpenIssue?: (issue: Issue) => void;
 }
 
-type Groups = Record<string, Issue[]>;
-
-// Which status group holds this card in the given snapshot — or, when the id
-// itself is a column id, that column.
-const findGroupOf = (groups: Groups, id: string): IssueStatus | null =>
-    ISSUE_STATUSES.find((status)=>groups[status].some((i)=>i.id === id))
-    ?? (ISSUE_STATUSES.includes(id as IssueStatus) ? (id as IssueStatus) : null);
-
 function IssueKanbanView({issues, onOpenIssue}: IssueKanbanProps) {
 
   const updateIssue = useIssueStore((s)=>s.updateIssue);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
 
-  const [dragGroups, setDragGroups] = useState<Groups | null>(null);
+  const [dragGroups, setDragGroups] = useState<IssueGroups | null>(null);
 
   const justDragged = useRef(false);
 
@@ -113,7 +105,7 @@ function IssueKanbanView({issues, onOpenIssue}: IssueKanbanProps) {
   // Skip a stray open: the post-drop click dnd-kit fires, or the fall-through
   // click after a picker popover closes.
   const openCard = (issue: Issue) => {
-    if (justDragged.current || !pointerDownStartedOnIssueSurface()) return;
+    if (justDragged.current || !pointerDownStartedOnCardSurface()) return;
     onOpenIssue?.(issue);
   };
 

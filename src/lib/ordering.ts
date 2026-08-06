@@ -38,6 +38,18 @@ export function orderBetween(prev?: Orderable, next?: Orderable): number {
     : Date.now()
 }
 
+export function findGroupOf<S extends string, T>(
+  groups: OrderGroups<T>,
+  id: string,
+  statuses: readonly S[],
+  idOf: (item: T) => string,
+): S | null {
+  return (
+    statuses.find((status) => groups[status]?.some((item) => idOf(item) === id))
+    ?? (statuses.includes(id as S) ? (id as S) : null)
+  )
+}
+
 // What a drop landed on: the item under the pointer plus the column that implies —
 // or, when the id is a column's own (an empty column, a group header), that column.
 function resolveTarget<S extends string, T extends Orderable<S>>(

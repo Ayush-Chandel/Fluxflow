@@ -9,6 +9,7 @@
 import { PROJECT_STATUSES, type Project, type ProjectStatus } from '@/types/project'
 import type { ProjectRow } from '@/lib/projectSorting'
 import {
+  findGroupOf as findGroupOfItem,
   getDropPatch as dropPatch,
   getSortKey,
   orderBetween as orderBetweenItems,
@@ -31,6 +32,11 @@ const projectsOf = (groups: ProjectGroups): OrderGroups<Project> =>
 export function orderProjectRows(rows: ProjectRow[]): ProjectRow[] {
   return [...rows].sort((a, b) => getSortKey(a.project) - getSortKey(b.project))
 }
+
+/** Which column a card sits in mid-drag — or the column itself, for a column id.
+ *  Matches on the project's id: that's what a card's dnd id is. */
+export const findGroupOf = (groups: ProjectGroups, id: string): ProjectStatus | null =>
+  findGroupOfItem(groups, id, PROJECT_STATUSES, (row) => row.project.id)
 
 /** A key strictly between two cards; either side may be absent (column edge). */
 export const orderBetween = (prev?: ProjectRow, next?: ProjectRow): number =>

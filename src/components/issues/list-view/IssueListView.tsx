@@ -7,7 +7,7 @@ import { ISSUE_MAP } from '../../common/constants/constants';
 import IssueRow from './IssueRow';
 import { useIssueStore } from '@/store/issueStore';
 import { getDropAfterPatch, sortIssues } from '@/lib/issueOrdering';
-import { pointerDownStartedOnIssueSurface } from '@/lib/issueOpenGuard';
+import { pointerDownStartedOnCardSurface } from '@/lib/openGuard';
 import {
     closestCorners,
     DndContext, DragOverlay, PointerSensor, useDroppable, useSensor, useSensors,
@@ -104,7 +104,7 @@ function IssueListView({issues, onOpenIssue}: IssueListProps) {
                                         issue={issue}
                                         onOpen={() => {
                                             // Skip the post-drop stray click and the picker-close fall-through.
-                                            if (justDragged.current || !pointerDownStartedOnIssueSurface()) return;
+                                            if (justDragged.current || !pointerDownStartedOnCardSurface()) return;
                                             onOpenIssue?.(issue);
                                         }}
                                     />

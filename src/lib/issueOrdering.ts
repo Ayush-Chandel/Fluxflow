@@ -4,6 +4,7 @@
 // them, so the views keep importing one module and never pass ISSUE_STATUSES in.
 import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
 import {
+  findGroupOf as findGroupOfItem,
   getDropAfterPatch as dropAfterPatch,
   getDropPatch as dropPatch,
   getSortKey,
@@ -22,6 +23,10 @@ export type IssueDropPatch = DropPatch<IssueStatus>
 export const getIssueSortKey = (issue: Issue): number => getSortKey(issue)
 
 export const sortIssues = (issues: Issue[]): Issue[] => sortByOrder(issues)
+
+/** Which status group a card sits in mid-drag — or the column, for a column id. */
+export const findGroupOf = (groups: IssueGroups, id: string): IssueStatus | null =>
+  findGroupOfItem(groups, id, ISSUE_STATUSES, (issue) => issue.id)
 
 /** A key strictly between two neighbours; either side may be absent (group edge). */
 export const orderBetween = (prev?: Issue, next?: Issue): number =>

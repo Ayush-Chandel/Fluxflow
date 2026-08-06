@@ -3,18 +3,18 @@ import { Timestamp } from 'firebase/firestore'
 import { CalendarCheckIcon, CalendarPlusIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toDate } from '@/lib/date'
-import DatePillPicker from '../common/DatePillPicker'
+import DatePillPicker from '../../common/DatePillPicker'
 import type { Progress } from '@/lib/progress'
 import { PROJECT_PRIORITIES, PROJECT_STATUSES, type Project } from '@/types/project'
 import { useProjectStore } from '@/store/projectStore'
-import { PROJECT_MAP, PRIORITY_MAP } from '../common/constants/constants'
-import { PROJECT_CELL, PROJECT_COLUMNS, PROJECT_GRID } from './projectColumns'
+import { PROJECT_MAP, PRIORITY_MAP } from '../../common/constants/constants'
+import { PROJECT_CELL, PROJECT_COLUMNS, PROJECT_GRID } from '../projectColumns'
 import {
   DEFAULT_PROJECT_COLOR,
   resolveProjectIcon,
-} from '../common/constants/projectIcons'
-import IssueCommandBox from '../issues/IssueCommandBox'
-import { AssigneeIcon } from '../icons'
+} from '../../common/constants/projectIcons'
+import IssueCommandBox from '../../issues/IssueCommandBox'
+import { AssigneeIcon } from '../../icons'
 
 type Props = {
   project: Project
