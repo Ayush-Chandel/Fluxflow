@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Timestamp } from 'firebase/firestore'
 import { CalendarCheckIcon, CalendarIcon, XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,7 @@ import AutoGrowTextarea from '../common/AutoGrowTextarea'
 import DatePillPicker from '../common/DatePillPicker'
 import IssueCommandBox from '../issues/IssueCommandBox'
 import MilestoneDraftList, { type MilestoneDraft } from '../projects/MilestoneDraftList'
+import ConfirmDialog from '../common/ConfirmDialog'
 import { PRIORITY_MAP, PROJECT_MAP } from '../common/constants/constants'
 import {
   DEFAULT_PROJECT_COLOR,
@@ -39,6 +40,46 @@ const PILL_TRIGGER =
 const HEADER_BTN =
   'flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-foreground'
 
+type ProjectDraft = {
+  icon: string
+  color: string
+  name: string
+  summary: string
+  content: string
+  status: ProjectStatus
+  priority: ProjectPriority
+  startDate: Date | null
+  targetDate: Date | null
+  milestones: MilestoneDraft[]
+}
+
+/** The form's starting values for a given open — one source of truth for both
+ *  the initial state and the "has anything changed?" baseline. */
+const buildSeed = (prefill?: Partial<CreateProjectInput>): ProjectDraft => ({
+  icon: prefill?.icon ?? DEFAULT_PROJECT_ICON,
+  color: prefill?.color ?? DEFAULT_PROJECT_COLOR,
+  name: prefill?.name ?? '',
+  summary: prefill?.description ?? '',
+  content: prefill?.content ?? '',
+  status: prefill?.status ?? 'backlog',
+  priority: prefill?.priority ?? 'no_priority',
+  startDate: toDate(prefill?.startDate),
+  targetDate: toDate(prefill?.targetDate),
+  milestones: [],
+})
+
+/** Comparable form of a draft: Dates and milestone objects never match by
+ *  identity, so normalise before diffing against the seed. */
+const fingerprint = (draft: ProjectDraft) =>
+  JSON.stringify({
+    ...draft,
+    name: draft.name.trim(),
+    summary: draft.summary.trim(),
+    content: draft.content.trim(),
+    startDate: draft.startDate?.getTime() ?? null,
+    targetDate: draft.targetDate?.getTime() ?? null,
+  })
+
 
 
 function CreateProjectModal({
@@ -47,35 +88,63 @@ function CreateProjectModal({
     onClose
 }: CreateProjectModalProps) {
 
-    // Radix unmounts the dialog content on close, so this state resets with each
-    // open — no draft store needed here, unlike CreateIssueModal, which survives
-    // a remount only because it can be minimized.
-    const [icon, setIcon] = useState<string>(prefill?.icon ?? DEFAULT_PROJECT_ICON)
-    const [color, setColor] = useState<string>(prefill?.color ?? DEFAULT_PROJECT_COLOR)
-    const [name, setName] = useState<string>(prefill?.name ?? '')
-    const [summary, setSummary] = useState<string>(prefill?.description ?? '')
-    const [content, setContent] = useState<string>(prefill?.content ?? '')
-    const [status, setStatus] = useState<ProjectStatus>(prefill?.status ?? 'backlog')
-    const [priority, setPriority] = useState<ProjectPriority>(prefill?.priority ?? 'no_priority')
-    const [startDate, setStartDate] = useState<Date | null>(() => toDate(prefill?.startDate))
-    const [targetDate, setTargetDate] = useState<Date | null>(() => toDate(prefill?.targetDate))
-    const [milestones, setMilestones] = useState<MilestoneDraft[]>([])
+    const initial = buildSeed(prefill)
+    const [icon, setIcon] = useState<string>(initial.icon)
+    const [color, setColor] = useState<string>(initial.color)
+    const [name, setName] = useState<string>(initial.name)
+    const [summary, setSummary] = useState<string>(initial.summary)
+    const [content, setContent] = useState<string>(initial.content)
+    const [status, setStatus] = useState<ProjectStatus>(initial.status)
+    const [priority, setPriority] = useState<ProjectPriority>(initial.priority)
+    const [startDate, setStartDate] = useState<Date | null>(initial.startDate)
+    const [targetDate, setTargetDate] = useState<Date | null>(initial.targetDate)
+    const [milestones, setMilestones] = useState<MilestoneDraft[]>(initial.milestones)
 
-    // Lets the spacer below the brief hand focus back to it.
+    const [confirmOpen, setConfirmOpen] = useState(false)
+
+    const seedFingerprint = useRef(fingerprint(initial))
+
+
+    useEffect(() => {
+        if (!open) return
+        const seed = buildSeed(prefill)
+        setIcon(seed.icon)
+        setColor(seed.color)
+        setName(seed.name)
+        setSummary(seed.summary)
+        setContent(seed.content)
+        setStatus(seed.status)
+        setPriority(seed.priority)
+        setStartDate(seed.startDate)
+        setTargetDate(seed.targetDate)
+        setMilestones(seed.milestones)
+        seedFingerprint.current = fingerprint(seed)
+        setConfirmOpen(false)
+        // Deliberately keyed on `open` alone: `prefill` is a fresh object each
+        // render, and re-running on its identity would wipe what the user typed.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open])
+
+    const isDirty =
+        fingerprint({
+            icon, color, name, summary, content, status, priority, startDate, targetDate, milestones,
+        }) !== seedFingerprint.current
+
+    const requestClose = () => {
+        if (isDirty) setConfirmOpen(true)
+        else onClose?.()
+    }
+
     const briefRef = useRef<HTMLTextAreaElement>(null)
 
     const createProject = useProjectStore((s) => s.createProject)
 
-    // A start after the target would leave the pair inconsistent. Dropping the
-    // target (rather than quietly dragging it along) makes the conflict visible
-    // and asks for a fresh pick.
     const handleStartChange = (next: Date | null) => {
         setStartDate(next)
         if (next && targetDate && targetDate < next) setTargetDate(null)
     }
 
-    // Fire-and-forget, like CreateIssueModal: the store inserts optimistically and
-    // owns the failure toast, so the modal closes without waiting on Firestore.
+
     const handleCreate = () => {
         const trimmedName = name.trim()
         if (!trimmedName) return
@@ -109,7 +178,10 @@ function CreateProjectModal({
     }
 
   return (
-       <Dialog open={open} onOpenChange={(next) => { if (!next) onClose?.() }}>
+    <>
+       {/* Controlled `open` means a dismissal is only a REQUEST — vetoing it here
+           is what lets the confirm step interrupt Escape and outside clicks. */}
+       <Dialog open={open} onOpenChange={(next) => { if (!next) requestClose() }}>
         <DialogContent
           showCloseButton={false}
           className={cn(
@@ -134,7 +206,7 @@ function CreateProjectModal({
                         <span className='text-xs text-foreground'>New project</span>
                         {/* Window controls */}
                         <div className='ml-auto flex items-center gap-1'>
-                        <button type='button' onClick={onClose} className={HEADER_BTN} aria-label='Close'>
+                        <button type='button' onClick={requestClose} className={HEADER_BTN} aria-label='Close'>
                             <XIcon className='h-4 w-4' />
                         </button>
                         </div>
@@ -264,14 +336,19 @@ function CreateProjectModal({
                         }}
                         className='grow cursor-text'
                     />
-                    </div>
 
-                    {/* Milestones stay pinned below the scrolling body */}
+                    {/* Inside the scroller, not pinned beneath it. Pinned, every draft
+                        added took height from the body above — flex shrank the
+                        scrolling area instead of scrolling it, pushing the top fields
+                        out of the modal. In here the list just extends the scroll
+                        content, and the `grow` spacer above still holds it at the
+                        bottom while the brief is short. */}
                     <MilestoneDraftList
                         milestones={milestones}
                         onChange={setMilestones}
                         className='mt-4 shrink-0'
                     />
+                    </div>
                    </div>
 
                     {/* Footer */}
@@ -279,7 +356,7 @@ function CreateProjectModal({
                     <div className='mt-3 flex shrink-0 items-center justify-end gap-2'>
                         <Button
                             variant='outline'
-                            onClick={onClose}
+                            onClick={requestClose}
                             className='h-7 rounded-2xl border-edge bg-transparent px-3 !text-lsm text-foreground hover:bg-elevated'
                         >
                             Cancel
@@ -295,6 +372,19 @@ function CreateProjectModal({
                 </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title='Discard changes?'
+        description="Are you sure you want to discard the changes you've made to this project?"
+        confirmLabel='Discard'
+        onConfirm={() => {
+          setConfirmOpen(false)
+          onClose?.()
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
+    </>
   )
 }
 

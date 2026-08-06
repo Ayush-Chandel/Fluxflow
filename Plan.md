@@ -96,10 +96,20 @@ model / stores / routing / rules once so nothing is retrofitted.
   `CreateProjectModal` is mounted once in `WorkspaceLayout` off that store, and the **Topbar `+` now
   dispatches by `activeKey`** (projects → project modal, everything else → issue dialog) instead of
   the layout gating the modal on the route. **Still to build:** `PROJECT_MAP`
-  constants (5 statuses; only `planned` needs a new glyph), the modal's form fields →
-  `createProject`, ProjectsPage + ProjectListView/ProjectCard/ProgressBar,
-  ProjectDetail (Overview|Issues), the `projects/:id` route, the Topbar project crumb, and the
-  project selector on issues.
+  constants ✅ (`PROJECT_MAP` + dedicated `Project*Icon` glyphs) and the **projects table** ✅ —
+  `components/projects/{projectColumns,ProjectRow,ProjectListView}.tsx` + `ProjectsPage`
+  (view strip, empty state, sortable sticky header). **Still to build:** the modal's form fields →
+  `createProject`, ProjectDetail (Overview|Issues) + `ProgressBar`, the `projects/:id` route (until it
+  exists `onOpenProject` is intentionally unwired, so rows don't navigate), the Topbar project crumb,
+  and the project selector on issues.
+- ✅ **Table sorting groundwork (2026-08-02)**: `ViewPreference` gains **`sortDir`** and `OrderBy`
+  widens with the project columns (`name`/`status`/`lead`/`target`/`issues`/`progress`);
+  `toggleSort(viewId, column)` implements header-click semantics (same column flips, new column starts
+  asc) and `getPreference` now spreads over the defaults so preferences persisted before `sortDir`
+  existed still return complete. `lib/projectSorting.ts` owns the comparators, `lib/progress.ts` gains
+  `progressByKey()` (ONE pass over issues for the whole table instead of O(rows × issues)), and
+  `useProjectRows(viewId)` returns sorted `{project, progress}` rows. **Health was explicitly declined
+  — no field, no column data** (see §9C).
 - ❌ **Steps 12+ not started**: no entity stores/services/hooks beyond auth + issues + projects.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
@@ -517,8 +527,16 @@ selectors for project/milestone/cycle/assignee/labels/template deferred to futur
 **Why:** Linear's core organizing unit above the issue; gives goal/lead/target-date + progress
 visibility. A project also carries a **`priority`** on the same scale as issues (§4) — one vocabulary
 across entities, so the pill, the map and the picker are shared code, not a parallel set.
-**Build:** `ProjectListView`/`ProjectCard` (icon, name, status pill, **priority pill**, lead avatar,
-target date, `ProgressBar`), `ProjectDetailPage` tabs — **Overview** (metadata + progress), **Issues** (reuses
+**List view is a TABLE, not grouped accordions** (unlike the issue list): a sticky header row over
+`ProjectListView`/`ProjectRow` with the columns we actually have data for — icon+name ·
+**priority pill** · lead · target date · issue count · status glyph+%. Every header is a **sort button**
+(`viewPreferenceStore.toggleSort(viewId, column)`); the comparator lives in `lib/projectSorting.ts`
+(missing values always sort last, stable tie-break on `createdAt`), and rows come pre-paired with
+their counts from `useProjectRows()`. **No Health column at all** — Linear derives health from project
+updates, which §4 doesn't model, so there is nothing to render or sort; it is not stubbed either
+(decided 2026-08-02). **Lead** stays a placeholder cell: `leadId` has no member entity to
+resolve against (same gap as issue assignee avatars). The milestone chip beside the name is §12.
+**Build:** the table above + `ProjectDetailPage` tabs — **Overview** (metadata + progress), **Issues** (reuses
 `IssueListView`/`IssueKanbanView` filtered by `projectId`), **Milestones**. Issue detail panel gets a
 project selector; `projectStore`/`projectService`/`useProjects`.
 

@@ -17,6 +17,7 @@ type DatePillPickerProps = {
   min?: Date | null
   /** Whether a picked month/quarter/year collapses to its first or last day. */
   align?: PeriodAlign
+  contentAlign?: 'start' | 'center' | 'end'
   triggerClassName?: string
 }
 
@@ -29,6 +30,7 @@ function DatePillPicker({
   heading,
   min,
   align,
+  contentAlign = 'start',
   triggerClassName = '!px-2',
 }: DatePillPickerProps) {
   const [open, setOpen] = React.useState(false)
@@ -44,7 +46,7 @@ function DatePillPicker({
 
       <PopoverContent
         side='bottom'
-        align='start'
+        align={contentAlign}
         className='w-auto rounded-xl border-edge bg-surface p-0 shadow-lg'
       >
         <DatePickerPanel

@@ -1,9 +1,17 @@
 import type { SidebarKey } from "@/types/layout";
 import { clsx, type ClassValue } from "clsx"
 import { useMatches } from "react-router";
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
 
 export type RouteHandle = { sidebarKey?: SidebarKey }
+
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [{ text: ['lsm'] }],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
