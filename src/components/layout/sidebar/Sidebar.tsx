@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { useSidebar } from "@/components/ui/sidebar"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion } from 'motion/react';
 import SidebarContent from "./SidebarContent"
 
 type Props = {

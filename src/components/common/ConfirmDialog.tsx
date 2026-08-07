@@ -36,7 +36,8 @@ function ConfirmDialog({
     >
       <DialogContent
         showCloseButton={false}
-        className='top-[28vh] translate-y-0 gap-0 rounded-2xl bg-surface p-5 sm:max-w-md'
+        align='top'
+        className='mt-[28vh] gap-0 rounded-2xl bg-surface p-5 sm:max-w-md'
       >
         <DialogTitle className='text-[15px] font-semibold text-foreground'>{title}</DialogTitle>
         {description && (

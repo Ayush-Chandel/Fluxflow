@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import IssueCommandBox from './IssueCommandBox';
 import AutoGrowTextarea from '../common/AutoGrowTextarea';
 import { useCommitOnExit } from '@/hooks/useCommitOnExit';

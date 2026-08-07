@@ -23,9 +23,10 @@ function CreateIssueDialog() {
       <Dialog open={open && !minimized} onOpenChange={setOpen}>
         <DialogContent
           showCloseButton={false}
+          align='top'
           className={cn(
-            'translate-y-0 gap-0 rounded-3xl bg-surface p-0',
-            maximized ? 'top-[6vh] w-[92vw] sm:max-w-4xl' : 'top-[12vh] sm:max-w-2xl',
+            'gap-0 rounded-3xl bg-surface p-0',
+            maximized ? 'mt-[6vh] w-[92vw] sm:max-w-4xl' : 'mt-[12vh] sm:max-w-2xl',
           )}
         >
           <VisuallyHidden.Root>

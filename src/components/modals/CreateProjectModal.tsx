@@ -184,8 +184,9 @@ function CreateProjectModal({
        <Dialog open={open} onOpenChange={(next) => { if (!next) requestClose() }}>
         <DialogContent
           showCloseButton={false}
+          align='top'
           className={cn(
-            'translate-y-0 gap-0 rounded-3xl bg-surface p-0 top-[6vh] w-[92vw] sm:max-w-4xl',
+            'mt-[6vh] gap-0 rounded-3xl bg-surface p-0 w-[92vw] sm:max-w-4xl',
           )}
         >
           <VisuallyHidden.Root>
