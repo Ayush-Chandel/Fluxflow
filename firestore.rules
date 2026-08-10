@@ -4,16 +4,29 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Workspace-scoped access: a user's token carries a `workspaceId` claim
     // (see api/setWorkspaceClaims.ts) that must match the path segment.
+    //
+    // Read the claim via .get() with a default, NEVER as
+    // `request.auth.token.workspaceId`: on a token that lacks the claim the bare
+    // property access is a hard evaluation error ("Property workspaceId is
+    // undefined on object") that aborts the whole commit, which surfaces client
+    // side as a dead WebChannel Write stream rather than a catchable failure.
+    // With the default, an unclaimed token is a plain permission-denied the
+    // stores' rollback paths already handle.
+    //
     // NOTE: only `issues` is hardened here (build order step 7). Projects,
     // milestones, cycles and templates rules land with their features; the full
     // rules pass is step 18 (§8).
+    function inWorkspace(ws) {
+      return request.auth != null && request.auth.token.get('workspaceId', '') == ws;
+    }
+
     match /workspaces/{ws} {
-      allow read: if request.auth.token.workspaceId == ws;
+      allow read: if inWorkspace(ws);
 
       // Issues are created by the Vercel Fn (api/createIssue) so it can mint the
       // sequential 'LIN-N' identifier — clients are create-blocked.
       match /issues/{id} {
-        allow read, update, delete: if request.auth.token.workspaceId == ws;
+        allow read, update, delete: if inWorkspace(ws);
         allow create: if false;
       }
 
@@ -21,7 +34,7 @@ service cloud.firestore {
       // directly (build order 11). The milestones subcollection stays denied by
       // default until build order 12 adds its own match block.
       match /projects/{id} {
-        allow read, create, update, delete: if request.auth.token.workspaceId == ws;
+        allow read, create, update, delete: if inWorkspace(ws);
       }
     }
   }

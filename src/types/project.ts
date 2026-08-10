@@ -42,6 +42,8 @@ export interface Project {
 export interface Milestone {
   id: string
   name: string // required
+  /** Free-text note under the name in the project's milestone list. */
+  description: string
   targetDate: Timestamp | null
   sortOrder: number
   createdAt: Timestamp

@@ -1,8 +1,8 @@
 import { useProjectStore } from '@/store/projectStore'
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
+import { useOpenProject } from '@/hooks/useOpenProject'
 import { BoxIcon } from '@/components/icons'
 import ProjectKanbanView from '@/components/projects/kanban-view/ProjectKanbanView'
-import ProjectListView from '@/components/projects/list-view/ProjectListView'
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
@@ -27,6 +27,7 @@ function Projects() {
   // Only the emptiness matters here — each view derives its own rows/groups.
   const isEmpty = useProjectStore((s) => Object.keys(s.projects).length === 0)
   const openCreateProject = useCreateProjectDialog((s) => s.openWith)
+  const openProject = useOpenProject()
 
   if (isEmpty) {
     return (
@@ -36,11 +37,9 @@ function Projects() {
     )
   }
 
-  // onOpenProject stays unwired until the projects/:id route exists.
   return (
-    // <div className='min-h-0 flex-1 overflow-y-auto pt-2'><ProjectListView /></div>
     <div className='flex min-h-0 flex-1 flex-col'>
-      <ProjectKanbanView />
+      <ProjectKanbanView onOpenProject={openProject} />
     </div>
   )
 }
