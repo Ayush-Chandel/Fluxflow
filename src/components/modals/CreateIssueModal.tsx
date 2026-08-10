@@ -3,7 +3,6 @@ import { XIcon } from 'lucide-react'
 import {
   NoteIcon,
   AssigneeIcon,
-  BoxIcon,
   PlayCircleIcon,
   MoreIcon,
   MinimizeIcon,
@@ -16,6 +15,7 @@ import OptionPill from '../common/OptionPill'
 import AutoGrowTextarea from '../common/AutoGrowTextarea'
 import { Switch } from '@/components/ui/switch'
 import IssueCommandBox from '../issues/IssueCommandBox'
+import ProjectPicker from '../projects/ProjectPicker'
 import { useIssueStore } from '@/store/issueStore'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import {
@@ -48,7 +48,7 @@ function CreateIssueModal({
 }: Props) {
   // Draft lives in the store so it survives the Radix content remount that
   // occurs when the dialog switches modal/non-modal (minimize ⇄ restore).
-  const { title, description, status, priority } = useCreateIssueDialog((s) => s.draft)
+  const { title, description, status, priority, projectId } = useCreateIssueDialog((s) => s.draft)
   const patchDraft = useCreateIssueDialog((s) => s.patchDraft)
   const [createMore, setCreateMore] = useState(false)
 
@@ -68,7 +68,7 @@ function CreateIssueModal({
       priority,
       assigneeId: prefill?.assigneeId ?? null,
       labelIds: prefill?.labelIds ?? [],
-      projectId: prefill?.projectId ?? null,
+      projectId,
       milestoneId: prefill?.milestoneId ?? null,
       cycleId: prefill?.cycleId ?? null,
     })
@@ -162,7 +162,11 @@ function CreateIssueModal({
           triggerClassName={PILL_TRIGGER}
         />
         <OptionPill icon={<AssigneeIcon size={15} />} label='Assignee' />
-        <OptionPill icon={<BoxIcon size={15} />} label='Project' />
+        <ProjectPicker
+          value={projectId}
+          onChange={(next) => patchDraft({ projectId: next })}
+          triggerClassName={PILL_TRIGGER}
+        />
         <button
           type='button'
           className='flex h-7 w-7 items-center justify-center rounded-full border border-edge text-muted transition-colors hover:bg-elevated'

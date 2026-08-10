@@ -10,6 +10,7 @@ interface DraftState {
   description: string
   status: IssueStatus
   priority: IssuePriority
+  projectId: string | null
 }
 
 interface CreateIssueDialogState {
@@ -36,6 +37,7 @@ const makeDraft = (prefill?: Partial<CreateIssueInput> | null): DraftState => ({
   description: prefill?.description ?? '',
   status: prefill?.status ?? 'todo',
   priority: prefill?.priority ?? 'no_priority',
+  projectId: prefill?.projectId ?? null,
 })
 
 export const useCreateIssueDialog = create<CreateIssueDialogState>((set) => ({

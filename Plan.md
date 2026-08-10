@@ -118,9 +118,29 @@ model / stores / routing / rules once so nothing is retrofitted.
   fall-through guard is no longer issue-only now that project cards host pickers too.
   **Deliberately absent from the card:** the milestone chip (needs §12's subcollection; drafts don't
   persist) and health (§4 doesn't model it — same call as the table's missing Health column).
-  **Still to build:** ProjectDetail (Overview|Issues) + `ProgressBar`, the `projects/:id` route (until
-  it exists `onOpenProject` is intentionally unwired, so cards/rows don't navigate), the Topbar project
-  crumb, and the project selector on issues. `ProjectsPage` hardcodes the board today — the list⇄board
+  **Detail page ✅ (2026-08-10):** route `projects/:id/:slug?` → `routes/workspace/projects/
+  ProjectDetail.tsx`, which resolves the project from the store and distinguishes "still hydrating"
+  (skeleton, 1.2s grace) from a definitive miss ("Project not found") instead of flashing one for the
+  other. `components/projects/detail/{ProjectDetailHeader,ProjectOverview}.tsx` + `common/ProgressBar`
+  render the Overview; `hooks/useOpenProject.ts` is wired, so board cards navigate. The **Topbar project
+  crumb** ✅ landed too (project's own glyph via `common/ProjectIcon`, not a status one).
+  **Project selector on issues ✅ (2026-08-10):** `components/projects/ProjectPicker.tsx` wraps
+  `IssueCommandBox` instead of forking it, bridging the two things the fixed-union pickers never face —
+  a **dynamic** option list (map built per render from `useProjectList()`) and a **nullable** value
+  (`null` travels as a `__no_project__` sentinel, translated back on the way out, because the trigger
+  indexes `map[value]`). A `projectId` that is no longer in the list gets a synthesised "Unknown
+  project" entry so a stale reference renders and can be cleared rather than crashing the trigger.
+  Wired into `IssueDetailView`'s Properties column (→ `updateIssue({projectId})`) and into
+  `CreateIssueModal`, replacing the static Project pill; `projectId` joined the **draft** in
+  `createIssueDialogStore` (not the prefill) so a chosen project survives minimize⇄restore like every
+  other field, and `handleCreate` now sends the draft's value instead of `prefill?.projectId ?? null`.
+  **Deferred out of this step:** the detail's **Issues tab** — `ProjectDetail` renders Overview only,
+  and `useProjectIssues(projectId)` is built but unused, waiting for it. Moved to the **tab-strip pass
+  (step 15)** by decision on 2026-08-10, so detail tabs are designed once across entities rather than
+  invented per page.
+  `components/projects/detail/ProjectMilestoneList.tsx` + `hooks/useProjectMilestones.ts` exist but are
+  deliberate §12 scaffolding — the hook returns a frozen empty list until a milestone store lands.
+  `ProjectsPage` hardcodes the board today — the list⇄board
   **switcher is deliberately not here**, it ships for issues/projects/cycles together in step 15, and
   the two views need different page shells (the board must not sit in a vertical scroller).
 - ✅ **Table sorting groundwork (2026-08-02)**: `ViewPreference` gains **`sortDir`** and `OrderBy`
@@ -199,7 +219,10 @@ project-root/
 │   │   ├── projects/   🚧 projectColumns, SortHeader, MilestoneDraftList ✅ ·
 │   │   │                 list-view/{ProjectListView,ProjectRow} ✅ ·
 │   │   │                 kanban-view/{ProjectKanbanView,ProjectKanbanColumn,ProjectCard} ✅ ·
-│   │   │                 ProjectDetail, MilestoneList, ProgressBar ★
+│   │   │                 detail/{ProjectDetailHeader,ProjectOverview} ✅ ·
+│   │   │                 detail/ProjectMilestoneList 🚧 (stub until §12) · detail Issues tab ★
+│   │   ├── common/     ✅ ProgressBar, ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
+│   │   │                 DatePickerPanel, Calendar, AutoGrowTextarea, OptionPill…
 │   │   ├── cycles/     ★ CycleListView, CycleBoardView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
 │   │   └── ui/         ✅ shadcn primitives (button, card, popover, sheet, sidebar, tooltip…)
@@ -233,6 +256,8 @@ project-root/
 │   │   ├── useEntitySync.ts  ✅ generic idb-read + onSnapshot + idb-writeback (the engine)
 │   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts / useTemplates.ts ★ thin wrappers
 │   │   ├── useProjectSelectors.ts ✅ useProjectList/useProject/useProjectIssues/useProjectProgress
+│   │   ├── useOpenIssue.ts ✅ · useOpenProject.ts ✅ (host handlers for the view callbacks)
+│   │   ├── useProjectMilestones.ts 🚧 shape done, returns [] until §12's store
 │   │   └── useViewPreference.ts ★
 │   │
 │   └── mocks/{browser,handlers}.ts  ✅ (extend handlers)
@@ -674,21 +699,28 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     (`ProjectListView` + sortable sticky header) + the **board data layer** ✅ (`sortOrder` on
     `Project`, generic `lib/ordering.ts`, `lib/projectOrdering.ts`, `useProjectBoardGroups()`);
     + the **board UI** ✅ (`kanban-view/{ProjectKanbanView,ProjectKanbanColumn,ProjectCard}`, dnd-kit
-    reorder + cross-column drop → `updateProject({status,sortOrder})`, column `+` prefills the status);
-    **UI pending**: ProjectDetail (Overview/Issues), `projects/:id` route, Topbar crumb, project
-    selector on issues (`updateIssue({projectId})` + `openWith({projectId})` prefill — both pipelines
-    already live). **No switcher in this step** → step 15.
+    reorder + cross-column drop → `updateProject({status,sortOrder})`, column `+` prefills the status)
+    + the **`projects/:id/:slug?` route** ✅, **ProjectDetail + Overview + `ProgressBar`** ✅,
+    `useOpenProject` ✅, the **Topbar project crumb** ✅ and the **project selector on issues** ✅
+    (`ProjectPicker` in `IssueDetailView` + `CreateIssueModal`; `projectId` now part of the create
+    draft). **Deferred out:** the detail's Issues tab → step 15's tab-strip pass; the list⇄board
+    switcher → step 15. Everything else in this step is done.
 12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
     **both `CycleListView` and `CycleBoardView`** (no switcher → step 15; no cross-column drag, since
     cycle status is derived from dates), issue↔cycle assignment, progress; cycle rules
 14. ★ **Issue Templates** — store/service, TemplatesSettingsPage, TemplatePicker + default behavior
-15. **List⇄board switcher — all three views in one pass** — the `viewPreferenceStore` itself landed
-    back in step 4 ✅ (persisted to IndexedDB, `layout` keyed per `viewId`). What remains is the UI:
-    the Topbar toggle wired for **issues, projects AND cycles**, each page choosing its view from
-    `getPreference(viewId).layout` instead of hardcoding one. Batched here on purpose (decided
-    2026-08-06) — every view is built ahead of it, so this step is pure wiring and the toggle behaves
-    identically everywhere instead of being re-invented per entity.
+15. **View chrome — switcher + detail tab strips, all entities in one pass** — the
+    `viewPreferenceStore` itself landed back in step 4 ✅ (persisted to IndexedDB, `layout` keyed per
+    `viewId`). What remains is the UI:
+    (a) the **list⇄board toggle** wired for **issues, projects AND cycles**, each page choosing its
+    view from `getPreference(viewId).layout` instead of hardcoding one;
+    (b) the **detail tab strip** — one shared strip used by every detail page, and with it
+    `ProjectDetail`'s **Issues** tab (`useProjectIssues` + `IssueListView`/`IssueKanbanView` filtered by
+    `projectId`, viewId `project:<id>:issues`) plus **Milestones** once §12 lands; the same strip then
+    serves the cycle detail. Moved here from step 11 on 2026-08-10.
+    Batched on purpose — every view is built ahead of it, so this step is pure wiring and the chrome
+    behaves identically everywhere instead of being re-invented per entity.
 16. **BroadcastChannel** — wire tab-sync into all store mutations
 17. **Filters** — `useSearchParams` per page + Topbar chips (priority/assignee/project/cycle)
 18. ★ **Rules hardening + indexes** — final `firestore.rules` (§8) + composite indexes

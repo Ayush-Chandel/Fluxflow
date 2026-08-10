@@ -5,6 +5,7 @@ import { useCommitOnExit } from '@/hooks/useCommitOnExit';
 import { useIssueStore } from '@/store/issueStore';
 import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue } from '@/types/issue';
 import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
+import ProjectPicker from '../projects/ProjectPicker';
 import { MOCK_ISSUES } from './__mockIssues';
 
 type IssueDetailViewProps = {
@@ -103,6 +104,11 @@ function IssueDetail({ issue }: { issue: Issue }) {
                     placeholder="Change Status to..."
                     triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
                     label={issue.status}
+                />
+                <ProjectPicker
+                    value={issue.projectId}
+                    onChange={(projectId) => updateIssue(issue.id, { projectId })}
+                    triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
                 />
             </div>
         </div>
