@@ -21,6 +21,8 @@ interface CreateIssueDialogState {
   prefill: Partial<CreateIssueInput> | null
   draft: DraftState
 
+  /** Opens a fresh form — UNLESS a draft is already in flight, in which case it
+   *  surfaces that one instead and ignores `prefill`. See the implementation. */
   openWith: (prefill?: Partial<CreateIssueInput>) => void
   close: () => void
   setOpen: (open: boolean) => void
@@ -44,12 +46,16 @@ export const useCreateIssueDialog = create<CreateIssueDialogState>((set) => ({
   draft: makeDraft(),
 
   openWith: (prefill) =>
-    set({
-      open: true,
-      minimized: false,
-      maximized: false,
-      prefill: prefill ?? null,
-      draft: makeDraft(prefill),
+    set((s) => {
+      if (s.open) return { minimized: false }
+
+      return {
+        open: true,
+        minimized: false,
+        maximized: false,
+        prefill: prefill ?? null,
+        draft: makeDraft(prefill),
+      }
     }),
   close: () =>
     set({ open: false, minimized: false, maximized: false, prefill: null, draft: makeDraft() }),

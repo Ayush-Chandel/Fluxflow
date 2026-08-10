@@ -2,6 +2,7 @@
 import '@/store/authStore'
 import ReactDOM from 'react-dom/client'
 import { StrictMode } from 'react'
+import { MotionConfig } from 'motion/react'
 import { RouterProvider } from 'react-router'
 import { router } from '@/router'
 import { Toaster } from '@/components/ui/sonner'
@@ -23,7 +24,9 @@ async function enableMocking() {
 enableMocking().then(() => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <MotionConfig reducedMotion='user'>
+        <RouterProvider router={router} />
+      </MotionConfig>
       <Toaster />
     </StrictMode>
   )
