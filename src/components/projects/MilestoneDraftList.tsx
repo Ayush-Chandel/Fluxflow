@@ -27,8 +27,10 @@ function newDraft(): MilestoneDraft {
  * The Milestones block of the create-project form: rows are drafted here and
  * handed back to the parent as plain state.
  *
- * NOTE: nothing persists these yet — `projects/{id}/milestones` and its service
- * land in build order 12, so the parent currently drops the drafts on create.
+ * The parent writes them with the project itself: milestones are a map FIELD on
+ * the project document (§4), so they ride the same setDoc and there is no
+ * partial-create window to recover from. Rows here carry no description input —
+ * the detail page's list does — so they are created with an empty one.
  */
 function MilestoneDraftList({ milestones, onChange, className }: MilestoneDraftListProps) {
   const listRef = useRef<HTMLDivElement>(null)

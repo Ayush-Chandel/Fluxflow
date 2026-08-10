@@ -28,7 +28,7 @@ export function useProjectMilestoneList(projectId: string | undefined | null): M
 }
 
 
-export function useProjectMilestones(projectId: string | undefined): MilestoneRow[] {
+export function useProjectMilestones(projectId: string | undefined | null): MilestoneRow[] {
   const issuesMap = useIssueStore((s) => s.issues)
   const milestones = useProjectMilestoneList(projectId)
 

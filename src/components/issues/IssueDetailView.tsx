@@ -116,13 +116,20 @@ function IssueDetail({ issue }: { issue: Issue }) {
                     })}
                     triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
                 />
+            
                 {issue.projectId && (
-                    <MilestonePicker
-                        projectId={issue.projectId}
-                        value={issue.milestoneId}
-                        onChange={(milestoneId) => updateIssue(issue.id, { milestoneId })}
-                        triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
-                    />
+                    <div className='relative pl-6'>
+                        <span
+                            aria-hidden
+                            className='pointer-events-none absolute -top-2.5 bottom-1/2 left-3.5 w-2.5 rounded-bl-md border-b border-l border-edge'
+                        />
+                        <MilestonePicker
+                            projectId={issue.projectId}
+                            value={issue.milestoneId}
+                            onChange={(milestoneId) => updateIssue(issue.id, { milestoneId })}
+                            triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
+                        />
+                    </div>
                 )}
             </div>
         </div>

@@ -2,7 +2,8 @@
 import { useMemo } from 'react'
 import { DiamondIcon } from 'lucide-react'
 import IssueCommandBox from '@/components/issues/IssueCommandBox'
-import { useProjectMilestoneList } from '@/hooks/useProjectMilestones'
+import MilestoneProgressIcon from '@/components/common/MilestoneProgressIcon'
+import { useProjectMilestones } from '@/hooks/useProjectMilestones'
 
 // Same sentinel trick as ProjectPicker: IssueCommandBox indexes map[value], so
 // "nothing selected" has to be an addressable option rather than null.
@@ -19,7 +20,7 @@ type Props = {
   contentAlign?: 'start' | 'center' | 'end'
 }
 
-const GLYPH = <DiamondIcon className='h-3.5 w-3.5' />
+const PLAIN_GLYPH = <DiamondIcon className='h-3.5 w-3.5' />
 
 function MilestonePicker({
   projectId,
@@ -29,27 +30,28 @@ function MilestonePicker({
   triggerClassName,
   contentAlign,
 }: Props) {
-  // Already in manual (sortOrder) order — Alpha/Beta/GA is a sequence, so the
-  // project's own ordering beats sorting the names alphabetically here.
-  const milestones = useProjectMilestoneList(projectId)
+  const rows = useProjectMilestones(projectId)
 
   const { options, map } = useMemo(() => {
     const map: Record<string, { label: string; icon: React.ReactNode }> = {
-      [NO_MILESTONE]: { label: 'No milestone', icon: GLYPH },
+      [NO_MILESTONE]: { label: 'No milestone', icon: PLAIN_GLYPH },
     }
-    for (const milestone of milestones) {
-      map[milestone.id] = { label: milestone.name, icon: GLYPH }
+    for (const { milestone, progress } of rows) {
+      map[milestone.id] = {
+        label: milestone.name,
+        icon: <MilestoneProgressIcon pct={progress.pct} />,
+      }
     }
 
     // A milestone deleted (or belonging to a project the issue was moved out of)
     // stays addressable, so the trigger renders and the user can clear it instead
     // of the whole picker crashing on an unknown key.
     if (value && !map[value]) {
-      map[value] = { label: 'Unknown milestone', icon: GLYPH }
+      map[value] = { label: 'Unknown milestone', icon: PLAIN_GLYPH }
     }
 
-    return { options: [NO_MILESTONE, ...milestones.map((m) => m.id)], map }
-  }, [milestones, value])
+    return { options: [NO_MILESTONE, ...rows.map((row) => row.milestone.id)], map }
+  }, [rows, value])
 
   const current = value ?? NO_MILESTONE
 

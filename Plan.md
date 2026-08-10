@@ -165,9 +165,29 @@ model / stores / routing / rules once so nothing is retrofitted.
   milestone drafts in the same `setDoc` as the project; and `MilestonePicker` wired into
   `IssueDetailView` + `CreateIssueModal` (`milestoneId` joined the create draft; changing an issue's
   project clears it in the same write). No rules change was needed — see §8.
+  **Glyph + hierarchy pass (2026-08-10, same step):** `common/MilestoneProgressIcon.tsx` ★ — a diamond
+  that FILLS IN QUARTERS with completion (`Math.min(4, Math.floor(pct / 25))`: <25% faded outline,
+  then one quarter per 25%, 100% solid). Drawn as ONE path for the filled wedge, not four triangles —
+  quarters always fill clockwise from the top, so the filled region is a single contiguous polygon and
+  there are no anti-aliasing seams through the middle of a 14px glyph. It renders in the milestone
+  rows AND in every `MilestonePicker` option, so the issue's Properties pill doubles as a progress
+  read-out; that switched the picker from `useProjectMilestoneList` to `useProjectMilestones` (rows
+  with progress), which also widened `useProjectMilestones` to accept `string | null`. "No milestone"
+  and "Unknown milestone" keep a plain grey diamond on purpose — they are absences, not milestones
+  stalled at 0% — as do create-modal drafts, which aren't saved rows yet. In `IssueDetailView` the
+  milestone pill is now **nested under the project pill with a drawn elbow** (one `<span>`, `border-l`
+  + `border-b` + `rounded-bl`) instead of sitting beside it as a fourth flat property, since a
+  milestone only exists inside a project.
   **Deliberately absent:** no cascade of `milestoneId := null` when a milestone is deleted (a stale id
   renders as "Unknown milestone" and is clearable, matching how a deleted project's `projectId`
-  behaves today); no milestone chip on project cards/rows; no drag-reorder of milestone rows.
+  behaves today); no milestone chip on project cards/rows (no longer *blocked* — `project.milestones`
+  is on the row already — just unbuilt); no drag-reorder of milestone rows.
+  **Known small gaps:** `MilestoneDraftList` (create-project modal) has no description input, so
+  milestones created there always get `description: ''` while the detail list's can have one;
+  `useProjectMilestoneList` and `lib/progress.ts`'s `milestoneProgress` have no external caller since
+  the picker moved to the rows hook — both kept as the right shape for a caller that doesn't need
+  progress. **NOT yet runtime-verified:** the dotted-path writes have never been exercised against the
+  emulator — that is the one real risk left in this step.
 - ❌ **Steps 13+ not started**: no entity stores/services/hooks beyond auth + issues + projects
   (+ milestones inside projects).
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
@@ -235,12 +255,14 @@ project-root/
 │   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
 │   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal + CreateIssueMinimizedBar
 │   │   ├── projects/   🚧 projectColumns, SortHeader, MilestoneDraftList ✅ ·
-│   │   │                 ProjectPicker ✅ · MilestonePicker ✅ (project-scoped, nullable) ·
+│   │   │                 ProjectPicker ✅ · MilestonePicker ✅ (project-scoped, nullable,
+│   │   │                   options show per-milestone progress) ·
 │   │   │                 list-view/{ProjectListView,ProjectRow} ✅ ·
 │   │   │                 kanban-view/{ProjectKanbanView,ProjectKanbanColumn,ProjectCard} ✅ ·
 │   │   │                 detail/{ProjectDetailHeader,ProjectOverview} ✅ ·
 │   │   │                 detail/ProjectMilestoneList ✅ (editable rows + drafts) · detail Issues tab ★
-│   │   ├── common/     ✅ ProgressBar, ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
+│   │   ├── common/     ✅ ProgressBar, MilestoneProgressIcon (quarter-filling diamond),
+│   │   │                 ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
 │   │   │                 DatePickerPanel, Calendar, AutoGrowTextarea, OptionPill…
 │   │   ├── cycles/     ★ CycleListView, CycleBoardView, CycleCard, CycleDetail, CycleProgress
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
@@ -714,7 +736,16 @@ synthesized "Unknown milestone" so a stale id renders and can be cleared). It is
 issue's project and **only renders when one is set**; changing an issue's project **clears
 `milestoneId` in the same optimistic write**, in both `IssueDetailView` and `CreateIssueModal`.
 `milestoneId` joined the create **draft** in `createIssueDialogStore`, so it survives minimize⇄restore
-like `projectId`.
+like `projectId`. In `IssueDetailView` it is **nested under the project pill with a drawn elbow**
+(a single `<span>` with `border-l`/`border-b`/`rounded-bl`, aligned to the project glyph's centre)
+rather than being a fourth flat property, because a milestone only exists inside a project.
+**Progress glyph:** `common/MilestoneProgressIcon` — a diamond filling in quarters,
+`Math.min(4, Math.floor(pct / 25))`, so <25% is a faded outline and 100% is solid. The filled region
+is ONE path per level rather than four triangles: quarters fill clockwise from the top, so it is
+always a single contiguous wedge and no anti-aliasing seam runs through the glyph. Used by both the
+milestone rows and the picker's options, which is why the picker reads `useProjectMilestones` (rows +
+progress) instead of the bare list. Absences — "No milestone", "Unknown milestone", unsaved drafts —
+keep a plain grey diamond, so nothing reads as a real milestone stalled at 0%.
 **Deliberately NOT done:** deleting a milestone does **not** cascade `milestoneId := null` across
 matching issues — the stale reference renders as "Unknown milestone" and is clearable, exactly like a
 deleted project's `projectId` today. Cascades for both belong to one pass, not to this step.
@@ -804,8 +835,12 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     drafts, `CreateProjectModal` drafts written in the project's own `setDoc`, `MilestonePicker` in
     `IssueDetailView` + `CreateIssueModal` with `milestoneId` in the create draft and cleared whenever
     the project changes. Progress reused `progressByKey(issues,'milestoneId')` as-is. No rules change.
+    Plus the glyph/hierarchy pass: `common/MilestoneProgressIcon` (diamond filling in quarters, used
+    by both the rows and the picker's options) and the elbow that nests the milestone pill under the
+    project pill in `IssueDetailView`.
     **Not done on purpose:** no `milestoneId` cascade on delete, no milestone chip on cards/rows, no
-    drag-reorder of milestones.
+    drag-reorder of milestones. **Still unverified at runtime** — the dotted-path map writes have not
+    been run against the emulator.
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
     **both `CycleListView` and `CycleBoardView`** (no switcher → step 15; no cross-column drag, since
     cycle status is derived from dates), issue↔cycle assignment, progress; cycle rules
@@ -866,6 +901,15 @@ activity log · Notifications · Command palette + keyboard shortcuts · GitHub/
   all three progress bars reflect done/total; each detail view's filtered issue list is correct.
 - **Progress scope**: cancel one issue in a project → it leaves BOTH sides of the ratio (the count
   drops and the percentage rises), and a project whose remaining issues are all done reads 100%.
+- **Milestone map writes ⚠️ (not yet run)**: the §12 design rests on Firestore applying DOTTED FIELD
+  PATHS into the project doc's `milestones` map. Create a milestone → rename it → set a target date →
+  delete it, and inspect the project document in the emulator UI: each write must touch only
+  `milestones.<id>[.field]` (siblings untouched, `deleteField()` removing exactly one key) and bump
+  the project's `updatedAt`. Also confirm a milestone created in the create-project modal lands in the
+  same `setDoc` as the project, and that deleting a project takes its milestones with it (they're
+  fields, so no orphan cleanup exists — or is needed).
+- **Milestone glyph**: a milestone at 0/25/50/75/100% shows 0/1/2/3/4 filled quarters in both the
+  detail rows and the `MilestonePicker` options (99% must still read three).
 - **Cycle status**: cycles with past/current/future ranges sort into Completed/Active/Upcoming.
 - **Templates**: mark a default → new-issue form pre-filled; switch template → fields swap.
 - **Tab sync**: two tabs — a mutation appears in the other in ~1ms ahead of the onSnapshot echo.

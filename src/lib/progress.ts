@@ -75,7 +75,10 @@ export function progressByKey(issues: Issue[], key: ProgressKey): Record<string,
   return result
 }
 
-// Used by build order 12 / 13 — same derivation, different foreign key.
+// Single-id variants for the other two foreign keys. `milestoneProgress` has no
+// caller today — the milestone list needs every milestone at once, so it takes
+// progressByKey instead; both are kept as the readable one-off form, and
+// `cycleProgress` waits for build order 13.
 export const milestoneProgress = (issues: Issue[], milestoneId: string) =>
   computeProgress(issues, (issue) => issue.milestoneId === milestoneId)
 

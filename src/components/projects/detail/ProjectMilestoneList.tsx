@@ -8,12 +8,8 @@ import { useCommitOnExit } from '@/hooks/useCommitOnExit'
 import { useProjectStore } from '@/store/projectStore'
 import DatePillPicker from '@/components/common/DatePillPicker'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
+import MilestoneProgressIcon from '@/components/common/MilestoneProgressIcon'
 import type { MilestoneRow } from '@/hooks/useProjectMilestones'
-
-// The milestone glyph's amber from the reference design — the same value as the
-// palette's Yellow swatch (constants/projectIcons), which is where a per-milestone
-// colour would draw from if one is ever modelled.
-const MILESTONE_ACCENT = '#E5C019'
 
 // Indents the description to sit under the name: icon (14px) + gap (8px).
 const DESCRIPTION_INDENT = 'pl-5.5'
@@ -79,7 +75,7 @@ function SavedMilestoneRow({ projectId, row }: { projectId: string; row: Milesto
   return (
     <div className='group rounded-lg px-2 py-2 hover:bg-hover-subtle'>
       <div className='flex items-center gap-2'>
-        <DiamondIcon className='h-3.5 w-3.5 shrink-0' style={{ color: MILESTONE_ACCENT }} />
+        <MilestoneProgressIcon pct={progress.pct} />
 
         <input
           defaultValue={milestone.name}

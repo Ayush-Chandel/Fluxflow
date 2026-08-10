@@ -93,8 +93,9 @@ const ProjectCardContent = memo(function ProjectCardContent({row}: {row: Project
                 </div>
             )}
 
-            {/* The milestone chip the reference shows here needs the
-                projects/{id}/milestones subcollection — build order 12. */}
+            {/* The milestone chip the reference shows here is still unbuilt, but
+                no longer blocked: milestones are a map field on the project doc
+                (§4), so project.milestones is already on this card's row. */}
 
             <div className='pt-1 tabular-nums'>
                 {progress.total} {progress.total === 1 ? 'issue' : 'issues'}
