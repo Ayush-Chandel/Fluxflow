@@ -16,6 +16,7 @@ import AutoGrowTextarea from '../common/AutoGrowTextarea'
 import { Switch } from '@/components/ui/switch'
 import IssueCommandBox from '../issues/IssueCommandBox'
 import ProjectPicker from '../projects/ProjectPicker'
+import MilestonePicker from '../projects/MilestonePicker'
 import { useIssueStore } from '@/store/issueStore'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import {
@@ -48,7 +49,9 @@ function CreateIssueModal({
 }: Props) {
   // Draft lives in the store so it survives the Radix content remount that
   // occurs when the dialog switches modal/non-modal (minimize ⇄ restore).
-  const { title, description, status, priority, projectId } = useCreateIssueDialog((s) => s.draft)
+  const { title, description, status, priority, projectId, milestoneId } = useCreateIssueDialog(
+    (s) => s.draft,
+  )
   const patchDraft = useCreateIssueDialog((s) => s.patchDraft)
   const [createMore, setCreateMore] = useState(false)
 
@@ -69,7 +72,7 @@ function CreateIssueModal({
       assigneeId: prefill?.assigneeId ?? null,
       labelIds: prefill?.labelIds ?? [],
       projectId,
-      milestoneId: prefill?.milestoneId ?? null,
+      milestoneId,
       cycleId: prefill?.cycleId ?? null,
     })
 
@@ -164,9 +167,19 @@ function CreateIssueModal({
         <OptionPill icon={<AssigneeIcon size={15} />} label='Assignee' />
         <ProjectPicker
           value={projectId}
-          onChange={(next) => patchDraft({ projectId: next })}
+          onChange={(next) =>
+            patchDraft({ projectId: next, ...(next !== projectId ? { milestoneId: null } : {}) })
+          }
           triggerClassName={PILL_TRIGGER}
         />
+        {projectId && (
+          <MilestonePicker
+            projectId={projectId}
+            value={milestoneId}
+            onChange={(next) => patchDraft({ milestoneId: next })}
+            triggerClassName={PILL_TRIGGER}
+          />
+        )}
         <button
           type='button'
           className='flex h-7 w-7 items-center justify-center rounded-full border border-edge text-muted transition-colors hover:bg-elevated'

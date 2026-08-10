@@ -102,8 +102,8 @@ model / stores / routing / rules once so nothing is retrofitted.
   the layout gating the modal on the route. **Landed since:** `PROJECT_MAP` constants (+ dedicated
   `Project*Icon` glyphs); the **projects table** — `components/projects/list-view/{ProjectRow,
   ProjectListView}.tsx` + `projectColumns`/`SortHeader` + `ProjectsPage` (empty state, sortable sticky
-  header); the modal's form fields → `createProject` (+ `MilestoneDraftList`, whose drafts are still
-  discarded on create until §12 exists).
+  header); the modal's form fields → `createProject` (+ `MilestoneDraftList` — its drafts were
+  discarded on create until §12, and now ride the project's own `setDoc`).
   **Board data layer (2026-08-06):** `Project` gained **`sortOrder`** (§4) and `lib/issueOrdering.ts`
   was reduced to issue-typed wrappers over a new generic `lib/ordering.ts`, so issues and projects
   share ONE fractional-indexing engine instead of two copies; `lib/projectOrdering.ts` is the matching
@@ -116,8 +116,9 @@ model / stores / routing / rules once so nothing is retrofitted.
   `openWith({status})`, so a project is created in the column that asked for it. `lib/issueOpenGuard.ts`
   became **`lib/openGuard.ts`** (`data-issue-surface` → `data-card-surface`) — the popover
   fall-through guard is no longer issue-only now that project cards host pickers too.
-  **Deliberately absent from the card:** the milestone chip (needs §12's subcollection; drafts don't
-  persist) and health (§4 doesn't model it — same call as the table's missing Health column).
+  **Deliberately absent from the card:** the milestone chip and health (§4 doesn't model health — same
+  call as the table's missing Health column). The milestone chip is no longer *blocked* since §12
+  landed — `project.milestones` is right there on the card's row — it is simply not built yet.
   **Detail page ✅ (2026-08-10):** route `projects/:id/:slug?` → `routes/workspace/projects/
   ProjectDetail.tsx`, which resolves the project from the store and distinguishes "still hydrating"
   (skeleton, 1.2s grace) from a definitive miss ("Project not found") instead of flashing one for the
@@ -138,8 +139,6 @@ model / stores / routing / rules once so nothing is retrofitted.
   and `useProjectIssues(projectId)` is built but unused, waiting for it. Moved to the **tab-strip pass
   (step 15)** by decision on 2026-08-10, so detail tabs are designed once across entities rather than
   invented per page.
-  `components/projects/detail/ProjectMilestoneList.tsx` + `hooks/useProjectMilestones.ts` exist but are
-  deliberate §12 scaffolding — the hook returns a frozen empty list until a milestone store lands.
   `ProjectsPage` hardcodes the board today — the list⇄board
   **switcher is deliberately not here**, it ships for issues/projects/cycles together in step 15, and
   the two views need different page shells (the board must not sit in a vertical scroller).
@@ -151,7 +150,26 @@ model / stores / routing / rules once so nothing is retrofitted.
   `progressByKey()` (ONE pass over issues for the whole table instead of O(rows × issues)), and
   `useProjectRows(viewId)` returns sorted `{project, progress}` rows. **Health was explicitly declined
   — no field, no column data** (see §9C).
-- ❌ **Steps 12+ not started**: no entity stores/services/hooks beyond auth + issues + projects.
+- ✅ **Step 12 — Milestones (2026-08-10)**: **stored as a `milestones` MAP FIELD on the project
+  document, not the `projects/{id}/milestones` subcollection the original plan assumed** — §4 carries
+  the decision and its consequences, §9D the build. Because a keyed map takes dotted-path partial
+  writes (`milestones.<id>.name`, `deleteField()`), per-milestone write granularity survives while the
+  whole second entity pipeline (sync engine, store, cache key, hook, rules block) is never built:
+  milestones ride `useProjects()`. Landed: `Milestone`/`CreateMilestoneInput` + `Project.milestones?`
+  in `types/project.ts`; `newMilestoneId`/`createMilestone`/`updateMilestone`/`removeMilestone` on
+  `projectService`; the three optimistic actions on **`projectStore`** (rollback restores the
+  milestones map only, so a failed milestone write can't revert an unrelated project edit);
+  `appendOrder()` in `lib/ordering.ts`; `useProjectMilestoneList` + `useProjectMilestones` (no longer
+  a stub); fully editable `ProjectMilestoneList` rows (inline name/description via `useCommitOnExit`,
+  date pill, delete behind `ConfirmDialog`) whose drafts now commit; `CreateProjectModal` writes its
+  milestone drafts in the same `setDoc` as the project; and `MilestonePicker` wired into
+  `IssueDetailView` + `CreateIssueModal` (`milestoneId` joined the create draft; changing an issue's
+  project clears it in the same write). No rules change was needed — see §8.
+  **Deliberately absent:** no cascade of `milestoneId := null` when a milestone is deleted (a stale id
+  renders as "Unknown milestone" and is clearable, matching how a deleted project's `projectId`
+  behaves today); no milestone chip on project cards/rows; no drag-reorder of milestone rows.
+- ❌ **Steps 13+ not started**: no entity stores/services/hooks beyond auth + issues + projects
+  (+ milestones inside projects).
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -217,10 +235,11 @@ project-root/
 │   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
 │   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal + CreateIssueMinimizedBar
 │   │   ├── projects/   🚧 projectColumns, SortHeader, MilestoneDraftList ✅ ·
+│   │   │                 ProjectPicker ✅ · MilestonePicker ✅ (project-scoped, nullable) ·
 │   │   │                 list-view/{ProjectListView,ProjectRow} ✅ ·
 │   │   │                 kanban-view/{ProjectKanbanView,ProjectKanbanColumn,ProjectCard} ✅ ·
 │   │   │                 detail/{ProjectDetailHeader,ProjectOverview} ✅ ·
-│   │   │                 detail/ProjectMilestoneList 🚧 (stub until §12) · detail Issues tab ★
+│   │   │                 detail/ProjectMilestoneList ✅ (editable rows + drafts) · detail Issues tab ★
 │   │   ├── common/     ✅ ProgressBar, ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
 │   │   │                 DatePickerPanel, Calendar, AutoGrowTextarea, OptionPill…
 │   │   ├── cycles/     ★ CycleListView, CycleBoardView, CycleCard, CycleDetail, CycleProgress
@@ -230,7 +249,8 @@ project-root/
 │   ├── services/
 │   │   ├── authService.ts    ✅
 │   │   ├── issueService.ts   ✅ Firestore SDK + fetch(/api/createIssue)
-│   │   ├── projectService.ts ✅ Firestore SDK (client CRUD; newId → no temp-id) · milestones ★ (§12)
+│   │   ├── projectService.ts ✅ Firestore SDK (client CRUD; newId → no temp-id) · milestones ✅
+│   │   │                        (dotted-path writes into the project doc's map field)
 │   │   ├── cycleService.ts   ★ Firestore SDK + fetch(/api/createCycle)
 │   │   └── templateService.ts★ Firestore SDK
 │   │
@@ -238,7 +258,8 @@ project-root/
 │   │   ├── authStore.ts          ✅
 │   │   ├── issueStore.ts         ✅ optimistic CRUD + rollback (reference impl)
 │   │   ├── createIssueDialogStore.ts ✅ create-modal open/minimize/maximize + draft (§10.5)
-│   │   ├── projectStore.ts       ✅ optimistic CRUD + rollback · milestone actions ★ (§12)
+│   │   ├── projectStore.ts       ✅ optimistic CRUD + rollback · milestone actions ✅ (§12 —
+│   │   │                            they live here because a milestone IS a project field)
 │   │   ├── cycleStore.ts         ★
 │   │   ├── templateStore.ts      ★
 │   │   └── viewPreferenceStore.ts✅ layout/groupBy/orderBy per viewId (IndexedDB)
@@ -248,7 +269,9 @@ project-root/
 │   │   ├── validation.ts     ✅
 │   │   ├── utils.ts (cn)     ✅
 │   │   ├── idb.ts            ✅ idb-keyval get/set helpers
-│   │   ├── issueOrdering.ts  ✅ fractional sortOrder keys + drop → {status, sortOrder} patches
+│   │   ├── ordering.ts       ✅ generic fractional-index engine (issues + projects share it);
+│   │   │                        appendOrder() for column-less lists (milestones)
+│   │   ├── issueOrdering.ts  ✅ issue-typed wrappers: drop → {status, sortOrder} patches
 │   │   ├── progress.ts       ✅ derived done/total/pct for project · milestone · cycle
 │   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()
 │   │
@@ -257,7 +280,7 @@ project-root/
 │   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts / useTemplates.ts ★ thin wrappers
 │   │   ├── useProjectSelectors.ts ✅ useProjectList/useProject/useProjectIssues/useProjectProgress
 │   │   ├── useOpenIssue.ts ✅ · useOpenProject.ts ✅ (host handlers for the view callbacks)
-│   │   ├── useProjectMilestones.ts 🚧 shape done, returns [] until §12's store
+│   │   ├── useProjectMilestones.ts ✅ useProjectMilestoneList (manual order) + rows w/ progress
 │   │   └── useViewPreference.ts ★
 │   │
 │   └── mocks/{browser,handlers}.ts  ✅ (extend handlers)
@@ -333,9 +356,10 @@ workspaces/{workspaceId}/
 │                                        fractional indexing as issues, same shared
 │                                        engine (lib/ordering.ts). The table sorts by
 │                                        column, so it only reads this under 'manual'.
+│     milestones   map<id, Milestone>?  ★  ← NOT a subcollection (see below)
+│                    { id, name (req), description, targetDate|null,
+│                      sortOrder, createdAt, updatedAt }
 │     createdAt, updatedAt, createdBy
-│     └── milestones/{milestoneId}      ★  name (req), targetDate|null, sortOrder,
-│                                          createdAt, updatedAt
 │
 ├── cycles/{cycleId}                    ★
 │     number       int (server-sequential) → displayed "Cycle N"
@@ -351,7 +375,39 @@ workspaces/{workspaceId}/
 ```
 
 **Progress bars** (project, milestone, cycle) are computed client-side: count issues matching
-`projectId`/`milestoneId`/`cycleId` with `status==='done'` vs total. No stored counters.
+`projectId`/`milestoneId`/`cycleId` with `status==='done'` against everything **in scope**. No stored
+counters. **Cancelled issues are out of scope entirely (2026-08-10)** — they count toward neither
+`done` nor `total`, so abandoning an issue can't permanently cap a project below 100% (4 done + 1
+cancelled used to read 80% forever). Both counting loops in `lib/progress.ts` share one `inScope`
+predicate so the rule can't drift between them. Consequence: `progress.total` means "issues in scope",
+which is what the table's issue-count column, the board card's `N issues` and the milestone rows all
+display.
+
+**Milestones are a MAP FIELD, not a subcollection (decided 2026-08-10 — supersedes the original
+`projects/{id}/milestones` design).** They are 3–10 tiny rows per project that are only ever read in
+the context of their project, and there is no cross-project milestone view in scope. A subcollection
+would have bought a second sync engine (`useEntitySync` takes one collection path — milestones are N
+of them, so it needed either a collection-group query plus a denormalized `workspaceId` or a
+per-project subscription that breaks the "hydrate once in the shell" rule), plus its own store, cache
+key, hook and rules block — none of which serves a read we perform.
+
+The usual objection to embedding is the whole-array clobber: Firestore can't partially update an
+array, so renaming one milestone rewrites all of them, last-write-wins. **A map keyed by id does not
+have that problem** — dotted field paths (`milestones.<id>.name`, and `deleteField()` at
+`milestones.<id>`) are genuine partial writes, so touching Alpha never rewrites Beta. What we keep
+from the subcollection design is per-milestone write granularity; what we drop is the second entity
+pipeline. Consequences, all deliberate:
+- Milestones ride the **projects** sync/cache/rollback — `useProjects()` already carries them, so
+  they're in the store at boot with no extra subscription and no spinner on project open.
+- Their CRUD lives on `projectStore` (`createMilestone`/`updateMilestone`/`deleteMilestone`), which
+  settles the old `projectStore`-vs-`milestoneStore` ambiguity between §2 and the hook's TODO.
+- Milestone `createdAt`/`updatedAt` are **client-stamped** (`Timestamp.now()`); the project's own
+  `updatedAt` is server-stamped on every milestone write. Nothing sorts on the milestone stamps —
+  ordering is `sortOrder` — and this keeps `FieldValue` sentinels out of the `Milestone` type.
+- Map keys become path segments, so a milestone id must never contain `.` (`crypto.randomUUID()`).
+- **One-way door:** no cross-project milestone query is possible, and moving to a subcollection later
+  would be a data migration rather than a refactor. Accepted for the locked single-user scope; the
+  thing that would reverse it is multi-user editing or a global milestone view entering scope.
 
 ---
 
@@ -436,9 +492,11 @@ createIssue: async (data) => {                              // server-sequential
   catch { set(s => { delete s.issues[tempId] }); toast.error('Failed to create issue') }
 },
 ```
-Projects/milestones/templates create **client-side** with Firestore auto-ids — id is known immediately
+Projects/templates create **client-side** with Firestore auto-ids — id is known immediately
 via `doc()`, so no temp-id dance; still optimistic + rollback. Only issues & cycles use the temp-id
-pattern because their id/number is server-generated. **Create input** is a `CreateIssueInput` (user
+pattern because their id/number is server-generated. **Milestones have no pipeline of their own at
+all** — they are a map field on the project doc (§4), so they ride the projects sync, cache, rollback
+and broadcast; their store actions live on `projectStore` and write through `updateDoc` on the parent. **Create input** is a `CreateIssueInput` (user
 fields only); `identifier`/`id`/timestamps/`createdBy` are server-stamped — see §7.
 
 ### Full mutation pipeline
@@ -474,14 +532,22 @@ export const issueService = {
   deleteIssue:  (ws,id)        => deleteDoc(doc(db,`workspaces/${ws}/issues/${id}`)),
 }
 
-// services/projectService.ts  — client-created, no server needed
+// services/projectService.ts  — client-created, no server needed.
+// NOTE: the shipped code uses newId() + setDoc (not addDoc) so the caller owns the
+// id it already showed the user — that's what lets projectStore skip the temp-id dance.
 export const projectService = {
-  create: (ws,data)      => addDoc(collection(db,`workspaces/${ws}/projects`),{ ...data, createdAt:serverTimestamp(), updatedAt:serverTimestamp() }),
+  newId:  (ws)           => doc(collection(db,`workspaces/${ws}/projects`)).id,
+  create: (ws,id,data)   => setDoc(doc(db,`workspaces/${ws}/projects/${id}`),{ ...data, createdAt:serverTimestamp(), updatedAt:serverTimestamp() }),
   update: (ws,id,patch)  => updateDoc(doc(db,`workspaces/${ws}/projects/${id}`),{ ...patch, updatedAt:serverTimestamp() }),
   remove: (ws,id)        => deleteDoc(doc(db,`workspaces/${ws}/projects/${id}`)),
-  addMilestone:    (ws,pid,m)     => addDoc(collection(db,`workspaces/${ws}/projects/${pid}/milestones`), m),
-  updateMilestone: (ws,pid,mid,p) => updateDoc(doc(db,`workspaces/${ws}/projects/${pid}/milestones/${mid}`), p),
-  removeMilestone: (ws,pid,mid)   => deleteDoc(doc(db,`workspaces/${ws}/projects/${pid}/milestones/${mid}`)),
+
+  // Milestones are a map FIELD on the project doc (§4) — every write below is an
+  // updateDoc on the parent, addressed by DOTTED PATH so one milestone changes
+  // without rewriting its siblings. Each also bumps the project's own updatedAt.
+  newMilestoneId:  ()             => crypto.randomUUID(),           // no '.' — it's a path segment
+  createMilestone: (ws,pid,m)     => updateDoc(projectDoc(ws,pid),{ [`milestones.${m.id}`]: m, updatedAt:serverTimestamp() }),
+  updateMilestone: (ws,pid,mid,p) => updateDoc(projectDoc(ws,pid),{ ...Object.fromEntries(Object.entries(p).map(([f,v]) => [`milestones.${mid}.${f}`, v])), updatedAt:serverTimestamp() }),
+  removeMilestone: (ws,pid,mid)   => updateDoc(projectDoc(ws,pid),{ [`milestones.${mid}`]: deleteField(), updatedAt:serverTimestamp() }),
 }
 
 // services/cycleService.ts  — create via Vercel Fn (sequential number), rest client-side
@@ -539,8 +605,10 @@ match /workspaces/{ws} {
                          allow create: if false; }            // Vercel Fn (LIN-xxx)
   match /cycles/{id}   { allow read,update,delete: if request.auth.token.workspaceId == ws;
                          allow create: if false; }            // Vercel Fn (number)
-  match /projects/{id} { allow read,create,update,delete: if request.auth.token.workspaceId == ws;
-    match /milestones/{mid} { allow read,create,update,delete: if request.auth.token.workspaceId == ws; } }
+  match /projects/{id} { allow read,create,update,delete: if request.auth.token.workspaceId == ws; }
+                         // milestones need NO block — they're a map field on the project doc (§4),
+                         // so their writes ARE project updates. The old subcollection path stays
+                         // denied by default, which is now correct: nothing writes there.
   match /templates/{id}{ allow read,create,update,delete: if request.auth.token.workspaceId == ws; }
 }
 ```
@@ -590,7 +658,8 @@ across entities, so the pill, the map and the picker are shared code, not a para
 their counts from `useProjectRows()`. **No Health column at all** — Linear derives health from project
 updates, which §4 doesn't model, so there is nothing to render or sort; it is not stubbed either
 (decided 2026-08-02). **Lead** stays a placeholder cell: `leadId` has no member entity to
-resolve against (same gap as issue assignee avatars). The milestone chip beside the name is §12.
+resolve against (same gap as issue assignee avatars). The milestone chip beside the name is still
+unbuilt, but no longer blocked — §12 put `project.milestones` on the row itself.
 
 **Board view (added 2026-08-06):** projects get a **board too**, not only the table — one column per
 `ProjectStatus` in `PROJECT_STATUSES` order, labels and glyphs from the shared `PROJECT_MAP`, cards
@@ -621,11 +690,34 @@ already keys `layout` per `viewId`, so the switcher is pure wiring on top of fin
 `IssueListView`/`IssueKanbanView` filtered by `projectId`), **Milestones**. Issue detail panel gets a
 project selector; `projectStore`/`projectService`/`useProjects`.
 
-### D. Milestones — *stages inside a project (e.g. Alpha/Beta/GA)*
-**Why:** Linear ties project progress to milestones; issues attach to a stage. **Build:**
-`MilestoneList` under a project (name + optional target date + per-milestone progress = matching
-`milestoneId` done/total), CRUD on the `projects/{id}/milestones` subcollection, and a milestone
-selector in the issue panel scoped to the issue's project's milestones.
+### D. Milestones — *stages inside a project (e.g. Alpha/Beta/GA)* ✅ (2026-08-10)
+**Why:** Linear ties project progress to milestones; issues attach to a stage.
+**Stored as a map field on the project document, not a subcollection** — the full rationale and its
+consequences are in §4; the short version is that a keyed map gives per-milestone partial writes via
+dotted field paths while costing zero new entity pipeline.
+**Built:** `Milestone` + `CreateMilestoneInput` in `types/project.ts`; `Project.milestones?:
+Record<string, Milestone>`; the four milestone functions on `projectService` (§7);
+`createMilestone`/`updateMilestone`/`deleteMilestone` on **`projectStore`** — optimistic with
+rollback that restores the milestones MAP only, so a failed milestone write can't revert an unrelated
+project edit; `useProjectMilestoneList` (manual order) + `useProjectMilestones` (rows paired with
+derived progress) in `hooks/useProjectMilestones.ts`; `lib/ordering.ts` gains **`appendOrder()`** for
+column-less lists (a milestone has no status to move between, so it never needed the full `Orderable`
+contract). `ProjectMilestoneList` rows are now fully editable — inline name/description via
+`useCommitOnExit` (uncontrolled, one write per editing session), target date via `DatePillPicker`,
+delete behind a `ConfirmDialog` that names the issue count it will orphan. Drafts commit to the store
+and Enter opens the next row, so a run of milestones is typed in one pass. The create-project modal's
+`MilestoneDraftList` **no longer discards its drafts** — they're written in the same `setDoc` as the
+project, so there is no partial-create window.
+**Issue↔milestone assignment:** `components/projects/MilestonePicker.tsx`, the `ProjectPicker` pattern
+again (wraps `IssueCommandBox`, dynamic options, nullable via a `__no_milestone__` sentinel,
+synthesized "Unknown milestone" so a stale id renders and can be cleared). It is scoped to the
+issue's project and **only renders when one is set**; changing an issue's project **clears
+`milestoneId` in the same optimistic write**, in both `IssueDetailView` and `CreateIssueModal`.
+`milestoneId` joined the create **draft** in `createIssueDialogStore`, so it survives minimize⇄restore
+like `projectId`.
+**Deliberately NOT done:** deleting a milestone does **not** cascade `milestoneId := null` across
+matching issues — the stale reference renders as "Unknown milestone" and is clearable, exactly like a
+deleted project's `projectId` today. Cascades for both belong to one pass, not to this step.
 
 ### E. Cycles (manual MVP) — *time-boxed sprints to keep momentum*
 **Why:** agile cadence; a committed scope with a progress bar focuses the team. **Build:**
@@ -705,7 +797,15 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     (`ProjectPicker` in `IssueDetailView` + `CreateIssueModal`; `projectId` now part of the create
     draft). **Deferred out:** the detail's Issues tab → step 15's tab-strip pass; the list⇄board
     switcher → step 15. Everything else in this step is done.
-12. ★ **Milestones** — subcollection CRUD, MilestoneList, issue↔milestone assignment, progress
+12. ✅ **Milestones** — **map-field CRUD, not subcollection** (§4 carries the decision): dotted-path
+    writes on the project doc give per-milestone granularity with no second entity pipeline. Milestone
+    actions on `projectStore`, `appendOrder()` in `lib/ordering.ts`, `useProjectMilestones` un-stubbed,
+    editable `ProjectMilestoneList` (inline name/description, date pill, confirm-delete) + committing
+    drafts, `CreateProjectModal` drafts written in the project's own `setDoc`, `MilestonePicker` in
+    `IssueDetailView` + `CreateIssueModal` with `milestoneId` in the create draft and cleared whenever
+    the project changes. Progress reused `progressByKey(issues,'milestoneId')` as-is. No rules change.
+    **Not done on purpose:** no `milestoneId` cascade on delete, no milestone chip on cards/rows, no
+    drag-reorder of milestones.
 13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
     **both `CycleListView` and `CycleBoardView`** (no switcher → step 15; no cross-column drag, since
     cycle status is derived from dates), issue↔cycle assignment, progress; cycle rules
@@ -717,8 +817,10 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     view from `getPreference(viewId).layout` instead of hardcoding one;
     (b) the **detail tab strip** — one shared strip used by every detail page, and with it
     `ProjectDetail`'s **Issues** tab (`useProjectIssues` + `IssueListView`/`IssueKanbanView` filtered by
-    `projectId`, viewId `project:<id>:issues`) plus **Milestones** once §12 lands; the same strip then
-    serves the cycle detail. Moved here from step 11 on 2026-08-10.
+    `projectId`, viewId `project:<id>:issues`); the same strip then serves the cycle detail. Moved here
+    from step 11 on 2026-08-10. A **Milestones** tab is optional now rather than pending: §12 shipped
+    `ProjectMilestoneList` inside **Overview**, so this step only has to decide whether it stays there
+    or earns its own tab — no new milestone work either way.
     Batched on purpose — every view is built ahead of it, so this step is pure wiring and the chrome
     behaves identically everywhere instead of being re-invented per entity.
 16. **BroadcastChannel** — wire tab-sync into all store mutations
@@ -762,11 +864,14 @@ activity log · Notifications · Command palette + keyboard shortcuts · GitHub/
 - **Optimistic + rollback**: force a service to throw → UI updates then rolls back with a toast.
 - **Cross-entity**: create Project → add Milestone → create issues tagged project+milestone+cycle →
   all three progress bars reflect done/total; each detail view's filtered issue list is correct.
+- **Progress scope**: cancel one issue in a project → it leaves BOTH sides of the ratio (the count
+  drops and the percentage rises), and a project whose remaining issues are all done reads 100%.
 - **Cycle status**: cycles with past/current/future ranges sort into Completed/Active/Upcoming.
 - **Templates**: mark a default → new-issue form pre-filled; switch template → fields swap.
 - **Tab sync**: two tabs — a mutation appears in the other in ~1ms ahead of the onSnapshot echo.
 - **Rules**: emulator confirms client `addDoc` to `issues`/`cycles` denied (server-only) while
-  `projects`/`milestones`/`templates` client writes succeed; cross-workspace reads denied.
+  `projects`/`templates` client writes succeed; cross-workspace reads denied. Milestone writes are
+  covered by the `projects` case — they're `updateDoc`s on the project document (§4).
 - `npm run build` (tsc + vite) passes; `npm run lint` clean (remove leftover `console.log` in
   `routes/Guards.tsx`).
 

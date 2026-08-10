@@ -31,8 +31,13 @@ service cloud.firestore {
       }
 
       // Projects carry no server-generated field, so the client SDK creates them
-      // directly (build order 11). The milestones subcollection stays denied by
-      // default until build order 12 adds its own match block.
+      // directly (build order 11).
+      //
+      // MILESTONES need no rule of their own: they are a map FIELD on the project
+      // document (§4, build order 12), so every milestone write is an update to
+      // the project and is already covered here. The subcollection path that the
+      // original plan used stays denied by default, which is now correct — nothing
+      // writes there.
       match /projects/{id} {
         allow read, create, update, delete: if inWorkspace(ws);
       }

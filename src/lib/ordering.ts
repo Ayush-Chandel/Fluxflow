@@ -38,6 +38,10 @@ export function orderBetween(prev?: Orderable, next?: Orderable): number {
     : Date.now()
 }
 
+export function appendOrder(items: { sortOrder?: number }[]): number {
+  return items.reduce((max, item) => Math.max(max, item.sortOrder ?? 0), 0) + ORDER_STEP
+}
+
 export function findGroupOf<S extends string, T>(
   groups: OrderGroups<T>,
   id: string,

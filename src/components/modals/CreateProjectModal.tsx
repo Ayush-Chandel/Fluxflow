@@ -149,9 +149,6 @@ function CreateProjectModal({
         const trimmedName = name.trim()
         if (!trimmedName) return
 
-        // TODO(build order 12): milestone drafts are discarded here — writing them
-        // needs projects/{id}/milestones and a milestoneService, neither of which
-        // exists yet.
         void createProject({
             name: trimmedName,
             description: summary.trim(),
@@ -164,6 +161,19 @@ function CreateProjectModal({
             memberIds: prefill?.memberIds ?? [],
             startDate: startDate ? Timestamp.fromDate(startDate) : null,
             targetDate: targetDate ? Timestamp.fromDate(targetDate) : null,
+            // Milestones are a field of the project document, so these ride along
+            // in the same write — no second round-trip, nothing half-created if
+            // it fails. Unnamed rows are just abandoned drafts and are dropped.
+            // (This compact list has no description input; the detail page's does.)
+            milestones: milestones
+                .filter((milestone) => milestone.name.trim())
+                .map((milestone) => ({
+                    name: milestone.name.trim(),
+                    description: '',
+                    targetDate: milestone.targetDate
+                        ? Timestamp.fromDate(milestone.targetDate)
+                        : null,
+                })),
         })
 
         onClose?.()

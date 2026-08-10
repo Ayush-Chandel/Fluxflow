@@ -6,6 +6,7 @@ import { useIssueStore } from '@/store/issueStore';
 import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue } from '@/types/issue';
 import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
 import ProjectPicker from '../projects/ProjectPicker';
+import MilestonePicker from '../projects/MilestonePicker';
 import { MOCK_ISSUES } from './__mockIssues';
 
 type IssueDetailViewProps = {
@@ -107,9 +108,22 @@ function IssueDetail({ issue }: { issue: Issue }) {
                 />
                 <ProjectPicker
                     value={issue.projectId}
-                    onChange={(projectId) => updateIssue(issue.id, { projectId })}
+                    onChange={(projectId) => updateIssue(issue.id, {
+                        projectId,
+                        ...(projectId !== issue.projectId && issue.milestoneId
+                            ? { milestoneId: null }
+                            : {}),
+                    })}
                     triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
                 />
+                {issue.projectId && (
+                    <MilestonePicker
+                        projectId={issue.projectId}
+                        value={issue.milestoneId}
+                        onChange={(milestoneId) => updateIssue(issue.id, { milestoneId })}
+                        triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
+                    />
+                )}
             </div>
         </div>
     </motion.div>

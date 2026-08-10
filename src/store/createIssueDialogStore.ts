@@ -11,6 +11,8 @@ interface DraftState {
   status: IssueStatus
   priority: IssuePriority
   projectId: string | null
+  /** Only reachable once a project is chosen — it is scoped to that project. */
+  milestoneId: string | null
 }
 
 interface CreateIssueDialogState {
@@ -38,6 +40,7 @@ const makeDraft = (prefill?: Partial<CreateIssueInput> | null): DraftState => ({
   status: prefill?.status ?? 'todo',
   priority: prefill?.priority ?? 'no_priority',
   projectId: prefill?.projectId ?? null,
+  milestoneId: prefill?.milestoneId ?? null,
 })
 
 export const useCreateIssueDialog = create<CreateIssueDialogState>((set) => ({

@@ -51,7 +51,7 @@ function ProjectOverview({ project }: { project: Project }) {
         />
       </section>
 
-      <ProjectMilestoneList milestones={milestones} />
+      <ProjectMilestoneList projectId={project.id} milestones={milestones} />
     </div>
   )
 }

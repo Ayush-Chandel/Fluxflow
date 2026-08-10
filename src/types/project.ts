@@ -33,12 +33,12 @@ export interface Project {
   startDate: Timestamp | null
   targetDate: Timestamp | null
   sortOrder?: number
+  milestones?: Record<string, Milestone>
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
 }
 
-// Lives at projects/{projectId}/milestones/{milestoneId} — a stage inside a project.
 export interface Milestone {
   id: string
   name: string // required
@@ -50,10 +50,9 @@ export interface Milestone {
   updatedAt: Timestamp
 }
 
-// Fields a client supplies when creating a project — mirrors CreateIssueInput.
-// `id` is client-generated (Firestore auto-id via doc(), §6) and timestamps /
-// `createdBy` are stamped by the store+service, never passed in. `status` and
-// `priority` are optional — they default to 'backlog' / 'no_priority'.
+export type CreateMilestoneInput = Pick<Milestone, 'name' | 'description' | 'targetDate'>
+
+
 export type CreateProjectInput = Pick<
   Project,
   | 'name'
@@ -65,13 +64,15 @@ export type CreateProjectInput = Pick<
   | 'memberIds'
   | 'startDate'
   | 'targetDate'
-> & { status?: ProjectStatus; priority?: ProjectPriority }
+> & {
+  status?: ProjectStatus
+  priority?: ProjectPriority
+  milestones?: CreateMilestoneInput[]
+}
 
-// The exact document body written to Firestore on create: the user fields plus
-// the ones the client owns after defaulting. Timestamps are added by the service
-// (serverTimestamp) and `id` is the doc key, so neither is stored in the document.
-export type NewProjectDoc = CreateProjectInput & {
+export type NewProjectDoc = Omit<CreateProjectInput, 'milestones'> & {
   status: ProjectStatus
   priority: ProjectPriority
+  milestones: Record<string, Milestone>
   createdBy: string
 }

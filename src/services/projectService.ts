@@ -1,18 +1,16 @@
-// src/services/projectService.ts — §7 services layer for projects.
-// Pure client Firestore CRUD: a project has no server-generated id (unlike an
-// issue's sequential 'LIN-N' or a cycle's number), so there is NO Vercel Fn hop
-// here — the client SDK writes straight to Firestore and the rules enforce the
-// workspace scope.
-//
-// `newId()` pre-generates the document id locally (§6: "id is known immediately
-// via doc()"), which is what lets the store skip the issue store's temp-id
-// dance: the optimistic project is keyed by the REAL id from the start, so when
-// onSnapshot echoes the written doc it simply upserts over it.
-//
-// Milestones (the projects/{id}/milestones subcollection) land in build order 12.
-import { collection, deleteDoc, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+
+
+import {
+  collection,
+  deleteDoc,
+  deleteField,
+  doc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { NewProjectDoc, Project } from '@/types/project'
+import type { Milestone, NewProjectDoc, Project } from '@/types/project'
 
 const projectsCollection = (ws: string) => collection(db, `workspaces/${ws}/projects`)
 const projectDoc = (ws: string, id: string) => doc(db, `workspaces/${ws}/projects/${id}`)
@@ -33,4 +31,34 @@ export const projectService = {
     updateDoc(projectDoc(ws, id), { ...patch, updatedAt: serverTimestamp() }),
 
   remove: (ws: string, id: string) => deleteDoc(projectDoc(ws, id)),
+
+  newMilestoneId: () => crypto.randomUUID(),
+
+  createMilestone: (ws: string, projectId: string, milestone: Milestone) =>
+    updateDoc(projectDoc(ws, projectId), {
+      [`milestones.${milestone.id}`]: milestone,
+      updatedAt: serverTimestamp(),
+    }),
+
+  updateMilestone: (
+    ws: string,
+    projectId: string,
+    milestoneId: string,
+    patch: Partial<Milestone>,
+  ) =>
+    updateDoc(projectDoc(ws, projectId), {
+      ...Object.fromEntries(
+        Object.entries(patch).map(([field, value]) => [
+          `milestones.${milestoneId}.${field}`,
+          value,
+        ]),
+      ),
+      updatedAt: serverTimestamp(),
+    }),
+
+  removeMilestone: (ws: string, projectId: string, milestoneId: string) =>
+    updateDoc(projectDoc(ws, projectId), {
+      [`milestones.${milestoneId}`]: deleteField(),
+      updatedAt: serverTimestamp(),
+    }),
 }
