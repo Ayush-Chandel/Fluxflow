@@ -6,7 +6,8 @@ import type { CycleRow } from '@/hooks/useCycleSelectors'
 import { CycleStatusBadge } from '../CycleStatusBadge'
 import ProgressRing from '@/components/common/ProgressRing'
 import { PlayCircleIcon } from '@/components/icons'
-import CycleRowMenu from './CycleRowMenu'
+import CycleActionsMenu from '../CycleActionsMenu'
+import { pointerDownStartedOnCardSurface } from '@/lib/openGuard'
 
 type Props = {
   row: CycleRow
@@ -24,7 +25,11 @@ function CycleListRow({ row, onOpen }: Props) {
     <div
       role='button'
       tabIndex={0}
-      onClick={() => onOpen?.(cycle)}
+      data-card-surface
+      onClick={() => {
+        if (!pointerDownStartedOnCardSurface()) return
+        onOpen?.(cycle)
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -79,7 +84,7 @@ function CycleListRow({ row, onOpen }: Props) {
         </span>
       </span>
 
-      <CycleRowMenu cycle={cycle} issueCount={progress.total} />
+      <CycleActionsMenu cycle={cycle} issueCount={progress.total} />
     </div>
   )
 }

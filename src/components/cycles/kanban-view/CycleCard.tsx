@@ -7,19 +7,15 @@ import { cycleLabel, type Cycle } from '@/types/cycle'
 import type { CycleRow } from '@/hooks/useCycleSelectors'
 import ProgressBar from '@/components/common/ProgressBar'
 import { PlayCircleIcon } from '@/components/icons'
+import { pointerDownStartedOnCardSurface } from '@/lib/openGuard'
+import CycleActionsMenu from '../CycleActionsMenu'
 
 type Props = {
   row: CycleRow
   onOpen?: (cycle: Cycle) => void
 }
 
-/**
- * A cycle on the board. Deliberately NOT sortable, unlike ProjectCard: a cycle's
- * column is derived from its date range (§9E), so there is no `sortOrder` to
- * write and a cross-column drop would have to silently rewrite the range. The
- * card carries no dnd-kit wiring at all rather than a disabled `useSortable`,
- * so the read-only-ness is visible in the code and not just in a flag.
- */
+
 const CycleCard = memo(function CycleCard({ row, onOpen }: Props) {
   const { cycle, status, progress } = row
 
@@ -28,8 +24,12 @@ const CycleCard = memo(function CycleCard({ row, onOpen }: Props) {
 
   return (
     <div
-      onClick={() => onOpen?.(cycle)}
-      className='cursor-pointer space-y-2 rounded-xl border border-edge-subtle bg-raised-high px-2.5 pb-3 pt-2 text-xs text-muted transition-colors duration-100 hover:bg-hover-subtle'
+      data-card-surface
+      onClick={() => {
+        if (!pointerDownStartedOnCardSurface()) return
+        onOpen?.(cycle)
+      }}
+      className='group cursor-pointer space-y-2 rounded-xl border border-edge-subtle bg-raised-high px-2.5 pb-3 pt-2 text-xs text-muted transition-colors duration-100 hover:bg-hover-subtle'
     >
       <div className='flex items-center gap-2'>
         <PlayCircleIcon
@@ -40,6 +40,7 @@ const CycleCard = memo(function CycleCard({ row, onOpen }: Props) {
         <span className='min-w-0 flex-1 truncate text-lsm text-foreground'>
           {cycleLabel(cycle)}
         </span>
+        <CycleActionsMenu cycle={cycle} issueCount={progress.total} />
       </div>
 
       {cycle.goal && <p className='line-clamp-2'>{cycle.goal}</p>}

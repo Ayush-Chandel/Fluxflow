@@ -10,22 +10,14 @@ import { cycleLabel, type Cycle } from '@/types/cycle'
 
 type Props = {
   cycle: Cycle
-  /** Issues that would be left pointing at a deleted cycle — named in the confirm. */
   issueCount: number
 }
 
 const ITEM =
   'flex w-full items-center rounded-md px-2 py-1.5 text-left text-lsm text-foreground transition-colors hover:bg-hover-subtle'
 
-/**
- * The row's ⋯ menu. Editing a cycle happens HERE, in the create modal reopened
- * with the cycle's values — opening a cycle navigates to its issues instead, so
- * there is no detail form to put these actions on.
- *
- * Every handler stops propagation: the whole row is a button that opens the
- * cycle, and a menu click must not also navigate.
- */
-function CycleRowMenu({ cycle, issueCount }: Props) {
+
+function CycleActionsMenu({ cycle, issueCount }: Props) {
   const [open, setOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -105,4 +97,4 @@ function CycleRowMenu({ cycle, issueCount }: Props) {
   )
 }
 
-export default CycleRowMenu
+export default CycleActionsMenu

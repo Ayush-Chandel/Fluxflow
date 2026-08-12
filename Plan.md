@@ -202,8 +202,15 @@ model / stores / routing / rules once so nothing is retrofitted.
   **Views ✅:** `CycleListView` is the **date-ordered timeline** (§9E) — `list-view/{CycleListView,
   CycleListRow,CycleDateRail}`. The rail is built **per row**, not as one absolutely-positioned
   column: it inherits the row's height, so a marker can't drift out of alignment and there is nothing
-  to measure or recompute. Its two half-height segments are what let the ACTIVE cycle tint only its
-  own span. `kanban-view/{CycleBoardView,CycleBoardColumn,CycleCard}` is the board — **no DndContext,
+  to measure or recompute. **Marker geometry (settled 2026-08-11 after two passes):** the marker sits
+  ON the row's bottom border and carries that cycle's START date. Because rows run newest-first, the
+  row above starts where this one ends — so a row's FULL height is exactly its own cycle's duration,
+  the line is ONE segment in its own status colour, and no row needs to know anything about its
+  neighbours. Two earlier attempts are worth not repeating: anchoring the line to the rail's centre
+  while the dot sat in a centred `[label][dot]` group put the line *behind the date text*, touching no
+  marker; and splitting the line into halves tinted the neighbouring cycle's span instead of the
+  active one's. Both disappeared with the bottom-anchored marker — `isFirst`/`isLast`/`activeBelow`
+  are all gone. `kanban-view/{CycleBoardView,CycleBoardColumn,CycleCard}` is the board — **no DndContext,
   no sensors, no DragOverlay, no `sortOrder`**, because a cycle's column is derived from its dates;
   columns self-order chronologically instead. `common/ProgressRing` ★ (continuous donut — the cycle
   counterpart to the milestone diamond, unquantised because it sits beside an exact scope count).
@@ -214,13 +221,21 @@ model / stores / routing / rules once so nothing is retrofitted.
   whose `+` prefills `cycleId`. It holds **no cycle metadata form** — see §9E. `useOpenCycle` + the
   **Topbar cycle crumb** (`:id` is shared with the project route, but only one store resolves it, so
   they never collide).
-  **Cycle editing ✅ (2026-08-11):** `CycleRowMenu` — a hover-revealed ⋯ on the list row (kept
+  **Cycle editing ✅ (2026-08-11):** `CycleActionsMenu` — a hover-revealed ⋯ on **both** the timeline
+  row and the board card (which is why it sits in `components/cycles/`, not inside either view folder;
+  it was briefly `list-view/CycleRowMenu` before the card got one too), kept
   focusable and lit while open, so the affordance never costs a click target) with **Edit cycle** →
   `createCycleDialogStore.openForEdit(id)` → `CreateCycleModal` seeded from the live cycle and
   submitting through `updateCycle`, and **Delete cycle** behind a `ConfirmDialog` that names the
-  issues it will orphan. The modal takes `editingId` rather than a cycle snapshot, so an edit opened
-  from a stale row still writes against live data, and its dirty-check baseline is the cycle itself —
-  an untouched edit closes without a confirm.
+  issues it will orphan. The dialog store holds the cycle's **id**, not a snapshot, so cycle data has
+  one home (the cycle store) instead of being duplicated into a UI store. Two consequences the modal
+  has to respect: (a) its dirty-check baseline is the cycle's own values, so an untouched edit closes
+  without a spurious "discard?" — the create-only version compared `name !== ''`, which is true the
+  instant an edit opens; (b) `editing` is a LIVE lookup and goes undefined if the cycle is deleted
+  mid-edit, so **mode is driven by `isEditing = Boolean(editingId)` and submit branches on `editingId`,
+  never on the resolved doc** — otherwise Save would fall through to `createCycle` and file a duplicate
+  cycle out of the edit. The form seeds once (effect keyed `[open, editingId]`) and deliberately does
+  not re-seed afterwards; re-seeding would wipe what the user is typing.
   **Issue↔cycle ✅:** `components/cycles/CyclePicker.tsx` — the `ProjectPicker` pattern a third time
   (wraps `IssueCommandBox`, dynamic options, `__no_cycle__` sentinel, synthesised "Unknown cycle").
   Options sort by **status** (active → upcoming → completed), not alphabetically. Wired into
@@ -242,8 +257,13 @@ model / stores / routing / rules once so nothing is retrofitted.
   timeline and `CycleDetail` hardcodes the board, as `ProjectsPage` hardcodes its own; the **burn-up
   chart** → §12. *Note the cycle detail's "Issues tab" is no longer pending — the detail page simply
   IS the issues now, so step 15's tab strip has nothing to add here beyond the view toggle.*
-  **NOT yet runtime-verified**: `/api/createCycle` has never been exercised against the emulator, and
-  neither have the status stamps — see §13.
+  **Known unused-but-kept:** `useCycleProgress` has no caller — rows carry their own derived
+  progress, so nothing needs the single-id form (exactly the position `milestoneProgress` is in after
+  §12). `CycleBoardView` and its column/card are built and **unreachable** until the step-15 switcher
+  imports them; `CyclesPage` hardcodes the timeline.
+  **NOT yet runtime-verified ⚠️**: nothing in this step has been run against the emulator —
+  `/api/createCycle`, the status stamps, and cycle create/update/delete through the rules. Together
+  with §12's untested milestone map writes this is the whole outstanding risk for steps 12–13 (§13).
 - ❌ **Step 14+ not started**: no templates store/service/hook; `templates` has no rules block yet.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
@@ -322,9 +342,12 @@ project-root/
 │   │   │                 ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
 │   │   │                 DatePickerPanel, Calendar, AutoGrowTextarea, OptionPill…
 │   │   ├── cycles/     ✅ CyclePicker (status-ordered options, nullable) ·
+│   │   │                 CycleStatusBadge(+CycleRangeChip) ✅ — shared by the row and the
+│   │   │                   detail header, so a status has ONE label + tone ·
 │   │   │                 list-view/{CycleListView,CycleListRow,CycleDateRail} ✅ (timeline; the
 │   │   │                   rail is PER-ROW, so markers can't drift out of alignment) ·
-│   │   │                 list-view/CycleRowMenu ✅ (hover ⋯ → edit in the create modal, delete) ·
+│   │   │                 CycleActionsMenu ✅ (hover ⋯ → edit in the create modal, delete;
+│   │   │                   shared by the timeline ROW and the board CARD) ·
 │   │   │                 kanban-view/{CycleBoardView,CycleBoardColumn,CycleCard} ✅ (NO dnd —
 │   │   │                   status is derived from dates, so there is nothing to drop)
 │   │   │                 — NO detail/ folder: a cycle's page is just its issues (§9E)
@@ -851,9 +874,11 @@ deleted project's `projectId` today. Cascades for both belong to one pass, not t
 ### E. Cycles (manual MVP) — *time-boxed sprints to keep momentum* ✅ (2026-08-10)
 **Why:** agile cadence; a committed scope with a progress bar focuses the team. **Build:**
 `CyclesPage` as a **date-ordered timeline** (decided 2026-08-10): cycles newest-first down the page,
-each row = glyph + name + derived-status badge + completion ring + scope count, with a **left rail**
-carrying the cycle boundary dates — a `border-l` with absolutely-positioned dots and a `bg-brand`
-segment spanning the current cycle. No SVG needed for the rail. This is the same view §9E always
+each row = glyph + name + derived-status badge + completion ring + scope count + a hover-revealed ⋯
+menu, with a **left rail** carrying the cycle boundary dates — a 1px div and a marker pinned to each
+row's **bottom border**, tinted `bg-brand` for the running cycle. Anchoring the marker to that border
+is what makes a row's full height equal its own cycle's span; see §0 for the two geometries that
+didn't work. No SVG needed for the rail. This is the same view §9E always
 specced as "Active / Upcoming / Completed sections", just ordered by date with the rail instead of
 grouped under headings, so it costs nothing extra to build it this way. Status derived by
 `cycleStatusFromDates(start,end,now)` in `types/cycle.ts` (not stored). **Both views ship in step 13**
@@ -864,8 +889,8 @@ derived from `startDate`/`endDate` — a cross-column drop would have to rewrite
 is out of scope. So `Cycle` needs no `sortOrder` and the board is read-only in that axis.
 **A cycle's page IS its issues (decided 2026-08-11).** `CycleDetail` renders the issue views filtered
 by `cycleId` — nothing else. It carries **no metadata/edit form**: a cycle's own fields are edited in
-the **create modal reopened in edit mode**, from a hover-revealed **⋯ menu on the list row**
-(`CycleRowMenu` → `openForEdit(id)`). One form, two modes, so create and edit can never drift apart
+the **create modal reopened in edit mode**, from a hover-revealed **⋯ menu on the row and the card**
+(`CycleActionsMenu` → `openForEdit(id)`). One form, two modes, so create and edit can never drift apart
 and no second surface competes for the same writes. This replaced an earlier `CycleOverview` detail
 form, now deleted.
 Consequences worth keeping straight: the date-range pickers **live in that modal**, and they remain
