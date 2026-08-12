@@ -135,10 +135,21 @@ model / stores / routing / rules once so nothing is retrofitted.
   `CreateIssueModal`, replacing the static Project pill; `projectId` joined the **draft** in
   `createIssueDialogStore` (not the prefill) so a chosen project survives minimize⇄restore like every
   other field, and `handleCreate` now sends the draft's value instead of `prefill?.projectId ?? null`.
-  **Deferred out of this step:** the detail's **Issues tab** — `ProjectDetail` renders Overview only,
-  and `useProjectIssues(projectId)` is built but unused, waiting for it. Moved to the **tab-strip pass
-  (step 15)** by decision on 2026-08-10, so detail tabs are designed once across entities rather than
-  invented per page.
+  **Detail Issues tab ✅ (2026-08-12):** `components/projects/detail/ProjectIssues.tsx` — the panel the
+  step-15 tab strip will mount, built whole ahead of it: `useProjectIssues(projectId)` (no longer
+  unused) → **both** `IssueListView` and `IssueKanbanView`, an `N issues` count, and a create that
+  prefills `projectId` (header `+` and the empty state's button), exactly as `CycleDetail` prefills
+  `cycleId`. Layout comes from `viewPreferenceStore` under **`project:<id>:issues`** — the key is
+  minted by `projectIssuesViewId(id)` in `useProjectSelectors` so the step-15 toggle addresses the same
+  string the panel reads, making that step a pure `setLayout(viewId, …)` wiring. **The branch between
+  the two lives inside the panel, not the page,** because the shells differ: the list scrolls
+  vertically, the board fills the height and scrolls its columns internally (a board inside a page
+  scroller is the failure mode §9C names). `ProjectDetail` now renders `overview | issues` off local
+  state — **not** the URL, since §3 puts layout in IndexedDB and only filters in the URL, and an open
+  tab is neither — with each tab bringing its own shell, and reseeds to Overview when `:id` changes.
+  **`DetailTabsTemp` inside `ProjectDetail.tsx` is explicitly temporary:** a stand-in tab strip +
+  list⇄board buttons so the tab is reachable before step 15; its layout buttons already make the exact
+  call the real toggle will, so step 15 deletes the component rather than rewriting the wiring.
   `ProjectsPage` hardcodes the board today — the list⇄board
   **switcher is deliberately not here**, it ships for issues/projects/cycles together in step 15, and
   the two views need different page shells (the board must not sit in a vertical scroller).
@@ -336,7 +347,9 @@ project-root/
 │   │   │                 list-view/{ProjectListView,ProjectRow} ✅ ·
 │   │   │                 kanban-view/{ProjectKanbanView,ProjectKanbanColumn,ProjectCard} ✅ ·
 │   │   │                 detail/{ProjectDetailHeader,ProjectOverview} ✅ ·
-│   │   │                 detail/ProjectMilestoneList ✅ (editable rows + drafts) · detail Issues tab ★
+│   │   │                 detail/ProjectMilestoneList ✅ (editable rows + drafts) ·
+│   │   │                 detail/ProjectIssues ✅ (project-scoped issues, BOTH layouts, prefilled
+│   │   │                   create; layout keyed `project:<id>:issues` — step 15 only adds the toggle)
 │   │   ├── common/     ✅ ProgressBar, MilestoneProgressIcon (quarter-filling diamond),
 │   │   │                 ProgressRing (continuous donut — the cycle counterpart),
 │   │   │                 ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
@@ -420,7 +433,7 @@ project-root/
   ├── issues              IssuesPage           handle:{sidebarKey:'issues'}
   ├── issues/:identifier/:slug?  IssuesPage    detail OVER list, URL deep-link (slug cosmetic)
   ├── projects            ProjectsPage         handle:{sidebarKey:'projects'}       ✅
-  ├── projects/:id/:slug? ProjectDetail        Overview; Issues tab → step 15       ✅
+  ├── projects/:id/:slug? ProjectDetail        Overview + Issues tabs (local state) ✅
   ├── cycles              Cycles               handle:{sidebarKey:'cycles'}         ✅
   ├── cycles/:id/:slug?   CycleDetail          the cycle's ISSUES (no metadata form) ✅
   └── settings/templates  TemplatesSettingsPage                                     ★
@@ -977,8 +990,10 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     + the **`projects/:id/:slug?` route** ✅, **ProjectDetail + Overview + `ProgressBar`** ✅,
     `useOpenProject` ✅, the **Topbar project crumb** ✅ and the **project selector on issues** ✅
     (`ProjectPicker` in `IssueDetailView` + `CreateIssueModal`; `projectId` now part of the create
-    draft). **Deferred out:** the detail's Issues tab → step 15's tab-strip pass; the list⇄board
-    switcher → step 15. Everything else in this step is done.
+    draft) + the **detail's Issues tab** ✅ (`detail/ProjectIssues` — both layouts, prefilled create,
+    layout under `project:<id>:issues`; `ProjectDetail` switches tabs off local state behind a
+    temporary strip). **Deferred out:** the shared tab strip + the list⇄board switcher → step 15.
+    Everything else in this step is done.
 12. ✅ **Milestones** — **map-field CRUD, not subcollection** (§4 carries the decision): dotted-path
     writes on the project doc give per-milestone granularity with no second entity pipeline. Milestone
     actions on `projectStore`, `appendOrder()` in `lib/ordering.ts`, `useProjectMilestones` un-stubbed,
@@ -1006,9 +1021,11 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     `viewId`). What remains is the UI:
     (a) the **list⇄board toggle** wired for **issues, projects AND cycles**, each page choosing its
     view from `getPreference(viewId).layout` instead of hardcoding one;
-    (b) the **detail tab strip** — one shared strip used by every detail page, and with it
-    `ProjectDetail`'s **Issues** tab (`useProjectIssues` + `IssueListView`/`IssueKanbanView` filtered by
-    `projectId`, viewId `project:<id>:issues`); the same strip then serves the cycle detail. Moved here
+    (b) the **detail tab strip** — one shared strip used by every detail page, replacing
+    `DetailTabsTemp` in `ProjectDetail.tsx` (the stand-in strip + layout buttons shipped 2026-08-12);
+    the same strip then serves the cycle detail. The **panel** it switches to is already built —
+    `detail/ProjectIssues` (`useProjectIssues` + `IssueListView`/`IssueKanbanView`, viewId
+    `project:<id>:issues`) — so this half is now deleting the stand-in, not building a tab. Moved here
     from step 11 on 2026-08-10. A **Milestones** tab is optional now rather than pending: §12 shipped
     `ProjectMilestoneList` inside **Overview**, so this step only has to decide whether it stays there
     or earns its own tab — no new milestone work either way.

@@ -15,6 +15,8 @@ import { PROJECT_STATUSES, type Project, type ProjectStatus } from '@/types/proj
 /** Default viewId for the projects table — its sort lives under this key. */
 export const PROJECTS_VIEW_ID = 'projects'
 
+export const projectIssuesViewId = (projectId: string) => `project:${projectId}:issues`
+
 /** All projects as a stable array — subscribes to the map, rebuilds on change. */
 export function useProjectList(): Project[] {
   const projectsMap = useProjectStore((s) => s.projects)
