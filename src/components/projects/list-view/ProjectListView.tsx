@@ -47,11 +47,12 @@ function ProjectListView({ viewId = PROJECTS_VIEW_ID, onOpenProject }: Props) {
       </div>
 
       <div className='mt-1'>
-        {rows.map(({ project, progress }) => (
+        {rows.map(({ project, progress, milestone }) => (
           <ProjectRow
             key={project.id}
             project={project}
             progress={progress}
+            milestone={milestone}
             onOpen={onOpenProject ? () => onOpenProject(project) : undefined}
           />
         ))}

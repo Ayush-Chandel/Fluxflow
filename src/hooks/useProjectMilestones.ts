@@ -2,17 +2,13 @@
 import { useMemo } from 'react'
 import { useIssueStore } from '@/store/issueStore'
 import { useProjectStore } from '@/store/projectStore'
-import { EMPTY_PROGRESS, progressByKey, type Progress } from '@/lib/progress'
+import { EMPTY_PROGRESS, progressByKey } from '@/lib/progress'
+import { sortMilestones, type MilestoneRow } from '@/lib/milestones'
 import type { Milestone } from '@/types/project'
 
-export interface MilestoneRow {
-  milestone: Milestone
-  progress: Progress
-}
-
-// Module scope so the identity is stable — a fresh [] per render would
-// invalidate the memos below on every keystroke elsewhere in the page.
-const NO_MILESTONES: Milestone[] = []
+// Re-exported from its original home so existing importers don't have to care
+// that the shape now lives in lib alongside the derivation that builds it.
+export type { MilestoneRow }
 
 
 export function useProjectMilestoneList(projectId: string | undefined | null): Milestone[] {
@@ -21,10 +17,7 @@ export function useProjectMilestoneList(projectId: string | undefined | null): M
     projectId ? s.projects[projectId]?.milestones : undefined,
   )
 
-  return useMemo(() => {
-    if (!milestonesMap) return NO_MILESTONES
-    return Object.values(milestonesMap).sort((a, b) => a.sortOrder - b.sortOrder)
-  }, [milestonesMap])
+  return useMemo(() => sortMilestones(milestonesMap), [milestonesMap])
 }
 
 

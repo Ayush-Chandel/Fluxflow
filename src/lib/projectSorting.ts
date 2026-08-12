@@ -12,11 +12,14 @@ import type { OrderBy, SortDir } from '@/store/viewPreferenceStore'
 import { toDate } from '@/lib/date'
 import { getSortKey } from '@/lib/ordering'
 import type { Progress } from '@/lib/progress'
+import type { MilestoneRow } from '@/lib/milestones'
 
 /** A table row: the project plus its derived counts, computed once by the hook. */
 export interface ProjectRow {
   project: Project
   progress: Progress
+  /** The milestone the row leads with — null when the project has none. */
+  milestone: MilestoneRow | null
 }
 
 // Both unions are declared in workflow order, so the tuple index IS the rank:

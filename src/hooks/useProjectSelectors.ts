@@ -7,6 +7,7 @@ import { useIssueStore } from '@/store/issueStore'
 import { useProjectStore } from '@/store/projectStore'
 import { DEFAULT_PREFERENCE, useViewPreferenceStore } from '@/store/viewPreferenceStore'
 import { EMPTY_PROGRESS, progressByKey, projectProgress, type Progress } from '@/lib/progress'
+import { currentMilestone } from '@/lib/milestones'
 import { orderProjectRows } from '@/lib/projectOrdering'
 import { sortProjectRows, type ProjectRow } from '@/lib/projectSorting'
 import type { Issue } from '@/types/issue'
@@ -45,10 +46,17 @@ function buildRows(
   projectsMap: Record<string, Project>,
   issuesMap: Record<string, Issue>,
 ): ProjectRow[] {
-  const progress = progressByKey(Object.values(issuesMap), 'projectId')
+  const issues = Object.values(issuesMap)
+  const progress = progressByKey(issues, 'projectId')
+  // Two passes over the workspace's issues for the WHOLE table, not one per row:
+  // the milestone chip needs its own counts, and a row-level lookup would rescan
+  // every issue for every project (see progress.ts).
+  const milestoneProgress = progressByKey(issues, 'milestoneId')
+
   return Object.values(projectsMap).map((project) => ({
     project,
     progress: progress[project.id] ?? EMPTY_PROGRESS,
+    milestone: currentMilestone(project, milestoneProgress),
   }))
 }
 

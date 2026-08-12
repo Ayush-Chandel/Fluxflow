@@ -3,6 +3,7 @@ import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
 import { useOpenProject } from '@/hooks/useOpenProject'
 import { BoxIcon } from '@/components/icons'
 import ProjectKanbanView from '@/components/projects/kanban-view/ProjectKanbanView'
+import ProjectListView from '@/components/projects/list-view/ProjectListView'
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
@@ -39,7 +40,8 @@ function Projects() {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col'>
-      <ProjectKanbanView onOpenProject={openProject} />
+      <ProjectListView onOpenProject={openProject}/>
+      {/* <ProjectKanbanView onOpenProject={openProject} /> */}
     </div>
   )
 }

@@ -2,9 +2,11 @@
 import { Timestamp } from 'firebase/firestore'
 import { CalendarCheckIcon, CalendarPlusIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { toDate } from '@/lib/date'
+import { formatDateShort, toDate } from '@/lib/date'
 import DatePillPicker from '../../common/DatePillPicker'
+import MilestoneProgressIcon from '../../common/MilestoneProgressIcon'
 import type { Progress } from '@/lib/progress'
+import type { MilestoneRow } from '@/lib/milestones'
 import { PROJECT_PRIORITIES, PROJECT_STATUSES, type Project } from '@/types/project'
 import { useProjectStore } from '@/store/projectStore'
 import { PROJECT_MAP, PRIORITY_MAP } from '../../common/constants/constants'
@@ -19,6 +21,7 @@ import { AssigneeIcon } from '../../icons'
 type Props = {
   project: Project
   progress: Progress
+  milestone: MilestoneRow | null
   onOpen?: () => void
 }
 
@@ -26,11 +29,13 @@ type Props = {
 const cellClass = (id: string) =>
   cn(PROJECT_CELL, PROJECT_COLUMNS.find((column) => column.id === id)?.className)
 
-function ProjectRow({ project, progress, onOpen }: Props) {
+function ProjectRow({ project, progress, milestone, onOpen }: Props) {
   const updateProject = useProjectStore((s) => s.updateProject)
 
   // Falls back to the default glyph when the key is unknown (older doc, renamed key).
   const { icon: ProjectIcon } = resolveProjectIcon(project.icon)
+
+  const milestoneTarget = toDate(milestone?.milestone.targetDate)
 
   return (
     <div
@@ -55,6 +60,19 @@ function ProjectRow({ project, progress, onOpen }: Props) {
           style={{ color: project.color || DEFAULT_PROJECT_COLOR }}
         />
         <span className='truncate font-medium text-lsm text-foreground'>{project.name}</span>
+
+        {milestone && (
+          <span
+            title={milestone.milestone.name}
+            className='hidden min-w-0 items-center ml-3 gap-1.5 text-xs   text-muted lg:flex'
+          >
+            <MilestoneProgressIcon pct={milestone.progress.pct} />
+            <span className='truncate'>{milestone.milestone.name}</span>
+            {milestoneTarget && (
+              <span className='shrink-0 tabular-nums'>{formatDateShort(milestoneTarget)}</span>
+            )}
+          </span>
+        )}
       </div>
 
       <div role='cell' className={cellClass('priority')}>
@@ -102,7 +120,7 @@ function ProjectRow({ project, progress, onOpen }: Props) {
             // !text-muted is load-bearing: Button's default variant paints
             // text-primary-foreground (near-white), and a currentColor lucide
             // glyph on the light surface would be invisible without it.
-            'justify-start gap-1.5 rounded-md !px-1 !text-muted text-lsm',
+            'justify-start gap-1.5 rounded-md !px-1 !text-muted text-xs',
             project.targetDate
               // Set → a compact pill that highlights on hover, like any other cell control.
               ? '!h-6 hover:!bg-elevated hover:!text-foreground'
@@ -115,7 +133,7 @@ function ProjectRow({ project, progress, onOpen }: Props) {
         />
       </div>
 
-      <div role='cell' className={cn(cellClass('issues'), 'text-muted tabular-nums text-lsm')}>
+      <div role='cell' className={cn(cellClass('issues'), 'text-muted tabular-nums text-xs')}>
         {progress.total}
       </div>
 
@@ -130,7 +148,7 @@ function ProjectRow({ project, progress, onOpen }: Props) {
           placeholder='Change status to...'
           // Trailing column — open the panel leftwards so it doesn't run off-screen.
           contentAlign='end'
-          triggerClassName='!px-1 !text-muted !text-lsm'
+          triggerClassName='!px-1 !text-muted !text-xs'
         />
       </div>
     </div>
