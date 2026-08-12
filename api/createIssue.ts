@@ -49,11 +49,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Only accept the user-supplied fields (CreateIssueInput); server stamps the
   // rest. Never trust a client-sent identifier / createdBy / timestamps.
+  const status = (input.status as string | undefined) ?? 'backlog'
+  const startedNow = status === 'in_progress' || status === 'done'
+
   const doc = {
     title: input.title,
     description: input.description ?? '',
-    status: input.status ?? 'backlog',
+    status,
     priority: input.priority ?? 'no_priority',
+    startedAt: startedNow ? FieldValue.serverTimestamp() : null,
+    completedAt: status === 'done' ? FieldValue.serverTimestamp() : null,
     assigneeId: input.assigneeId ?? null,
     labelIds: Array.isArray(input.labelIds) ? input.labelIds : [],
     projectId: input.projectId ?? null,

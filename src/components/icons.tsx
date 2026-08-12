@@ -1,4 +1,3 @@
-import type { IssueStatus } from "@/types/issue";
 import React from "react";
 
 export interface IconProps extends React.SVGProps<SVGSVGElement> {

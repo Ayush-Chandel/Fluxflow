@@ -13,9 +13,9 @@ service cloud.firestore {
     // With the default, an unclaimed token is a plain permission-denied the
     // stores' rollback paths already handle.
     //
-    // NOTE: only `issues` is hardened here (build order step 7). Projects,
-    // milestones, cycles and templates rules land with their features; the full
-    // rules pass is step 18 (§8).
+    // NOTE: issues (step 7), projects (step 11) and cycles (step 13) are covered
+    // here; `templates` lands with its feature and the full hardening pass —
+    // field-level validation on updates — is step 18 (§8, §14.2).
     function inWorkspace(ws) {
       return request.auth != null && request.auth.token.get('workspaceId', '') == ws;
     }
@@ -40,6 +40,13 @@ service cloud.firestore {
       // writes there.
       match /projects/{id} {
         allow read, create, update, delete: if inWorkspace(ws);
+      }
+
+      // Cycles carry a server-sequential `number` (api/createCycle), so clients
+      // are create-blocked here exactly like issues (build order 13).
+      match /cycles/{id} {
+        allow read, update, delete: if inWorkspace(ws);
+        allow create: if false;
       }
     }
   }

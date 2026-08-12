@@ -1,4 +1,4 @@
-import { useViewPreferenceStore } from '@/store/viewPreferenceStore';
+
 import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
 import { useRef, useState } from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion';
@@ -40,8 +40,6 @@ function GroupHeader({status, count}: {status: IssueStatus; count: number}) {
 }
 
 function IssueListView({issues, onOpenIssue}: IssueListProps) {
-
-  const groupBy =  useViewPreferenceStore().getPreference('issues').groupBy;
 
   const updateIssue = useIssueStore((s)=>s.updateIssue);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);

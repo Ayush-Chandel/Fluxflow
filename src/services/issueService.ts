@@ -4,7 +4,7 @@
 // In dev, MSW mocks /api/createIssue (build order 6); the real Fn lands in 7.
 import { auth, db } from '@/lib/firebase'
 import { deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore'
-import type { CreateIssueInput, Issue, IssueStatus } from '@/types/issue'
+import type { CreateIssueInput, Issue } from '@/types/issue'
 
 const issueDoc = (ws: string, id: string) => doc(db, `workspaces/${ws}/issues/${id}`)
 
@@ -21,8 +21,6 @@ export const issueService = {
     return res.json()
   },
 
-  updateStatus: (ws: string, id: string, status: IssueStatus) =>
-    updateDoc(issueDoc(ws, id), { status, updatedAt: serverTimestamp() }),
 
   updateIssue: (ws: string, id: string, patch: Partial<Issue>) =>
     updateDoc(issueDoc(ws, id), { ...patch, updatedAt: serverTimestamp() }),

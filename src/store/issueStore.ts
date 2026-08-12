@@ -13,6 +13,7 @@ import { issueService } from '@/services/issueService'
 import { useAuthStore } from '@/store/authStore'
 import { broadcastDelta } from '@/lib/broadcastChannel'
 import { cacheKey, idb } from '@/lib/idb'
+import { initialStatusStamps, statusStamps } from '@/lib/statusStamps'
 
 interface IssueState {
   // Keyed by id for O(1) delta merges; views read the array via selectAll().
@@ -62,11 +63,13 @@ export const useIssueStore = create<IssueState>()(
 
       const tempId = `optimistic-${Date.now()}`
       const now = Timestamp.now()
+      const status = data.status ?? 'backlog'
       const optimistic: Issue = {
         id: tempId,
         identifier: 'LIN-…',
-        status: 'backlog',
         ...data,
+        status,
+        ...initialStatusStamps(status),
         createdAt: now,
         updatedAt: now,
         createdBy: user.uid,
@@ -121,29 +124,7 @@ export const useIssueStore = create<IssueState>()(
       }
     },
 
-    updateStatus: async (id, status) => {
-      const { user } = useAuthStore.getState()
-      if (!user) return
-
-      const previous = get().issues[id]
-      if (!previous) return
-
-      set((s) => {
-        s.issues[id].status = status
-      })
-      await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'issues', type: 'UPDATE', id, payload: { status } })
-
-      try {
-        await issueService.updateStatus(user.workspaceId, id, status)
-      } catch {
-        set((s) => {
-          s.issues[id] = previous
-        })
-        await persist(user.workspaceId, get().selectAll())
-        notify.error('Failed to update issue')
-      }
-    },
+    updateStatus: (id, status) => get().updateIssue(id, { status }),
 
     updateIssue: async (id, patch) => {
       const { user } = useAuthStore.getState()
@@ -152,14 +133,19 @@ export const useIssueStore = create<IssueState>()(
       const previous = get().issues[id]
       if (!previous) return
 
+      const full: Partial<Issue> =
+        patch.status && patch.status !== previous.status
+          ? { ...patch, ...statusStamps(previous, patch.status) }
+          : patch
+
       set((s) => {
-        Object.assign(s.issues[id], patch)
+        Object.assign(s.issues[id], full)
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'issues', type: 'UPDATE', id, payload: patch })
+      broadcastDelta({ entity: 'issues', type: 'UPDATE', id, payload: full })
 
       try {
-        await issueService.updateIssue(user.workspaceId, id, patch)
+        await issueService.updateIssue(user.workspaceId, id, full)
       } catch {
         set((s) => {
           s.issues[id] = previous

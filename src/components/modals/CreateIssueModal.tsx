@@ -3,7 +3,6 @@ import { XIcon } from 'lucide-react'
 import {
   NoteIcon,
   AssigneeIcon,
-  PlayCircleIcon,
   MoreIcon,
   MinimizeIcon,
   MaximizeIcon,
@@ -17,6 +16,7 @@ import { Switch } from '@/components/ui/switch'
 import IssueCommandBox from '../issues/IssueCommandBox'
 import ProjectPicker from '../projects/ProjectPicker'
 import MilestonePicker from '../projects/MilestonePicker'
+import CyclePicker from '../cycles/CyclePicker'
 import { useIssueStore } from '@/store/issueStore'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import {
@@ -49,9 +49,8 @@ function CreateIssueModal({
 }: Props) {
   // Draft lives in the store so it survives the Radix content remount that
   // occurs when the dialog switches modal/non-modal (minimize ⇄ restore).
-  const { title, description, status, priority, projectId, milestoneId } = useCreateIssueDialog(
-    (s) => s.draft,
-  )
+  const { title, description, status, priority, projectId, milestoneId, cycleId } =
+    useCreateIssueDialog((s) => s.draft)
   const patchDraft = useCreateIssueDialog((s) => s.patchDraft)
   const [createMore, setCreateMore] = useState(false)
 
@@ -73,7 +72,7 @@ function CreateIssueModal({
       labelIds: prefill?.labelIds ?? [],
       projectId,
       milestoneId,
-      cycleId: prefill?.cycleId ?? null,
+      cycleId,
     })
 
     if (createMore) patchDraft({ title: '', description: '' })
@@ -180,12 +179,14 @@ function CreateIssueModal({
             triggerClassName={PILL_TRIGGER}
           />
         )}
-        <button
-          type='button'
-          className='flex h-7 w-7 items-center justify-center rounded-full border border-edge text-muted transition-colors hover:bg-elevated'
-        >
-          <PlayCircleIcon size={15} />
-        </button>
+        {/* Was a static PlayCircleIcon placeholder until step 13. Flat beside
+            the project pill, not nested under it like milestone — cycle and
+            project are independent axes. */}
+        <CyclePicker
+          value={cycleId}
+          onChange={(next) => patchDraft({ cycleId: next })}
+          triggerClassName={PILL_TRIGGER}
+        />
         <button
           type='button'
           className='flex h-7 w-7 items-center justify-center rounded-full border border-edge text-muted transition-colors hover:bg-elevated'

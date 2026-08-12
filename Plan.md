@@ -188,8 +188,63 @@ model / stores / routing / rules once so nothing is retrofitted.
   the picker moved to the rows hook — both kept as the right shape for a caller that doesn't need
   progress. **NOT yet runtime-verified:** the dotted-path writes have never been exercised against the
   emulator — that is the one real risk left in this step.
-- ❌ **Steps 13+ not started**: no entity stores/services/hooks beyond auth + issues + projects
-  (+ milestones inside projects).
+- ✅ **Step 13 — Cycles (2026-08-10)**: the last entity pipeline. `types/cycle.ts` gains
+  `CreateCycleInput` + `cycleLabel()`; `services/cycleService.ts` (fetch → `/api/createCycle`, client
+  SDK for update/remove; the date range crosses the wire as epoch millis since JSON has no Timestamp);
+  `store/cycleStore.ts` (the **temp-id dance**, copied from `issueStore` rather than the projects'
+  `newId()` shortcut — cycles are the other server-sequential entity); `hooks/useCycles.ts` wired in
+  `WorkspaceLayout`; `hooks/useCycleSelectors.ts` (`useCycleRows`/`useCycleBoardGroups`/`useCycle`/
+  `useCycleList`/`useCycleIssues`/`useCycleProgress`); `api/createCycle.ts` (verify token → workspace
+  match → `count()+1` → `add()`, rejecting a missing or inverted range); the **`cycles` rules block**
+  (create-blocked, like issues). **MSW is now empty** — `createCycle` was its last handler, so
+  `src/mocks/handlers.ts` holds an empty array and every `/api/*` call hits the real Fn via
+  `vite/localApi.ts` (§15).
+  **Views ✅:** `CycleListView` is the **date-ordered timeline** (§9E) — `list-view/{CycleListView,
+  CycleListRow,CycleDateRail}`. The rail is built **per row**, not as one absolutely-positioned
+  column: it inherits the row's height, so a marker can't drift out of alignment and there is nothing
+  to measure or recompute. Its two half-height segments are what let the ACTIVE cycle tint only its
+  own span. `kanban-view/{CycleBoardView,CycleBoardColumn,CycleCard}` is the board — **no DndContext,
+  no sensors, no DragOverlay, no `sortOrder`**, because a cycle's column is derived from its dates;
+  columns self-order chronologically instead. `common/ProgressRing` ★ (continuous donut — the cycle
+  counterpart to the milestone diamond, unquantised because it sits beside an exact scope count).
+  `CYCLE_MAP` reuses the PROJECT status glyphs rather than minting a third set.
+  **Detail ✅ (reworked 2026-08-11):** route `cycles/:id/:slug?` → `CycleDetail`, which renders **the
+  cycle's ISSUES** (`useCycleIssues` → `IssueKanbanView`, board hardcoded like the Issues page) behind
+  an `N issues` count, with the same hydrating-vs-missing grace ProjectDetail uses and an empty state
+  whose `+` prefills `cycleId`. It holds **no cycle metadata form** — see §9E. `useOpenCycle` + the
+  **Topbar cycle crumb** (`:id` is shared with the project route, but only one store resolves it, so
+  they never collide).
+  **Cycle editing ✅ (2026-08-11):** `CycleRowMenu` — a hover-revealed ⋯ on the list row (kept
+  focusable and lit while open, so the affordance never costs a click target) with **Edit cycle** →
+  `createCycleDialogStore.openForEdit(id)` → `CreateCycleModal` seeded from the live cycle and
+  submitting through `updateCycle`, and **Delete cycle** behind a `ConfirmDialog` that names the
+  issues it will orphan. The modal takes `editingId` rather than a cycle snapshot, so an edit opened
+  from a stale row still writes against live data, and its dirty-check baseline is the cycle itself —
+  an untouched edit closes without a confirm.
+  **Issue↔cycle ✅:** `components/cycles/CyclePicker.tsx` — the `ProjectPicker` pattern a third time
+  (wraps `IssueCommandBox`, dynamic options, `__no_cycle__` sentinel, synthesised "Unknown cycle").
+  Options sort by **status** (active → upcoming → completed), not alphabetically. Wired into
+  `IssueDetailView` and `CreateIssueModal` (replacing a static `PlayCircleIcon` pill); `cycleId`
+  joined the **draft** in `createIssueDialogStore` so it survives minimize⇄restore. It sits **flat
+  beside** the project pill, NOT nested like milestone — project and cycle are independent axes.
+  **Create ✅:** `store/createCycleDialogStore.ts` + `CreateCycleModal` mounted in `WorkspaceLayout`;
+  the Topbar `+` now dispatches three ways via a lookup instead of a ternary. The modal **suggests the
+  next range** (day after the latest cycle ends, 14 days long) and ends a cycle at 23:59:59.999 of its
+  closing day, so a cycle stays `active` through its final date instead of flipping at that morning's
+  midnight.
+  **Also landed here: `startedAt`/`completedAt` + `lib/statusStamps.ts`** (§4) — nothing in step 13
+  reads them; they are here because history is unbackfillable. `issueStore.updateStatus` now
+  **delegates to `updateIssue`** rather than running its own pipeline, since the kanban drop writes
+  `updateIssue({status, sortOrder})` — so both entry points stamp through one path and cannot drift.
+  `issueService.updateStatus` was deleted as a consequence (a status write is no longer single-field).
+  `api/createIssue` stamps the same fields server-side for issues filed straight into in_progress/done.
+  **Deferred out of this step:** the list⇄board **switcher** → step 15, so `CyclesPage` hardcodes the
+  timeline and `CycleDetail` hardcodes the board, as `ProjectsPage` hardcodes its own; the **burn-up
+  chart** → §12. *Note the cycle detail's "Issues tab" is no longer pending — the detail page simply
+  IS the issues now, so step 15's tab strip has nothing to add here beyond the view toggle.*
+  **NOT yet runtime-verified**: `/api/createCycle` has never been exercised against the emulator, and
+  neither have the status stamps — see §13.
+- ❌ **Step 14+ not started**: no templates store/service/hook; `templates` has no rules block yet.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -241,7 +296,7 @@ project-root/
 │   │   └── workspace/
 │   │       ├── issues/IssuesPage.tsx            🚧 stub → build
 │   │       ├── projects/{ProjectsPage,ProjectDetailPage}.tsx   ★
-│   │       ├── cycles/{CyclesPage,CycleDetailPage}.tsx         ★
+│   │       ├── cycles/{Cycles,CycleDetail}.tsx                 ✅
 │   │       └── settings/TemplatesSettingsPage.tsx             ★
 │   │
 │   ├── components/
@@ -253,7 +308,8 @@ project-root/
 │   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
 │   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
 │   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
-│   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal + CreateIssueMinimizedBar
+│   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal +
+│   │   │                 CreateIssueMinimizedBar + CreateProjectModal + CreateCycleModal
 │   │   ├── projects/   🚧 projectColumns, SortHeader, MilestoneDraftList ✅ ·
 │   │   │                 ProjectPicker ✅ · MilestonePicker ✅ (project-scoped, nullable,
 │   │   │                   options show per-milestone progress) ·
@@ -262,9 +318,16 @@ project-root/
 │   │   │                 detail/{ProjectDetailHeader,ProjectOverview} ✅ ·
 │   │   │                 detail/ProjectMilestoneList ✅ (editable rows + drafts) · detail Issues tab ★
 │   │   ├── common/     ✅ ProgressBar, MilestoneProgressIcon (quarter-filling diamond),
+│   │   │                 ProgressRing (continuous donut — the cycle counterpart),
 │   │   │                 ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
 │   │   │                 DatePickerPanel, Calendar, AutoGrowTextarea, OptionPill…
-│   │   ├── cycles/     ★ CycleListView, CycleBoardView, CycleCard, CycleDetail, CycleProgress
+│   │   ├── cycles/     ✅ CyclePicker (status-ordered options, nullable) ·
+│   │   │                 list-view/{CycleListView,CycleListRow,CycleDateRail} ✅ (timeline; the
+│   │   │                   rail is PER-ROW, so markers can't drift out of alignment) ·
+│   │   │                 list-view/CycleRowMenu ✅ (hover ⋯ → edit in the create modal, delete) ·
+│   │   │                 kanban-view/{CycleBoardView,CycleBoardColumn,CycleCard} ✅ (NO dnd —
+│   │   │                   status is derived from dates, so there is nothing to drop)
+│   │   │                 — NO detail/ folder: a cycle's page is just its issues (§9E)
 │   │   ├── templates/  ★ TemplateManager, TemplateForm
 │   │   └── ui/         ✅ shadcn primitives (button, card, popover, sheet, sidebar, tooltip…)
 │   │
@@ -273,7 +336,7 @@ project-root/
 │   │   ├── issueService.ts   ✅ Firestore SDK + fetch(/api/createIssue)
 │   │   ├── projectService.ts ✅ Firestore SDK (client CRUD; newId → no temp-id) · milestones ✅
 │   │   │                        (dotted-path writes into the project doc's map field)
-│   │   ├── cycleService.ts   ★ Firestore SDK + fetch(/api/createCycle)
+│   │   ├── cycleService.ts   ✅ Firestore SDK + fetch(/api/createCycle)
 │   │   └── templateService.ts★ Firestore SDK
 │   │
 │   ├── store/
@@ -282,7 +345,8 @@ project-root/
 │   │   ├── createIssueDialogStore.ts ✅ create-modal open/minimize/maximize + draft (§10.5)
 │   │   ├── projectStore.ts       ✅ optimistic CRUD + rollback · milestone actions ✅ (§12 —
 │   │   │                            they live here because a milestone IS a project field)
-│   │   ├── cycleStore.ts         ★
+│   │   ├── cycleStore.ts         ✅ optimistic CRUD + rollback (temp-id dance, like issues)
+│   │   ├── createCycleDialogStore.ts ✅ cycle modal open/close + editingId (create AND edit)
 │   │   ├── templateStore.ts      ★
 │   │   └── viewPreferenceStore.ts✅ layout/groupBy/orderBy per viewId (IndexedDB)
 │   │
@@ -295,11 +359,15 @@ project-root/
 │   │   │                        appendOrder() for column-less lists (milestones)
 │   │   ├── issueOrdering.ts  ✅ issue-typed wrappers: drop → {status, sortOrder} patches
 │   │   ├── progress.ts       ✅ derived done/total/pct for project · milestone · cycle
+│   │   ├── statusStamps.ts   ★ status transition → startedAt/completedAt patch (§4);
+│   │   │                        BOTH updateStatus and updateIssue route through it
 │   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()
 │   │
 │   ├── hooks/
 │   │   ├── useEntitySync.ts  ✅ generic idb-read + onSnapshot + idb-writeback (the engine)
-│   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts / useTemplates.ts ★ thin wrappers
+│   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts ✅ · useTemplates.ts ★ wrappers
+│   │   ├── useCycleSelectors.ts ✅ rows / board-groups / one / list / issues / progress
+│   │   ├── useOpenCycle.ts ✅
 │   │   ├── useProjectSelectors.ts ✅ useProjectList/useProject/useProjectIssues/useProjectProgress
 │   │   ├── useOpenIssue.ts ✅ · useOpenProject.ts ✅ (host handlers for the view callbacks)
 │   │   ├── useProjectMilestones.ts ✅ useProjectMilestoneList (manual order) + rows w/ progress
@@ -310,7 +378,7 @@ project-root/
 ├── api/
 │   ├── setWorkspaceClaims.ts ✅
 │   ├── createIssue.ts        ✅ verify token → sequential LIN-xxx → add()
-│   └── createCycle.ts        ★ sequential cycle number
+│   └── createCycle.ts        ✅ verify token → sequential number → add()
 │
 ├── firestore.rules          🚧 issues (step 7) + projects (step 11); rest of §8 pending (step 18)
 ├── firestore.indexes.json   (add issue-by-project / -cycle / -milestone composites)
@@ -328,10 +396,10 @@ project-root/
   ├── /app  (index)       → redirect /app/issues
   ├── issues              IssuesPage           handle:{sidebarKey:'issues'}
   ├── issues/:identifier/:slug?  IssuesPage    detail OVER list, URL deep-link (slug cosmetic)
-  ├── projects            ProjectsPage         handle:{sidebarKey:'projects'}       ★
-  ├── projects/:id        ProjectDetailPage    tabs: Overview | Issues | Milestones ★
-  ├── cycles              CyclesPage           handle:{sidebarKey:'cycles'}         ★
-  ├── cycles/:id          CycleDetailPage      issues filtered by cycleId           ★
+  ├── projects            ProjectsPage         handle:{sidebarKey:'projects'}       ✅
+  ├── projects/:id/:slug? ProjectDetail        Overview; Issues tab → step 15       ✅
+  ├── cycles              Cycles               handle:{sidebarKey:'cycles'}         ✅
+  ├── cycles/:id/:slug?   CycleDetail          the cycle's ISSUES (no metadata form) ✅
   └── settings/templates  TemplatesSettingsPage                                     ★
 *                         NotFound
 ```
@@ -363,6 +431,8 @@ workspaces/{workspaceId}/
 │                                        indexing; absent → createdAt-millis fallback,
 │                                        engine in lib/ordering.ts, issue wrappers in
 │                                        lib/issueOrdering.ts)
+│     startedAt    Timestamp|null ★    ← FIRST transition into in_progress OR done
+│     completedAt  Timestamp|null ★    ← transition into done; cleared if reopened
 │     createdAt, updatedAt, createdBy
 │
 ├── projects/{projectId}                ★
@@ -404,6 +474,29 @@ cancelled used to read 80% forever). Both counting loops in `lib/progress.ts` sh
 predicate so the rule can't drift between them. Consequence: `progress.total` means "issues in scope",
 which is what the table's issue-count column, the board card's `N issues` and the milestone rows all
 display.
+
+**`startedAt` / `completedAt` — the ONE deliberate exception to derive-everything (2026-08-10).**
+This model stores no history: progress has no counters, cycle status is computed from dates, milestone
+progress is a client-side pass. These two fields are the only stored facts *about the past*, and they
+exist because history is the one thing that cannot be reconstructed later — `updatedAt` is
+last-write-wins, so an issue that went `todo → in_progress → done` leaves a single timestamp and its
+start is gone forever. Every day the app runs without them is a day of history that can never be
+backfilled, which is why they land in **step 13** even though their first consumer (the cycle burn-up
+chart, §12) is deferred.
+- `startedAt` is set by a move into `done` as well as `in_progress` — an issue filed straight to done
+  was still started, and this keeps *completed ⊆ started* so the two curves can never cross.
+- `startedAt` is **never cleared**. Moving back to `todo` does not un-start history; clearing it would
+  let a cumulative "started" count *decrease*, which a burn-up must never do.
+- `completedAt` **is** cleared on reopen, because "is it done right now" is a live question, not a
+  historical one.
+- Both are stamped by ONE helper, `lib/statusStamps.ts`, applied *before* the optimistic `set()` so
+  store / IndexedDB / broadcast / Firestore all carry the same values and the rollback snapshot
+  matches. `updateStatus` **and** `updateIssue` both route through it — `updateIssue` spreads an
+  arbitrary patch that can contain `status`, so stamping in only one of the two would silently miss
+  every edit made from the detail view.
+- **This is the boundary, not a precedent.** `addedToCycleAt` / `movedToProjectAt` and friends are the
+  start of an activity log, which §12 does not build. Anything beyond these two needs that decision
+  reopened, not another field.
 
 **Milestones are a MAP FIELD, not a subcollection (decided 2026-08-10 — supersedes the original
 `projects/{id}/milestones` design).** They are 3–10 tiny rows per project that are only ever read in
@@ -549,7 +642,10 @@ export const issueService = {
       body: JSON.stringify({ workspaceId: ws, ...data }) })
     if (!res.ok) throw new Error('Failed to create issue'); return res.json()
   },
-  updateStatus: (ws,id,status) => updateDoc(doc(db,`workspaces/${ws}/issues/${id}`),{ status, updatedAt:serverTimestamp() }),
+  // NO updateStatus: since step 13 a status change also carries the history
+  // stamps (§4), so it is not a single-field write. The STORE's updateStatus
+  // delegates to updateIssue with the full patch; a second service entry point
+  // would just be a way for the two to drift apart.
   updateIssue:  (ws,id,patch)  => updateDoc(doc(db,`workspaces/${ws}/issues/${id}`),{ ...patch, updatedAt:serverTimestamp() }),
   deleteIssue:  (ws,id)        => deleteDoc(doc(db,`workspaces/${ws}/issues/${id}`)),
 }
@@ -613,8 +709,10 @@ const docRef = await ref.add({ ...data, number, createdBy: decoded.uid, ...times
 return res.json({ id: docRef.id, number })
 ```
 
-**MSW** (`src/mocks/handlers.ts`) — keep `createIssue`, add `createCycle` so local dev needs no Admin
-SDK: `http.post('/api/createCycle', () => HttpResponse.json({ id: crypto.randomUUID(), number: n }))`.
+**MSW** (`src/mocks/handlers.ts`) — **now an EMPTY handler list** (build order 13). Both Fns are real
+and run against the emulators through `vite/localApi.ts`, so mocking either one would only reintroduce
+the §14.1 failure where nothing was ever written to Firestore. The file is kept as the place a
+genuinely-not-yet-built endpoint would go.
 
 **Firestore rules** — replace the current permissive/expiring rules. Server-generated collections are
 create-blocked for clients; the rest are workspace-scoped client CRUD:
@@ -750,18 +848,44 @@ keep a plain grey diamond, so nothing reads as a real milestone stalled at 0%.
 matching issues — the stale reference renders as "Unknown milestone" and is clearable, exactly like a
 deleted project's `projectId` today. Cascades for both belong to one pass, not to this step.
 
-### E. Cycles (manual MVP) — *time-boxed sprints to keep momentum*
+### E. Cycles (manual MVP) — *time-boxed sprints to keep momentum* ✅ (2026-08-10)
 **Why:** agile cadence; a committed scope with a progress bar focuses the team. **Build:**
-`CyclesPage` with Active / Upcoming / Completed sections; status derived by
+`CyclesPage` as a **date-ordered timeline** (decided 2026-08-10): cycles newest-first down the page,
+each row = glyph + name + derived-status badge + completion ring + scope count, with a **left rail**
+carrying the cycle boundary dates — a `border-l` with absolutely-positioned dots and a `bg-brand`
+segment spanning the current cycle. No SVG needed for the rail. This is the same view §9E always
+specced as "Active / Upcoming / Completed sections", just ordered by date with the rail instead of
+grouped under headings, so it costs nothing extra to build it this way. Status derived by
 `cycleStatusFromDates(start,end,now)` in `types/cycle.ts` (not stored). **Both views ship in step 13**
 (decided 2026-08-06) — `CycleListView` plus a `CycleBoardView` whose columns are the three derived
 statuses — with the list⇄board **switcher deferred to step 15**, same as projects. One difference from
 the project board: cycle cards are **not drag-orderable across columns**, because cycle status is
 derived from `startDate`/`endDate` — a cross-column drop would have to rewrite the date range, which
 is out of scope. So `Cycle` needs no `sortOrder` and the board is read-only in that axis.
-`CycleDetailPage` reuses issue views filtered by `cycleId` + a `CycleProgress` bar. Assign issues via a cycle selector.
-`cycleStore`/`cycleService` + `api/createCycle` for the sequential number. **Explicitly deferred:**
-auto-repeating schedule, cooldown, and auto-rollover of incomplete issues.
+**A cycle's page IS its issues (decided 2026-08-11).** `CycleDetail` renders the issue views filtered
+by `cycleId` — nothing else. It carries **no metadata/edit form**: a cycle's own fields are edited in
+the **create modal reopened in edit mode**, from a hover-revealed **⋯ menu on the list row**
+(`CycleRowMenu` → `openForEdit(id)`). One form, two modes, so create and edit can never drift apart
+and no second surface competes for the same writes. This replaced an earlier `CycleOverview` detail
+form, now deleted.
+Consequences worth keeping straight: the date-range pickers **live in that modal**, and they remain
+the only way a cycle changes column (which is precisely why the board has no drag); the ⋯ menu is also
+where **delete** lives, since nothing else in the UI reached `deleteCycle`. Deleting does **not**
+clear `cycleId` on the issues — same no-cascade rule as projects and milestones (§9D) — so the confirm
+names the count it will orphan. Assign issues via `CyclePicker`.
+`cycleStore`/`cycleService` + `api/createCycle` for the sequential number.
+**End-of-day boundary:** a cycle's `endDate` is stored at 23:59:59.999 of the chosen day, so it stays
+`active` through its final date instead of completing at that morning's midnight.
+**Also in this step: `startedAt`/`completedAt` on Issue** (§4) + `lib/statusStamps.ts`. They are here
+purely because history cannot be backfilled — see §4. Nothing in step 13 reads them; the burn-up chart
+that does is deferred (§12).
+**Explicitly deferred:** auto-repeating schedule, cooldown, auto-rollover of incomplete issues, and
+the per-cycle **burn-up chart** (§12).
+**Not buildable at all today — needs data §4 doesn't model:** the "N% of capacity" ring Linear shows
+per cycle. It needs per-issue estimates AND a team capacity number, i.e. an estimate field plus the
+member entity that `assigneeId`/`leadId` are still waiting on. The ring in our rows is plain
+completion (`cycleProgress` → done/scope), which is the same number the "N% success" on a finished
+cycle shows. Do not stub a capacity ring.
 
 ### F. Issue Templates — *file issues fast with consistent structure*
 **Why:** enforces repeatable fields; a team default speeds the common case. **Build:**
@@ -782,7 +906,9 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
    `hooks/useEntitySync.ts`, `viewPreferenceStore`
 5. ✅ **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl); immer middleware,
    array-cache via `selectAll()`, `issueService` + `CreateIssueInput` (Vercel Fn/rules still §7)
-6. ✅ **MSW handlers** — `createIssue` (+ `createCycle` mock)
+6. ✅ **MSW handlers** — `createIssue` (+ `createCycle` mock). *Both retired since: `createIssue` in
+   §15, `createCycle` in step 13. The handler list is empty now and every `/api/*` call hits the real
+   function.*
 7. ✅ **`api/createIssue`** — Vercel Fn (verify token → `LIN-N` → `add()`) + issue rules
    (client create-blocked); `issueService` already built in step 5
 8. ✅ **Issue List view** — grouped-by-status sections (header + real count, empty groups hidden), status
@@ -841,9 +967,14 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     **Not done on purpose:** no `milestoneId` cascade on delete, no milestone chip on cards/rows, no
     drag-reorder of milestones. **Still unverified at runtime** — the dotted-path map writes have not
     been run against the emulator.
-13. ★ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
+13. ✅ **Cycles** — store/service + `api/createCycle`, CyclesPage + CycleDetail, derived status,
     **both `CycleListView` and `CycleBoardView`** (no switcher → step 15; no cross-column drag, since
-    cycle status is derived from dates), issue↔cycle assignment, progress; cycle rules
+    cycle status is derived from dates), issue↔cycle assignment, progress; cycle rules.
+    `CycleListView` is the **date-ordered timeline with a left date rail** (§9E), not grouped headings.
+    **Plus `startedAt`/`completedAt` on Issue + `lib/statusStamps.ts`** (§4) — two nullable fields and
+    one helper, carried here ONLY because history is unbackfillable. No step-13 feature reads them.
+    The burn-up chart they enable was deliberately NOT built: it is deferred (§12), and landing the
+    fields is exactly what made deferring it free. Full detail in §0. MSW's handler list is now empty.
 14. ★ **Issue Templates** — store/service, TemplatesSettingsPage, TemplatePicker + default behavior
 15. **View chrome — switcher + detail tab strips, all entities in one pass** — the
     `viewPreferenceStore` itself landed back in step 4 ✅ (persisted to IndexedDB, `layout` keyed per
@@ -889,11 +1020,33 @@ strategy) · Cycle auto-schedule / cooldown / rollover · Project templates · C
 activity log · Notifications · Command palette + keyboard shortcuts · GitHub/Slack integrations
 (first HTTP-trigger function) · Public API.
 
+**Cycle burn-up chart — deferred, but UNBLOCKED (decided 2026-08-10).** Linear expands the current
+cycle's row into a burn-up: scope line, dotted ideal, cumulative *Started* and *Completed* curves,
+hatched weekend bands, a today marker. Deferred on value, not on fit — its job is the team "are we on
+track?" conversation, and multi-user is out of scope above, so for a single-user workspace it is
+decorative next to the real gaps (`SidebarNav`, the view switcher, filters, templates).
+It is recorded here rather than dropped because **step 13 lands the only expiring part** —
+`startedAt`/`completedAt` (§4). With those accumulating, building the chart later costs nothing extra
+and it draws real history from the day the fields shipped. What is left when someone wants it:
+- `lib/cycleBurnup.ts` — bucket each issue's two stamps into a day index, prefix-sum to cumulative
+  counts, truncate at today (never draw into the future). One pass over issues, not days × issues.
+  Scope/`inScope` must come from `lib/progress.ts` so the chart and the progress bar beside it can't
+  disagree about cancelled issues.
+- The chart component — **hand-rolled inline SVG, no charting library.** It is four primitives (two
+  step paths, a dashed line, hatched `<rect>`s); recharts/visx would add a dependency §1 doesn't have
+  and then fight the Tailwind v4 tokens. Use `useId()` for the `<pattern>`/`<linearGradient>` ids —
+  several charts can be open on one page. Step paths, not splines: counts change discretely per day,
+  and a smoothed curve would imply values between days that were never measured.
+- **Known fidelity gap, accepted:** the scope line is FLAT at the current issue count. A moving scope
+  line needs `addedToCycleAt`, which is the activity-log wedge §4 explicitly closes. Flat is honest;
+  the difference is invisible unless a cycle is re-scoped mid-flight.
+
 ---
 
 ## 13. Verification
 
-- **Local**: `firebase emulators:start` + `npm run dev`; MSW mocks `/api/createIssue` & `/api/createCycle`.
+- **Local**: `firebase emulators:start` + `npm run dev`. **MSW mocks nothing any more** (build order
+  13) — every `/api/*` call hits the real function through `vite/localApi.ts` (§15).
 - **Instant boot**: reload `/app/issues` — cached data paints with no spinner, then onSnapshot merges
   (edit a doc in the emulator UI → appears live).
 - **Optimistic + rollback**: force a service to throw → UI updates then rolls back with a toast.
@@ -910,7 +1063,19 @@ activity log · Notifications · Command palette + keyboard shortcuts · GitHub/
   fields, so no orphan cleanup exists — or is needed).
 - **Milestone glyph**: a milestone at 0/25/50/75/100% shows 0/1/2/3/4 filled quarters in both the
   detail rows and the `MilestonePicker` options (99% must still read three).
-- **Cycle status**: cycles with past/current/future ranges sort into Completed/Active/Upcoming.
+- **Cycle status**: cycles with past/current/future ranges sort into Completed/Active/Upcoming. A
+  cycle whose end date is TODAY must still read Active — the create modal stores the end at
+  23:59:59.999, so a boundary bug shows up as it flipping to Completed a day early.
+- **`/api/createCycle` ⚠️ (not yet run)**: create a cycle and confirm the Fn returns a real sequential
+  `number` backed by an actual document (not the old MSW random one — that handler is gone), and that
+  a client `addDoc` straight to `cycles` is denied by the new rules block.
+- **Status stamps (§4)**: walk one issue `todo → in_progress → done` and confirm `startedAt` is set
+  once at the first move and `completedAt` at the last. Then reopen it (`done → todo`): `completedAt`
+  clears, `startedAt` **does not**. Move a second issue `todo → done` directly — it must get BOTH, so
+  completed never exceeds started. Do each of these once from the **kanban drag** (`updateStatus`) and
+  once from the **detail view's picker** (`updateIssue`), since stamping only one path is the easy
+  miss. Reload after each: the stamps must survive the IndexedDB round-trip as `{seconds}` objects
+  that `lib/date.ts` can still read.
 - **Templates**: mark a default → new-issue form pre-filled; switch template → fields swap.
 - **Tab sync**: two tabs — a mutation appears in the other in ~1ms ahead of the onSnapshot echo.
 - **Rules**: emulator confirms client `addDoc` to `issues`/`cycles` denied (server-only) while
@@ -990,7 +1155,7 @@ Functions against the emulators:
    to the Vercel dashboard env vars.
 3. ✅ **`src/mocks/handlers.ts`** — dropped the `createIssue` + `setWorkspaceClaims` handlers;
    `worker.start` uses `onUnhandledRequest:'bypass'`, so they now pass through to the real routes.
-   `createCycle` stays mocked until step 13.
+   `createCycle` stayed mocked until step 13, which shipped the real Fn — **handlers.ts is now empty**.
 4. ✅ **`vite/localApi.ts`** ★ — dev-only Vite plugin (`apply:'serve'`) that mounts each `api/<name>.ts`
    on the dev server behind a minimal `VercelRequest`/`VercelResponse` shim (body parse + `status`/
    `json`/`send`), loading the full `.env` into `process.env` since Vite only exposes `VITE_*`.

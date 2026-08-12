@@ -25,6 +25,12 @@ export interface Issue {
   // Manual position within a status group (fractional indexing: drops write the
   // midpoint of the new neighbours' keys).
   sortOrder?: number
+  // The ONLY stored history in the model (§4). `updatedAt` is last-write-wins, so
+  // without these a todo → in_progress → done issue loses its start forever and
+  // nothing can reconstruct it later. Stamped by lib/statusStamps.ts, never by
+  // hand. Optional because every issue written before they existed lacks them.
+  startedAt?: Timestamp | null // first move into in_progress OR done; never cleared
+  completedAt?: Timestamp | null // move into done; cleared on reopen
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string

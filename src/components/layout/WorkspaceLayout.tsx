@@ -6,10 +6,13 @@ import type { NavLabel, SidebarKey } from '@/types/layout'
 import { useSidebarKey } from '@/lib/utils'
 import { useIssues } from '@/hooks/useIssues'
 import { useProjects } from '@/hooks/useProjects'
+import { useCycles } from '@/hooks/useCycles'
 import Topbar from './Topbar/Topbar'
 import CreateIssueDialog from '@/components/modals/CreateIssueDialog'
 import CreateProjectModal from '../modals/CreateProjectModal'
+import CreateCycleModal from '../modals/CreateCycleModal'
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
+import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
 
  function WorkspaceLayout() {
 
@@ -21,8 +24,14 @@ import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
   const projectPrefill = useCreateProjectDialog((s) => s.prefill);
   const closeProjectDialog = useCreateProjectDialog((s) => s.close);
 
+  const cycleDialogOpen = useCreateCycleDialog((s) => s.open);
+  const cyclePrefill = useCreateCycleDialog((s) => s.prefill);
+  const cycleEditingId = useCreateCycleDialog((s) => s.editingId);
+  const closeCycleDialog = useCreateCycleDialog((s) => s.close);
+
   useIssues();
   useProjects();
+  useCycles();
 
   const labelGroupList:NavLabel[] = [
           {
@@ -59,6 +68,12 @@ import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
           open={projectDialogOpen}
           prefill={projectPrefill ?? undefined}
           onClose={closeProjectDialog}
+        />
+        <CreateCycleModal
+          open={cycleDialogOpen}
+          prefill={cyclePrefill ?? undefined}
+          editingId={cycleEditingId}
+          onClose={closeCycleDialog}
         />
     </div>
     </SidebarProvider>

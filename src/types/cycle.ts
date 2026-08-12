@@ -1,7 +1,7 @@
-// src/types/cycle.ts — Cycle entity contract + derived status (§4, §9-E)
+
 import type { Timestamp } from 'firebase/firestore'
 
-// Cycle status is DERIVED client-side from the date range, never stored (§4).
+
 export const CYCLE_STATUSES = ['upcoming', 'active', 'completed'] as const
 export type CycleStatus = (typeof CYCLE_STATUSES)[number]
 
@@ -17,14 +17,15 @@ export interface Cycle {
   createdBy: string
 }
 
-// Firestore Timestamps lose their prototype (and thus .toMillis()) after an
-// IndexedDB structured-clone round-trip, so read the raw `seconds` field, which
-// survives on both the live instance and the cached plain object.
+export type CreateCycleInput = Pick<Cycle, 'name' | 'goal' | 'startDate' | 'endDate'>
+
+/** "Cycle 5" — a cycle's name is optional, its number is not. */
+export const cycleLabel = (cycle: Cycle) => cycle.name?.trim() || `Cycle ${cycle.number}`
+
 function timestampToMillis(ts: Timestamp): number {
   return ts.seconds * 1000
 }
 
-// Single source of truth for a cycle's status. `now` is injectable for testing.
 export function cycleStatusFromDates(
   start: Timestamp,
   end: Timestamp,

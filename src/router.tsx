@@ -60,6 +60,11 @@ export const router = createBrowserRouter([
               lazy: () => import('@/routes/workspace/cycles/Cycles'),
               handle: sidebarHandle('cycles'),
             },
+            {
+              path: 'cycles/:id/:slug?',
+              lazy: () => import('@/routes/workspace/cycles/CycleDetail'),
+              handle: sidebarHandle('cycles'),
+            },
         ],
       },
     ],
