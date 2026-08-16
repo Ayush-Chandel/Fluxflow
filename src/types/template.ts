@@ -23,3 +23,15 @@ export interface Template {
   updatedAt: Timestamp
   createdBy: string
 }
+
+export const TEMPLATE_TYPE_BY_SLUG = {
+  projects: 'projects',
+  issues: 'issues',
+} as const
+
+export type TemplateTypeSlug = keyof typeof TEMPLATE_TYPE_BY_SLUG
+export type TemplateType = (typeof TEMPLATE_TYPE_BY_SLUG)[TemplateTypeSlug]
+
+export function isTemplateTypeSlug(value: string | undefined): value is TemplateTypeSlug {
+  return value !== undefined && value in TEMPLATE_TYPE_BY_SLUG
+}

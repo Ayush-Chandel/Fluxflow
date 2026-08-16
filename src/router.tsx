@@ -65,6 +65,16 @@ export const router = createBrowserRouter([
               lazy: () => import('@/routes/workspace/cycles/CycleDetail'),
               handle: sidebarHandle('cycles'),
             },
+            {
+              path: 'templates',
+              handle: sidebarHandle('templates'),
+              children: [
+                { index: true, element: <Navigate to="/app/templates/issues" replace /> },
+                { path:':type', lazy: ()=> import('@/routes/workspace/templates/TemplatesPage')},
+                { path: ':type/new', lazy: () => import('@/routes/workspace/templates/TemplateFormPage') },
+                { path: ':type/:id', lazy: () => import('@/routes/workspace/templates/TemplateFormPage') },
+              ]
+            },
         ],
       },
     ],

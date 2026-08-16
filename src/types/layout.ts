@@ -1,6 +1,7 @@
 import type { RouteHandle } from "@/lib/utils";
+import React from "react";
 
-export type SidebarKey = 'projects' | 'issues' | 'cycles' | undefined;
+export type SidebarKey = 'projects' | 'issues' | 'cycles' | 'templates' | undefined;
 
 
 export type NavLabel = {
@@ -14,5 +15,16 @@ export type Navlinks = NavLabel & {
     icon: React.ReactNode;
 }
 
+export type NavChild = {
+    label: string;
+    path: string;
+    icon?: React.ReactNode;
+}
+
+export type NavGroup = Omit<Navlinks, 'path'> & {
+    children: NavChild[]
+}
+
+export type NavItem = Navlinks | NavGroup
 
 export const sidebarHandle = (sidebarKey:SidebarKey):RouteHandle=>({sidebarKey});
