@@ -49,12 +49,14 @@ type WithPayload<B> =
 
 export type Template = WithPayload<TemplateBase>
 
+export type IssueTemplate = Extract<Template, { type: 'issue' }>
+export type ProjectTemplate = Extract<Template, { type: 'project' }>
+
 export type CreateTemplateInput = WithPayload<
   Pick<TemplateBase, 'name' | 'description' | 'icon' | 'color' | 'isDefault'>
 >
 
-// What actually lands in Firestore: the id is the path and the stamps are the
-// service's, so only createdBy is added on top of the form's input.
+
 export type NewTemplateDoc = CreateTemplateInput & { createdBy: string }
 
 export const TEMPLATE_INFO = {

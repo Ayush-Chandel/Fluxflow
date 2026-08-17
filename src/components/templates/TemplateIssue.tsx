@@ -10,27 +10,29 @@ import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
 import { Button } from '../ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useTemplateStore } from '@/store/templateStore';
+import type { CreateTemplateInput, IssueTemplate } from '@/types/template';
 
-type Props = {}
+type Props = {
+  template?: IssueTemplate
+}
 
-function TemplateIssue({}: Props) {
+function TemplateIssue({ template }: Props) {
 
-  // Seeded rather than left empty so the trigger renders a real icon from the
-  // first paint — same starting values as CreateProjectModal's buildSeed.
-  const [icon, setIcon] = useState<string>(DEFAULT_PROJECT_ICON);
-  const [color, setColor] = useState<string>(DEFAULT_PROJECT_COLOR);
+  const [icon, setIcon] = useState<string>(template?.icon ?? DEFAULT_PROJECT_ICON);
+  const [color, setColor] = useState<string>(template?.color ?? DEFAULT_PROJECT_COLOR);
 
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [isDefault, setIsDefault] = useState(false)
+  const [name, setName] = useState(template?.name ?? '')
+  const [description, setDescription] = useState(template?.description ?? '')
+  const [isDefault, setIsDefault] = useState(template?.isDefault ?? false)
 
-  const [title, setTitle] = useState('')
-  const [issueDescription, setIssueDescription] = useState('')
-  const [status, setStatus] = useState<IssueStatus>('backlog')
-  const [priority, setPriority] = useState<IssuePriority>('no_priority')
-  const [projectId, setProjectId] = useState<string | null>(null)
+  const [title, setTitle] = useState(template?.data.title ?? '')
+  const [issueDescription, setIssueDescription] = useState(template?.data.description ?? '')
+  const [status, setStatus] = useState<IssueStatus>(template?.data.status ?? 'backlog')
+  const [priority, setPriority] = useState<IssuePriority>(template?.data.priority ?? 'no_priority')
+  const [projectId, setProjectId] = useState<string | null>(template?.data.projectId ?? null)
 
   const postTemplate = useTemplateStore((s)=>s.createTemplate);
+  const patchTemplate = useTemplateStore((s)=>s.updateTemplate);
   const navigate = useNavigate()
 
   const templatesPath = '/app/templates/issues'
@@ -42,7 +44,7 @@ function TemplateIssue({}: Props) {
     if (!trimmedName || submitted.current) return
     submitted.current = true
 
-    void postTemplate({
+    const input: CreateTemplateInput = {
       type: 'issue',
       name: trimmedName,
       description: description.trim(),
@@ -56,7 +58,9 @@ function TemplateIssue({}: Props) {
         priority,
         projectId,
       },
-    })
+    }
+
+    void (template ? patchTemplate(template.id, input) : postTemplate(input))
 
     navigate(templatesPath)
   }
@@ -91,6 +95,7 @@ function TemplateIssue({}: Props) {
       </div>
         <AutoGrowTextarea
           value={description}
+          maxLength={250}
           onChange={(e) => setDescription(e.target.value)}
           placeholder='Add an optional template description...'
           className='min-h-0 w-full flex-auto resize-none overflow-y-auto bg-transparent text-sm text-foreground outline-none placeholder:text-muted'
@@ -153,8 +158,7 @@ function TemplateIssue({}: Props) {
       </div>
 
       <div className='mt-6 flex shrink-0 items-center justify-end gap-2'>
-                        {/* Only one issue template can hold this — the store
-                            demotes the current holder in the same batch. */}
+                
                         <label
                             htmlFor='template-default'
                             className='mr-auto flex cursor-pointer items-center gap-2 px-3'
@@ -179,9 +183,9 @@ function TemplateIssue({}: Props) {
                             disabled={!name.trim()}
                             className='rounded-2xl bg-brand px-3 h-7 !text-lsm text-white hover:bg-brand-hover'
                         >
-                            Create
+                            {template ? 'Save' : 'Create'}
                         </Button>
-                    </div>
+      </div>
 
     </div>
   )

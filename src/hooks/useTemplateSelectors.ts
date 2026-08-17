@@ -4,7 +4,9 @@ import { useMemo } from "react"
 
 export function useTemplateList(type:TemplateType): Template[] {
   const templatesMap = useTemplateStore((s) => s.templates)
-  return useMemo(() => Object.values(templatesMap).filter((template)=>(template.type === type)), [templatesMap,type])
+  return useMemo(() => Object.values(templatesMap)
+    .filter((template)=>(template.type === type))
+    .sort((a, b) => a.name.localeCompare(b.name)), [templatesMap,type])
 }
 
 export function useTemplate(templateId: string | undefined): Template | undefined {

@@ -14,6 +14,7 @@ type MilestoneDraftListProps = {
   milestones: MilestoneDraft[]
   onChange: (next: MilestoneDraft[]) => void
   className?: string
+  showTargetDate?: boolean
 }
 
 const ROW_PILL =
@@ -32,7 +33,12 @@ function newDraft(): MilestoneDraft {
  * partial-create window to recover from. Rows here carry no description input —
  * the detail page's list does — so they are created with an empty one.
  */
-function MilestoneDraftList({ milestones, onChange, className }: MilestoneDraftListProps) {
+function MilestoneDraftList({
+  milestones,
+  onChange,
+  className,
+  showTargetDate = true,
+}: MilestoneDraftListProps) {
   const listRef = useRef<HTMLDivElement>(null)
   // Focus can't move until the new row has rendered, so the key is parked here
   // and consumed after the commit. A ref rather than state: this drives an
@@ -112,15 +118,17 @@ function MilestoneDraftList({ milestones, onChange, className }: MilestoneDraftL
                 className='min-w-0 flex-1 bg-transparent text-lsm text-foreground outline-none placeholder:text-muted'
               />
 
-              <DatePillPicker
-                label='Target'
-                heading='Milestone target date'
-                align='end'
-                icon={<CalendarCheckIcon className='h-3 w-3' />}
-                value={milestone.targetDate}
-                onChange={(targetDate) => patchAt(index, { targetDate })}
-                triggerClassName={ROW_PILL}
-              />
+              {showTargetDate && (
+                <DatePillPicker
+                  label='Target'
+                  heading='Milestone target date'
+                  align='end'
+                  icon={<CalendarCheckIcon className='h-3 w-3' />}
+                  value={milestone.targetDate}
+                  onChange={(targetDate) => patchAt(index, { targetDate })}
+                  triggerClassName={ROW_PILL}
+                />
+              )}
 
               <button
                 type='button'
