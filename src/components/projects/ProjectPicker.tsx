@@ -47,7 +47,7 @@ function ProjectPicker({
     return { options: [NO_PROJECT, ...sorted.map((p) => p.id)], map }
   }, [projects, value])
 
-  const current = value ?? NO_PROJECT
+  const current = value ? value : NO_PROJECT;
 
   return (
     <IssueCommandBox

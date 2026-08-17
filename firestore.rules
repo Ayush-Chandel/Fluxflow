@@ -13,9 +13,9 @@ service cloud.firestore {
     // With the default, an unclaimed token is a plain permission-denied the
     // stores' rollback paths already handle.
     //
-    // NOTE: issues (step 7), projects (step 11) and cycles (step 13) are covered
-    // here; `templates` lands with its feature and the full hardening pass —
-    // field-level validation on updates — is step 18 (§8, §14.2).
+    // NOTE: issues (step 7), projects (step 11), cycles (step 13) and templates
+    // (step 17) are covered here; the full hardening pass — field-level
+    // validation on updates — is step 18 (§8, §14.2).
     function inWorkspace(ws) {
       return request.auth != null && request.auth.token.get('workspaceId', '') == ws;
     }
@@ -47,6 +47,15 @@ service cloud.firestore {
       match /cycles/{id} {
         allow read, update, delete: if inWorkspace(ws);
         allow create: if false;
+      }
+
+      // Templates are pure client CRUD like projects — nothing on them is
+      // server-generated, so the store mints the id and writes directly.
+      // The default swap writes two documents in one batch (templateService
+      // .setDefault); a batch is evaluated per-document, so both are covered by
+      // this single rule.
+      match /templates/{id} {
+        allow read, create, update, delete: if inWorkspace(ws);
       }
     }
   }

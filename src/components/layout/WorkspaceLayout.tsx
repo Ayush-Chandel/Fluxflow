@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useMatch, useParams } from 'react-router-dom'
 import Sidebar from './sidebar/Sidebar'
 import { SidebarProvider } from '../ui/sidebar'
 import { useSidebarPin } from '@/hooks/useSidebarPin'
@@ -13,6 +13,7 @@ import CreateProjectModal from '../modals/CreateProjectModal'
 import CreateCycleModal from '../modals/CreateCycleModal'
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
 import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
+import { useTemplates } from '@/hooks/useTemplates'
 
  function WorkspaceLayout() {
 
@@ -32,6 +33,7 @@ import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
   useIssues();
   useProjects();
   useCycles();
+  useTemplates();
 
   const labelGroupList:NavLabel[] = [
           {
@@ -52,13 +54,18 @@ import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
       ] 
   
     const labelGroup =  labelGroupList.find((label)=>(activeKey === label.key));
+    const isTemplates = useMatch('/app/templates/*');
+    
 
   return (
     <SidebarProvider >
       <div className="flex h-screen bg-background w-full">
         <Sidebar isPinned={isPinned} onPin={pin} onUnpin={unpin} />
         <main className="flex flex-col w-full bg-surface overflow-hidden lg:ml-2 lg:mr-3 lg:mt-3 lg:mb-5 lg:rounded-xl lg:shadow-md" >
-            <Topbar activeKey={activeKey} isPinned={isPinned} pin={pin} unpin={unpin}topLabel={labelGroup?.label} path={labelGroup?.path}/>
+            {
+              !isTemplates && 
+              <Topbar activeKey={activeKey} isPinned={isPinned} pin={pin} unpin={unpin}topLabel={labelGroup?.label} path={labelGroup?.path}/>
+            }
           <div className='flex-1 min-h-0 relative flex flex-col'>
             <Outlet />
           </div>

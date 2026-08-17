@@ -1,32 +1,86 @@
-// src/types/template.ts — Issue Template entity contract (§4 data model)
+
 import type { Timestamp } from 'firebase/firestore'
 import type { IssuePriority, IssueStatus } from '@/types/issue'
+import type { Milestone, ProjectPriority, ProjectStatus } from './project';
 
-// Pre-fill payload for the create-issue form. Every field optional — a template
-// only sets what it wants to enforce.
-export interface TemplateData {
-  title?: string
-  description?: string
-  priority?: IssuePriority
-  labelIds?: string[]
-  status?: IssueStatus
-  assigneeId?: string | null
+export interface TemplateIssueData {
+  title: string
+  description: string;
+  status: IssueStatus
+  priority: IssuePriority
+  projectId: string | null
 }
 
-export interface Template {
+export interface TemplateProjectData {
+    name: string
+    description: string
+    content: string
+    status: ProjectStatus
+    priority: ProjectPriority
+    milestones: Pick<Milestone, 'name' | 'description'>[]
+}
+
+interface TemplateBase {
   id: string
-  name: string // required
-  type: 'issue' // issue templates only (for now)
+  name: string
+  description: string
+  /**
+   * How the template presents itself in the template list — both types have one.
+   *
+   * For a PROJECT template it does double duty: the project created from it
+   * inherits these, which is why TemplateProjectData deliberately does NOT carry
+   * its own icon/color. One value, no pair to keep in sync. Instantiation reads
+   * them off the template: { ...template.data, icon: template.icon, ... }.
+   *
+   * For an ISSUE template it is presentation only — issues have no icon, so
+   * nothing is stamped onto the issue that gets created.
+   */
+  icon: string
+  color: string
   isDefault: boolean
-  data: TemplateData
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
 }
 
+type WithPayload<B> =
+  | (B & { type: 'issue'; data: TemplateIssueData })
+  | (B & { type: 'project'; data: TemplateProjectData })
+
+export type Template = WithPayload<TemplateBase>
+
+export type CreateTemplateInput = WithPayload<
+  Pick<TemplateBase, 'name' | 'description' | 'icon' | 'color' | 'isDefault'>
+>
+
+// What actually lands in Firestore: the id is the path and the stamps are the
+// service's, so only createdBy is added on top of the form's input.
+export type NewTemplateDoc = CreateTemplateInput & { createdBy: string }
+
+export const TEMPLATE_INFO = {
+  issues:{
+    header:{
+      title: 'Issue Templates',
+      desc: 'Reusable templates to create issues from.'
+    },
+  },
+  projects:{
+    header:{
+      title: 'Projects Templates',
+      desc: 'Reusable templates to create projects from.'
+    },
+  },
+
+}
+
 export const TEMPLATE_TYPE_BY_SLUG = {
-  projects: 'projects',
-  issues: 'issues',
+  projects: 'project',
+  issues: 'issue',
+} as const
+
+export const TEMPLATE_SLUG_BY_TYPE = {
+  project: 'projects',
+  issue: 'issues',
 } as const
 
 export type TemplateTypeSlug = keyof typeof TEMPLATE_TYPE_BY_SLUG

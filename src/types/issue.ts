@@ -43,3 +43,10 @@ export type CreateIssueInput = Pick<
   Issue,
   'title' | 'description' | 'priority' | 'assigneeId' | 'labelIds' | 'projectId' | 'milestoneId' | 'cycleId'
 > & { status?: IssueStatus }
+
+
+export const PILL_TRIGGER =
+  'gap-1.5 !h-6 rounded-full border border-edge !bg-transparent !px-2 !py-0.5 text-xs !font-normal !text-muted !shadow-none hover:!bg-elevated'
+
+export const HEADER_BTN =
+  'flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-foreground'

@@ -20,8 +20,10 @@ import CyclePicker from '../cycles/CyclePicker'
 import { useIssueStore } from '@/store/issueStore'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import {
+  HEADER_BTN,
   ISSUE_PRIORITIES,
   ISSUE_STATUSES,
+  PILL_TRIGGER,
   type CreateIssueInput,
 } from '@/types/issue'
 import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants'
@@ -34,11 +36,7 @@ type Props = {
   onToggleMaximize?: () => void
 }
 
-const PILL_TRIGGER =
-  'gap-1.5 !h-6 rounded-full border border-edge !bg-transparent !px-2 !py-0.5 text-xs !font-normal !text-muted !shadow-none hover:!bg-elevated'
 
-const HEADER_BTN =
-  'flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-foreground'
 
 function CreateIssueModal({
   prefill,
