@@ -44,6 +44,17 @@ function currentDefaultId(
   return holder?.id ?? null
 }
 
+/**
+ * The default template of a type, read imperatively. The create dialogs seed
+ * their drafts with it as they open — which happens inside a store action, not
+ * a render — so they can't use the hook form (useDefaultTemplate).
+ */
+export function getDefaultTemplate(type: TemplateType): Template | undefined {
+  const templates = useTemplateStore.getState().templates
+  const id = currentDefaultId(templates, type)
+  return id ? templates[id] : undefined
+}
+
 export const useTemplateStore = create<TemplateState>()(
   immer((set, get) => ({
     templates: {},

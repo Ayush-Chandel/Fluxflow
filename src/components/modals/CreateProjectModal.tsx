@@ -26,11 +26,16 @@ import {
   DEFAULT_PROJECT_ICON,
 } from '../common/constants/projectIcons'
 import { useProjectStore } from '@/store/projectStore'
+import { getDefaultTemplate, useTemplateStore } from '@/store/templateStore'
+import TemplatePicker from '../templates/TemplatePicker'
+import type { ProjectTemplate } from '@/types/template'
 
 type CreateProjectModalProps = {
     open:boolean;
     /** Fields a trigger pre-selected — e.g. the `+` on a status column. */
     prefill?: Partial<CreateProjectInput>;
+    /** Template the trigger chose; null falls back to the default one. */
+    templateId?: string | null;
     onClose?: () => void;
 }
 
@@ -53,19 +58,39 @@ type ProjectDraft = {
   milestones: MilestoneDraft[]
 }
 
+/** A project template by id, or undefined if it's gone / is an issue template. */
+const projectTemplate = (id: string | null | undefined): ProjectTemplate | undefined => {
+  if (!id) return undefined
+  const template = useTemplateStore.getState().templates[id]
+  return template?.type === 'project' ? template : undefined
+}
+
 /** The form's starting values for a given open — one source of truth for both
- *  the initial state and the "has anything changed?" baseline. */
-const buildSeed = (prefill?: Partial<CreateProjectInput>): ProjectDraft => ({
-  icon: prefill?.icon ?? DEFAULT_PROJECT_ICON,
-  color: prefill?.color ?? DEFAULT_PROJECT_COLOR,
-  name: prefill?.name ?? '',
-  summary: prefill?.description ?? '',
-  content: prefill?.content ?? '',
-  status: prefill?.status ?? 'backlog',
-  priority: prefill?.priority ?? 'no_priority',
+ *  the initial state and the "has anything changed?" baseline.
+ *
+ *  Prefill outranks the template: it comes from the exact spot the user clicked.
+ *  Dates are absent from templates by design (§ TemplateProjectData), so they
+ *  only ever come from the prefill. */
+const buildSeed = (
+  prefill?: Partial<CreateProjectInput>,
+  template?: ProjectTemplate | null,
+): ProjectDraft => ({
+  // The template's icon is the template's own — projects made from it inherit it.
+  icon: prefill?.icon ?? template?.icon ?? DEFAULT_PROJECT_ICON,
+  color: prefill?.color ?? template?.color ?? DEFAULT_PROJECT_COLOR,
+  name: prefill?.name ?? template?.data.name ?? '',
+  summary: prefill?.description ?? template?.data.description ?? '',
+  content: prefill?.content ?? template?.data.content ?? '',
+  status: prefill?.status ?? template?.data.status ?? 'backlog',
+  priority: prefill?.priority ?? template?.data.priority ?? 'no_priority',
   startDate: toDate(prefill?.startDate),
   targetDate: toDate(prefill?.targetDate),
-  milestones: [],
+  // Stored rows carry no client key, so one is minted per row here.
+  milestones: (template?.data.milestones ?? []).map((milestone) => ({
+    key: crypto.randomUUID(),
+    name: milestone.name,
+    targetDate: null,
+  })),
 })
 
 /** Comparable form of a draft: Dates and milestone objects never match by
@@ -85,10 +110,12 @@ const fingerprint = (draft: ProjectDraft) =>
 function CreateProjectModal({
     open,
     prefill,
+    templateId: requestedTemplateId,
     onClose
 }: CreateProjectModalProps) {
 
     const initial = buildSeed(prefill)
+    const [templateId, setTemplateId] = useState<string | null>(null)
     const [icon, setIcon] = useState<string>(initial.icon)
     const [color, setColor] = useState<string>(initial.color)
     const [name, setName] = useState<string>(initial.name)
@@ -105,9 +132,8 @@ function CreateProjectModal({
     const seedFingerprint = useRef(fingerprint(initial))
 
 
-    useEffect(() => {
-        if (!open) return
-        const seed = buildSeed(prefill)
+    /** Every field at once — the open effect and the template picker both need it. */
+    const applySeed = (seed: ProjectDraft) => {
         setIcon(seed.icon)
         setColor(seed.color)
         setName(seed.name)
@@ -118,12 +144,71 @@ function CreateProjectModal({
         setStartDate(seed.startDate)
         setTargetDate(seed.targetDate)
         setMilestones(seed.milestones)
+    }
+
+    useEffect(() => {
+        if (!open) return
+        // An explicit choice (the templates list's "Use template") wins; failing
+        // that, the workspace's default project template if one is flagged.
+        const fallback = getDefaultTemplate('project')
+        const template =
+            projectTemplate(requestedTemplateId) ??
+            (fallback?.type === 'project' ? fallback : undefined)
+
+        const seed = buildSeed(prefill, template)
+        applySeed(seed)
+        setTemplateId(template?.id ?? null)
+        // The seeded template is part of the baseline, so opening and closing
+        // straight away isn't treated as an unsaved change.
         seedFingerprint.current = fingerprint(seed)
         setConfirmOpen(false)
         // Deliberately keyed on `open` alone: `prefill` is a fresh object each
         // render, and re-running on its identity would wipe what the user typed.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
+
+    /**
+     * Applying a template fills the blanks and leaves the user's own input alone.
+     *
+     * A field is the template's to set when it still holds the blank draft's
+     * value, OR the value the PREVIOUS template put there — so swapping
+     * templates replaces what the old one contributed without touching anything
+     * typed by hand. Picking a template IS an edit, so the dirty baseline
+     * deliberately stays put.
+     */
+    const handleTemplateChange = (nextId: string | null) => {
+        const current: ProjectDraft = {
+            icon, color, name, summary, content, status, priority, startDate, targetDate, milestones,
+        }
+        const blank = buildSeed(prefill)
+        const previous = buildSeed(prefill, projectTemplate(templateId))
+        const next = buildSeed(prefill, projectTemplate(nextId))
+
+        const fillable = <K extends keyof ProjectDraft>(key: K) =>
+            current[key] === blank[key] || current[key] === previous[key]
+
+        // Milestones compare by name: buildSeed mints fresh client keys every
+        // call, so the rows are never identical by reference.
+        const sameRows = (a: MilestoneDraft[], b: MilestoneDraft[]) =>
+            a.length === b.length && a.every((row, index) => row.name === b[index].name)
+
+        setTemplateId(nextId)
+        applySeed({
+            ...current,
+            icon: fillable('icon') ? next.icon : icon,
+            color: fillable('color') ? next.color : color,
+            name: fillable('name') ? next.name : name,
+            summary: fillable('summary') ? next.summary : summary,
+            content: fillable('content') ? next.content : content,
+            status: fillable('status') ? next.status : status,
+            priority: fillable('priority') ? next.priority : priority,
+            milestones:
+                sameRows(milestones, blank.milestones) || sameRows(milestones, previous.milestones)
+                    ? next.milestones
+                    : milestones,
+            // startDate/targetDate ride through untouched: templates carry no dates.
+        })
+    }
 
     const isDirty =
         fingerprint({
@@ -209,12 +294,21 @@ function CreateProjectModal({
                 >
                     {/* Breadcrumb header */}
                     <div className='flex shrink-0 items-center gap-1.5'>
-                        <div className='flex items-center gap-1.5 rounded-md border border-edge px-1.5 py-0.5 text-xs text-muted'>
+                        {/* <div className='flex items-center gap-1.5 rounded-md border border-edge px-1.5 py-0.5 text-xs text-muted'>
                             <BoxIcon size={12} />
                             Projects
                         </div>
                         <span className='text-xs text-muted'>›</span>
-                        <span className='text-xs text-foreground'>New project</span>
+                        <span className='text-xs text-foreground'>New project</span> */}
+                        {/* Applying a template rebuilds the whole draft, so it sits
+                            up here rather than among the pills below, which each
+                            edit one field. */}
+                        <TemplatePicker
+                            type='project'
+                            value={templateId}
+                            onChange={handleTemplateChange}
+                            triggerClassName={PILL_TRIGGER}
+                        />
                         {/* Window controls */}
                         <div className='ml-auto flex items-center gap-1'>
                         <button type='button' onClick={requestClose} className={HEADER_BTN} aria-label='Close'>

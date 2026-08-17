@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { XIcon } from 'lucide-react'
 import {
-  NoteIcon,
   AssigneeIcon,
   MoreIcon,
   MinimizeIcon,
@@ -15,6 +14,7 @@ import AutoGrowTextarea from '../common/AutoGrowTextarea'
 import { Switch } from '@/components/ui/switch'
 import IssueCommandBox from '../issues/IssueCommandBox'
 import ProjectPicker from '../projects/ProjectPicker'
+import TemplatePicker from '../templates/TemplatePicker'
 import MilestonePicker from '../projects/MilestonePicker'
 import CyclePicker from '../cycles/CyclePicker'
 import { useIssueStore } from '@/store/issueStore'
@@ -47,9 +47,10 @@ function CreateIssueModal({
 }: Props) {
   // Draft lives in the store so it survives the Radix content remount that
   // occurs when the dialog switches modal/non-modal (minimize ⇄ restore).
-  const { title, description, status, priority, projectId, milestoneId, cycleId } =
+  const { templateId, title, description, status, priority, projectId, milestoneId, cycleId } =
     useCreateIssueDialog((s) => s.draft)
   const patchDraft = useCreateIssueDialog((s) => s.patchDraft)
+  const applyTemplate = useCreateIssueDialog((s) => s.applyTemplate)
   const [createMore, setCreateMore] = useState(false)
 
   const createIssue = useIssueStore((s) => s.createIssue)
@@ -86,10 +87,15 @@ function CreateIssueModal({
     >
       {/* Breadcrumb header */}
       <div className='flex shrink-0 items-center gap-2'>
-        <div className='flex items-center gap-1.5 rounded-full border border-edge px-2 py-0.5 text-xs text-muted'>
-          <NoteIcon size={13} />
-          Template
-        </div>
+        {/* Was a static chip until templates landed. Applying one rebuilds the
+            draft, so it belongs here in the header rather than among the option
+            pills, which each edit a single field. */}
+        <TemplatePicker
+          type='issue'
+          value={templateId}
+          onChange={applyTemplate}
+          triggerClassName={PILL_TRIGGER}
+        />
         {/* Window controls */}
         <div className='ml-auto flex items-center gap-1'>
           <button type='button' onClick={onMinimize} className={HEADER_BTN} aria-label='Minimize'>

@@ -6,8 +6,11 @@ interface CreateProjectDialogState {
   open: boolean
   /** Fields the trigger pre-selected (e.g. a status column's `+`). */
   prefill: Partial<CreateProjectInput> | null
+  /** Template the trigger chose — the templates list's "Use template". Null lets
+   *  the modal fall back to the default project template, if one is flagged. */
+  templateId: string | null
 
-  openWith: (prefill?: Partial<CreateProjectInput>) => void
+  openWith: (prefill?: Partial<CreateProjectInput>, templateId?: string | null) => void
   close: () => void
   setOpen: (open: boolean) => void
 }
@@ -15,9 +18,11 @@ interface CreateProjectDialogState {
 export const useCreateProjectDialog = create<CreateProjectDialogState>((set) => ({
   open: false,
   prefill: null,
+  templateId: null,
 
-  openWith: (prefill) => set({ open: true, prefill: prefill ?? null }),
-  close: () => set({ open: false, prefill: null }),
+  openWith: (prefill, templateId) =>
+    set({ open: true, prefill: prefill ?? null, templateId: templateId ?? null }),
+  close: () => set({ open: false, prefill: null, templateId: null }),
   // Clearing prefill on close stops a stale prefill leaking into the next open.
-  setOpen: (open) => set(open ? { open } : { open, prefill: null }),
+  setOpen: (open) => set(open ? { open } : { open, prefill: null, templateId: null }),
 }))

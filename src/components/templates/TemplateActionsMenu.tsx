@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { MoreIcon } from '@/components/icons'
+import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
+import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
 import { useTemplateStore } from '@/store/templateStore'
 import { TEMPLATE_SLUG_BY_TYPE, type Template } from '@/types/template'
 
@@ -22,7 +24,17 @@ function TemplateActionsMenu({ template }: Props) {
 
   const setDefault = useTemplateStore((s) => s.setDefault)
   const deleteTemplate = useTemplateStore((s) => s.deleteTemplate)
+  const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
+  const openCreateProject = useCreateProjectDialog((s) => s.openWith)
   const navigate = useNavigate()
+
+  // Both dialogs live in WorkspaceLayout, so they're already mounted here.
+  // Not named `useTemplate` — that reads as a hook and can't be called from a
+  // click handler without tripping the rules-of-hooks lint.
+  const createFromTemplate = () => {
+    if (template.type === 'issue') openCreateIssue(undefined, template.id)
+    else openCreateProject(undefined, template.id)
+  }
 
   const editPath = `/app/templates/${TEMPLATE_SLUG_BY_TYPE[template.type]}/${template.id}`
 
@@ -48,6 +60,16 @@ function TemplateActionsMenu({ template }: Props) {
           side='bottom'
           className='w-48 rounded-xl border-edge bg-surface p-1 shadow-lg'
         >
+          <button
+            type='button'
+            className={ITEM}
+            onClick={() => {
+              setOpen(false)
+              createFromTemplate()
+            }}
+          >
+            {template.type === 'issue' ? 'New issue' : 'New project'}
+          </button>
           <button
             type='button'
             className={ITEM}

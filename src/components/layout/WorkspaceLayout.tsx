@@ -23,6 +23,7 @@ import { useTemplates } from '@/hooks/useTemplates'
 
   const projectDialogOpen = useCreateProjectDialog((s) => s.open);
   const projectPrefill = useCreateProjectDialog((s) => s.prefill);
+  const projectTemplateId = useCreateProjectDialog((s) => s.templateId);
   const closeProjectDialog = useCreateProjectDialog((s) => s.close);
 
   const cycleDialogOpen = useCreateCycleDialog((s) => s.open);
@@ -74,6 +75,7 @@ import { useTemplates } from '@/hooks/useTemplates'
         <CreateProjectModal
           open={projectDialogOpen}
           prefill={projectPrefill ?? undefined}
+          templateId={projectTemplateId}
           onClose={closeProjectDialog}
         />
         <CreateCycleModal
