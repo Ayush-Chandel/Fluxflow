@@ -11,7 +11,7 @@ import type {
 import type { SnapshotDelta } from '@/hooks/useEntitySync'
 import { templateService } from '@/services/templateService'
 import { useAuthStore } from '@/store/authStore'
-import { broadcastDelta } from '@/lib/broadcastChannel'
+import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { cacheKey, idb } from '@/lib/idb'
 
 interface TemplateState {
@@ -20,6 +20,9 @@ interface TemplateState {
   setAll: (docs: Template[]) => void
   applyDelta: (delta: SnapshotDelta<Template>) => void
   selectAll: () => Template[]
+
+  // — peer-tab binding (§6, pipeline step 3) —
+  applyBroadcast: (delta: EntityBroadcast<'templates'>) => void
 
   createTemplate: (input: CreateTemplateInput) => Promise<string | undefined>
   updateTemplate: (id: string, input: CreateTemplateInput) => Promise<void>
@@ -73,6 +76,20 @@ export const useTemplateStore = create<TemplateState>()(
 
     selectAll: () => Object.values(get().templates),
 
+    applyBroadcast: (delta) =>
+      set((s) => {
+        if (delta.type === 'DELETE') {
+          delete s.templates[delta.id]
+          return
+        }
+        if (delta.type === 'CREATE') {
+          s.templates[delta.id] = delta.payload
+          return
+        }
+        const target = s.templates[delta.id]
+        if (target) Object.assign(target, delta.payload)
+      }),
+
     createTemplate: async (input) => {
       const { user } = useAuthStore.getState()
       if (!user) return
@@ -94,10 +111,17 @@ export const useTemplateStore = create<TemplateState>()(
         if (demoted) s.templates[demoted.id].isDefault = false
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'templates', type: 'CREATE', id, payload: optimistic })
+      broadcastDelta({
+        entity: 'templates',
+        workspaceId: user.workspaceId,
+        type: 'CREATE',
+        id,
+        payload: optimistic,
+      })
       if (demoted) {
         broadcastDelta({
           entity: 'templates',
+          workspaceId: user.workspaceId,
           type: 'UPDATE',
           id: demoted.id,
           payload: { isDefault: false },
@@ -113,10 +137,16 @@ export const useTemplateStore = create<TemplateState>()(
           if (demoted) s.templates[demoted.id] = demoted
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'templates', type: 'DELETE', id })
+        broadcastDelta({
+          entity: 'templates',
+          workspaceId: user.workspaceId,
+          type: 'DELETE',
+          id,
+        })
         if (demoted) {
           broadcastDelta({
             entity: 'templates',
+            workspaceId: user.workspaceId,
             type: 'UPDATE',
             id: demoted.id,
             payload: { isDefault: true },
@@ -146,10 +176,17 @@ export const useTemplateStore = create<TemplateState>()(
         if (demoted) s.templates[demoted.id].isDefault = false
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'templates', type: 'UPDATE', id, payload: input })
+      broadcastDelta({
+        entity: 'templates',
+        workspaceId: user.workspaceId,
+        type: 'UPDATE',
+        id,
+        payload: input,
+      })
       if (demoted) {
         broadcastDelta({
           entity: 'templates',
+          workspaceId: user.workspaceId,
           type: 'UPDATE',
           id: demoted.id,
           payload: { isDefault: false },
@@ -165,10 +202,17 @@ export const useTemplateStore = create<TemplateState>()(
           if (demoted) s.templates[demoted.id] = demoted
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'templates', type: 'UPDATE', id, payload: previous })
+        broadcastDelta({
+          entity: 'templates',
+          workspaceId: user.workspaceId,
+          type: 'UPDATE',
+          id,
+          payload: previous,
+        })
         if (demoted) {
           broadcastDelta({
             entity: 'templates',
+            workspaceId: user.workspaceId,
             type: 'UPDATE',
             id: demoted.id,
             payload: { isDefault: true },
@@ -189,7 +233,12 @@ export const useTemplateStore = create<TemplateState>()(
         delete s.templates[id]
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'templates', type: 'DELETE', id })
+      broadcastDelta({
+        entity: 'templates',
+        workspaceId: user.workspaceId,
+        type: 'DELETE',
+        id,
+      })
 
       try {
         await templateService.remove(user.workspaceId, id)
@@ -198,7 +247,13 @@ export const useTemplateStore = create<TemplateState>()(
           s.templates[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'templates', type: 'CREATE', id, payload: previous })
+        broadcastDelta({
+          entity: 'templates',
+          workspaceId: user.workspaceId,
+          type: 'CREATE',
+          id,
+          payload: previous,
+        })
         notify.error('Failed to delete template')
       }
     },
@@ -218,10 +273,17 @@ export const useTemplateStore = create<TemplateState>()(
         if (demoted) s.templates[demoted.id].isDefault = false
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'templates', type: 'UPDATE', id, payload: { isDefault } })
+      broadcastDelta({
+        entity: 'templates',
+        workspaceId: user.workspaceId,
+        type: 'UPDATE',
+        id,
+        payload: { isDefault },
+      })
       if (demoted) {
         broadcastDelta({
           entity: 'templates',
+          workspaceId: user.workspaceId,
           type: 'UPDATE',
           id: demoted.id,
           payload: { isDefault: false },
@@ -243,6 +305,7 @@ export const useTemplateStore = create<TemplateState>()(
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
           entity: 'templates',
+          workspaceId: user.workspaceId,
           type: 'UPDATE',
           id,
           payload: { isDefault: target.isDefault },
@@ -250,6 +313,7 @@ export const useTemplateStore = create<TemplateState>()(
         if (demoted) {
           broadcastDelta({
             entity: 'templates',
+            workspaceId: user.workspaceId,
             type: 'UPDATE',
             id: demoted.id,
             payload: { isDefault: true },

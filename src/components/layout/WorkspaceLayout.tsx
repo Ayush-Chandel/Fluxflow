@@ -1,4 +1,4 @@
-import { Outlet, useMatch, useParams } from 'react-router-dom'
+import { Outlet, useMatch } from 'react-router-dom'
 import Sidebar from './sidebar/Sidebar'
 import { SidebarProvider } from '../ui/sidebar'
 import { useSidebarPin } from '@/hooks/useSidebarPin'
@@ -14,6 +14,7 @@ import CreateCycleModal from '../modals/CreateCycleModal'
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
 import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
 import { useTemplates } from '@/hooks/useTemplates'
+import { useBroadcastSync } from '@/hooks/useBroadcastSync'
 
  function WorkspaceLayout() {
 
@@ -35,6 +36,7 @@ import { useTemplates } from '@/hooks/useTemplates'
   useProjects();
   useCycles();
   useTemplates();
+  useBroadcastSync();
 
   const labelGroupList:NavLabel[] = [
           {

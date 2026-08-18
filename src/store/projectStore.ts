@@ -12,7 +12,7 @@ import type {
 import type { SnapshotDelta } from '@/hooks/useEntitySync'
 import { projectService } from '@/services/projectService'
 import { useAuthStore } from '@/store/authStore'
-import { broadcastDelta } from '@/lib/broadcastChannel'
+import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { appendOrder } from '@/lib/ordering'
 import { cacheKey, idb } from '@/lib/idb'
 
@@ -22,6 +22,10 @@ interface ProjectState {
   setAll: (docs: Project[]) => void
   applyDelta: (delta: SnapshotDelta<Project>) => void
   selectAll: () => Project[]
+
+
+  applyBroadcast: (delta: EntityBroadcast<'projects'>) => void
+  applyMilestoneBroadcast: (delta: EntityBroadcast<'milestones'>) => void
 
   createProject: (data: CreateProjectInput) => Promise<string | undefined>
   updateProject: (id: string, patch: Partial<Project>) => Promise<void>
@@ -72,6 +76,40 @@ export const useProjectStore = create<ProjectState>()(
 
     selectAll: () => Object.values(get().projects),
 
+    // Store only — no persist, no re-broadcast, no service call (issueStore).
+    applyBroadcast: (delta) =>
+      set((s) => {
+        if (delta.type === 'DELETE') {
+          delete s.projects[delta.id]
+          return
+        }
+        if (delta.type === 'CREATE') {
+          s.projects[delta.id] = delta.payload
+          return
+        }
+        const target = s.projects[delta.id]
+        if (target) Object.assign(target, delta.payload)
+      }),
+
+    applyMilestoneBroadcast: (delta) =>
+      set((s) => {
+        const project = s.projects[delta.payload.projectId]
+
+        if (!project) return
+
+        if (delta.type === 'DELETE') {
+          if (project.milestones) delete project.milestones[delta.id]
+          return
+        }
+        if (delta.type === 'CREATE') {
+          if (!project.milestones) project.milestones = {}
+          project.milestones[delta.id] = delta.payload.milestone
+          return
+        }
+        const target = project.milestones?.[delta.id]
+        if (target) Object.assign(target, delta.payload.patch)
+      }),
+
     createProject: async (data) => {
       const { user } = useAuthStore.getState()
       if (!user) return
@@ -94,7 +132,13 @@ export const useProjectStore = create<ProjectState>()(
         s.projects[id] = optimistic
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'projects', type: 'CREATE', id, payload: optimistic })
+      broadcastDelta({
+        entity: 'projects',
+        workspaceId: user.workspaceId,
+        type: 'CREATE',
+        id,
+        payload: optimistic,
+      })
 
       try {
         await projectService.create(user.workspaceId, id, docData)
@@ -104,7 +148,12 @@ export const useProjectStore = create<ProjectState>()(
           delete s.projects[id]
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'projects', type: 'DELETE', id })
+        broadcastDelta({
+          entity: 'projects',
+          workspaceId: user.workspaceId,
+          type: 'DELETE',
+          id,
+        })
         notify.error('Failed to create project', {
           description: docData.name,
           action: { label: 'Retry', onClick: () => void get().createProject(data) },
@@ -123,7 +172,13 @@ export const useProjectStore = create<ProjectState>()(
         Object.assign(s.projects[id], patch)
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'projects', type: 'UPDATE', id, payload: patch })
+      broadcastDelta({
+        entity: 'projects',
+        workspaceId: user.workspaceId,
+        type: 'UPDATE',
+        id,
+        payload: patch,
+      })
 
       try {
         await projectService.update(user.workspaceId, id, patch)
@@ -132,6 +187,13 @@ export const useProjectStore = create<ProjectState>()(
           s.projects[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'projects',
+          workspaceId: user.workspaceId,
+          type: 'UPDATE',
+          id,
+          payload: previous,
+        })
         notify.error('Failed to update project')
       }
     },
@@ -147,7 +209,12 @@ export const useProjectStore = create<ProjectState>()(
         delete s.projects[id]
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'projects', type: 'DELETE', id })
+      broadcastDelta({
+        entity: 'projects',
+        workspaceId: user.workspaceId,
+        type: 'DELETE',
+        id,
+      })
 
       try {
         await projectService.remove(user.workspaceId, id)
@@ -156,6 +223,13 @@ export const useProjectStore = create<ProjectState>()(
           s.projects[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'projects',
+          workspaceId: user.workspaceId,
+          type: 'CREATE',
+          id,
+          payload: previous,
+        })
         notify.error('Failed to delete project')
       }
     },
@@ -190,7 +264,13 @@ export const useProjectStore = create<ProjectState>()(
         target.milestones[id] = milestone
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'milestones', type: 'CREATE', id, payload: { projectId, milestone } })
+      broadcastDelta({
+        entity: 'milestones',
+        workspaceId: user.workspaceId,
+        type: 'CREATE',
+        id,
+        payload: { projectId, milestone },
+      })
 
       try {
         await projectService.createMilestone(user.workspaceId, projectId, milestone)
@@ -201,7 +281,13 @@ export const useProjectStore = create<ProjectState>()(
           if (target) target.milestones = previous
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'milestones', type: 'DELETE', id, payload: { projectId } })
+        broadcastDelta({
+          entity: 'milestones',
+          workspaceId: user.workspaceId,
+          type: 'DELETE',
+          id,
+          payload: { projectId },
+        })
         notify.error('Failed to create milestone', { description: milestone.name })
       }
     },
@@ -224,6 +310,7 @@ export const useProjectStore = create<ProjectState>()(
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
         entity: 'milestones',
+        workspaceId: user.workspaceId,
         type: 'UPDATE',
         id: milestoneId,
         payload: { projectId, patch: stamped },
@@ -237,6 +324,13 @@ export const useProjectStore = create<ProjectState>()(
           if (milestones) milestones[milestoneId] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'milestones',
+          workspaceId: user.workspaceId,
+          type: 'UPDATE',
+          id: milestoneId,
+          payload: { projectId, patch: previous },
+        })
         notify.error('Failed to update milestone')
       }
     },
@@ -255,6 +349,7 @@ export const useProjectStore = create<ProjectState>()(
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
         entity: 'milestones',
+        workspaceId: user.workspaceId,
         type: 'DELETE',
         id: milestoneId,
         payload: { projectId },
@@ -270,6 +365,13 @@ export const useProjectStore = create<ProjectState>()(
           target.milestones[milestoneId] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'milestones',
+          workspaceId: user.workspaceId,
+          type: 'CREATE',
+          id: milestoneId,
+          payload: { projectId, milestone: previous },
+        })
         notify.error('Failed to delete milestone')
       }
     },

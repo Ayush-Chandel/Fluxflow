@@ -11,7 +11,7 @@ import type { CreateIssueInput, Issue, IssueStatus } from '@/types/issue'
 import type { SnapshotDelta } from '@/hooks/useEntitySync'
 import { issueService } from '@/services/issueService'
 import { useAuthStore } from '@/store/authStore'
-import { broadcastDelta } from '@/lib/broadcastChannel'
+import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { cacheKey, idb } from '@/lib/idb'
 import { initialStatusStamps, statusStamps } from '@/lib/statusStamps'
 
@@ -23,6 +23,8 @@ interface IssueState {
   setAll: (docs: Issue[]) => void
   applyDelta: (delta: SnapshotDelta<Issue>) => void
   selectAll: () => Issue[]
+
+  applyBroadcast: (delta: EntityBroadcast<'issues'>) => void
 
   // — optimistic mutations (§6, Layer 2) —
   createIssue: (data: CreateIssueInput) => Promise<void>
@@ -55,6 +57,21 @@ export const useIssueStore = create<IssueState>()(
 
     selectAll: () => Object.values(get().issues),
 
+    applyBroadcast: (delta) =>
+      set((s) => {
+        if (delta.type === 'DELETE') {
+          delete s.issues[delta.id]
+          return
+        }
+        if (delta.type === 'CREATE') {
+          s.issues[delta.id] = delta.payload
+          return
+        }
+
+        const target = s.issues[delta.id]
+        if (target) Object.assign(target, delta.payload)
+      }),
+
     // Server-sequential create → temp-id dance (§6): show a placeholder instantly,
     // let onSnapshot deliver the real 'LIN-xxx' doc, then drop the placeholder.
     createIssue: async (data) => {
@@ -79,7 +96,13 @@ export const useIssueStore = create<IssueState>()(
         s.issues[tempId] = optimistic
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'issues', type: 'CREATE', id: tempId, payload: optimistic })
+      broadcastDelta({
+        entity: 'issues',
+        workspaceId: user.workspaceId,
+        type: 'CREATE',
+        id: tempId,
+        payload: optimistic,
+      })
 
       let live = true
       const dismissed = () => {
@@ -94,17 +117,25 @@ export const useIssueStore = create<IssueState>()(
 
       try {
         const { id, identifier } = await issueService.create(user.workspaceId, data)
-        // Swap the placeholder for the real doc keyed by its server id. When
-        // onSnapshot echoes the same id it just upserts (no duplicate); in dev the
-        // mock never writes to Firestore, so this swap is what keeps it on screen.
         const created: Issue = { ...optimistic, id, identifier }
         set((s) => {
           delete s.issues[tempId]
           s.issues[id] = created
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'issues', type: 'DELETE', id: tempId })
-        broadcastDelta({ entity: 'issues', type: 'CREATE', id, payload: created })
+        broadcastDelta({
+          entity: 'issues',
+          workspaceId: user.workspaceId,
+          type: 'DELETE',
+          id: tempId,
+        })
+        broadcastDelta({
+          entity: 'issues',
+          workspaceId: user.workspaceId,
+          type: 'CREATE',
+          id,
+          payload: created,
+        })
         if (live)
           notify.success('Issue created', {
             id: toastId,
@@ -115,7 +146,12 @@ export const useIssueStore = create<IssueState>()(
           delete s.issues[tempId]
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'issues', type: 'DELETE', id: tempId })
+        broadcastDelta({
+          entity: 'issues',
+          workspaceId: user.workspaceId,
+          type: 'DELETE',
+          id: tempId,
+        })
         notify.error('Failed to create issue', {
           id: toastId,
           description: optimistic.title,
@@ -142,7 +178,13 @@ export const useIssueStore = create<IssueState>()(
         Object.assign(s.issues[id], full)
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'issues', type: 'UPDATE', id, payload: full })
+      broadcastDelta({
+        entity: 'issues',
+        workspaceId: user.workspaceId,
+        type: 'UPDATE',
+        id,
+        payload: full,
+      })
 
       try {
         await issueService.updateIssue(user.workspaceId, id, full)
@@ -151,6 +193,13 @@ export const useIssueStore = create<IssueState>()(
           s.issues[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'issues',
+          workspaceId: user.workspaceId,
+          type: 'UPDATE',
+          id,
+          payload: previous,
+        })
         notify.error('Failed to update issue')
       }
     },
@@ -166,7 +215,12 @@ export const useIssueStore = create<IssueState>()(
         delete s.issues[id]
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'issues', type: 'DELETE', id })
+      broadcastDelta({
+        entity: 'issues',
+        workspaceId: user.workspaceId,
+        type: 'DELETE',
+        id,
+      })
 
       try {
         await issueService.deleteIssue(user.workspaceId, id)
@@ -175,6 +229,13 @@ export const useIssueStore = create<IssueState>()(
           s.issues[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'issues',
+          workspaceId: user.workspaceId,
+          type: 'CREATE',
+          id,
+          payload: previous,
+        })
         notify.error('Failed to delete issue')
       }
     },

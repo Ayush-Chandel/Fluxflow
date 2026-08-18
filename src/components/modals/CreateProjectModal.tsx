@@ -13,7 +13,6 @@ import {
 } from '@/types/project'
 import { Dialog, DialogContent, DialogTitle } from '../ui/dialog'
 import { VisuallyHidden } from 'radix-ui'
-import { BoxIcon } from '../icons'
 import ProjectIconPicker from '../common/ProjectIconPicker'
 import AutoGrowTextarea from '../common/AutoGrowTextarea'
 import DatePillPicker from '../common/DatePillPicker'

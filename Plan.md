@@ -385,6 +385,62 @@ model / stores / routing / rules once so nothing is retrofitted.
   **Known gaps:** switching layout unmounts the other view, so scroll position is not preserved
   (Linear behaves the same); the strip is hidden entirely on an empty page, so there is nothing to
   toggle before the first issue/project/cycle exists.
+- ✅ **Step 16 — BroadcastChannel tab-sync (2026-08-18)**: the step was **half-built before it
+  started** — every store already called `broadcastDelta` (steps 5/11/13/14 each wired their own
+  sends), but **`subscribeToBroadcast` had zero callers**, so all four tabs were shouting into a
+  channel nobody listened to. The step is therefore the RECEIVE half, plus the send-side gap that
+  visiting every call site exposed (the rollback paths, below).
+  `hooks/useBroadcastSync.ts` ★ is mounted once in `WorkspaceLayout` beside the four
+  `useEntitySync` wrappers, filters by workspace, and routes each delta to its store.
+  **Three shape problems had to be solved before anything could receive:**
+  (a) the existing `applyDelta` takes the SNAPSHOT delta (`added|modified|removed` + a **full**
+  doc) while a broadcast `UPDATE` carries a **partial patch** — so each store gained a separate
+  **`applyBroadcast`** rather than overloading `applyDelta`; CREATE assigns wholesale, UPDATE
+  merges, and a patch for a doc this tab has never seen is **dropped, not written as a stub**
+  (onSnapshot delivers the whole thing regardless).
+  (b) **milestones have no store**, so `projectStore` gained a SECOND entry point,
+  `applyMilestoneBroadcast` — `delta.id` is a milestone id and the project comes from the payload,
+  which is why every milestone delta including DELETE carries a `projectId`.
+  (c) `BroadcastDelta` was `{ payload?: unknown }`, which type-checked nothing. It is now a
+  **discriminated union per entity** (`EntityDelta<E,T>` + `MilestoneDelta`, with
+  `EntityBroadcast<E>` naming one store's slice) so CREATE *requires* a full doc and UPDATE a
+  partial. That is load-bearing, not decoration: a CREATE published with a partial would write a
+  corrupt document into every peer tab, and the union catches it at the call site.
+  **`workspaceId` is now a REQUIRED field on every delta.** The channel is a single origin-wide
+  `'fluxflow'` channel while every cache key and collection path is workspace-scoped; two tabs on
+  different workspaces share it, so the receiver drops foreign deltas. It is passed explicitly from
+  the `user.workspaceId` the mutation actually wrote to — NOT read back out of `authStore` inside
+  `broadcastDelta` — which keeps `lib/` free of store imports and stays correct if the workspace
+  changes mid-flight. Making it required (not optional) is what forced all **42** call sites to be
+  visited (8 issues · 12 projects+milestones · 8 cycles · 14 templates), which is how the gap below
+  was found — an optional field would have compiled silently and left the audit undone.
+  **The real bug this step fixed: rollbacks never broadcast.** Nine catch blocks reverted the local
+  store and told the peers nothing — `issueStore` update/delete, `projectStore`
+  update/delete + updateMilestone/deleteMilestone, `cycleStore` update/delete. **`templateStore`
+  was the only store already doing it right** (it re-broadcasts on every rollback path, including
+  both rows of a default swap) and became the reference. This is invisible while nobody receives,
+  and permanent once someone does: **a failed write produces no `onSnapshot` event**, so the
+  rollback delta is the only thing that could ever correct a peer — it would otherwise sit on the
+  optimistic value forever. Undoing a DELETE broadcasts a **CREATE** (the peer dropped the row, so
+  there is nothing left to merge into), and an UPDATE rollback replays the whole `previous` doc,
+  matching what the local rollback did (a full replace, not a key-wise undo).
+  **The receiver touches the store and nothing else** — no `idb.set` (IndexedDB is shared
+  per-origin and the ORIGINATING tab already wrote it; re-writing from every receiver races N tabs
+  on one key), no re-broadcast (that is the infinite loop), no service call. Routing is a
+  **`switch` with a `never` default**, not a lookup table: it narrows the union without a cast and
+  makes a new `BroadcastEntity` a compile error until it is routed.
+  **Timestamps needed no work** — structured clone drops prototypes, so a `Timestamp` arrives as a
+  bare `{seconds, nanoseconds}`, but `lib/date.ts`'s `toDate()` has accepted that shape since step 4
+  (IndexedDB degrades them identically) and its comment already named the BroadcastChannel. Nothing
+  writes a store-read Timestamp back to Firestore, so degraded values never round-trip.
+  **Deliberately NOT synced: `viewPreferenceStore`.** A layout choice is per-surface state that §15
+  put on the surface the user picked it on, and it already persists via zustand `persist`. Syncing
+  it would rearrange tab B's view under the reader's hands.
+  **Also fixed here (pre-existing, unrelated):** `npm run build` was already red on a clean tree —
+  two unused imports (`useParams` in `WorkspaceLayout`, `BoxIcon` in `CreateProjectModal`) failed
+  `noUnusedLocals`. Removed so the step could be typechecked at all.
+  **NOT yet runtime-verified ⚠️**: the receive path has not been exercised in two live tabs, and
+  joins §12's milestone map writes, §13's cycle Fn and §14's default swap on that list (§13).
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -519,10 +575,17 @@ project-root/
 │   │   │                        BOTH updateStatus and updateIssue route through it
 │   │   ├── templateForm.ts   ✅ dirty-check fingerprints for the two template page forms
 │   │   │                        (trimmed the way saving trims, so no phantom "unsaved")
-│   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()
+│   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()/subscribeToBroadcast();
+│   │                            the delta is a PER-ENTITY discriminated union (§16) —
+│   │                            CREATE carries a full doc, UPDATE a partial patch —
+│   │                            with a required workspaceId, since one origin-wide
+│   │                            channel serves workspace-scoped caches
 │   │
 │   ├── hooks/
 │   │   ├── useEntitySync.ts  ✅ generic idb-read + onSnapshot + idb-writeback (the engine)
+│   │   ├── useBroadcastSync.ts ✅ the RECEIVE half of tab-sync (§16) — one subscription,
+│   │   │                        workspace-filtered, routed to each store's applyBroadcast
+│   │   │                        (store only: no idb write-back, no re-broadcast, no service)
 │   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts ✅ · useTemplates.ts ✅ wrappers
 │   │   ├── useTemplateSelectors.ts ✅ list-by-type / one / default
 │   │   ├── useUnsavedGuard.ts ✅ useBlocker + "discard changes?" for PAGE forms (§9F)
@@ -824,11 +887,31 @@ fields only); `identifier`/`id`/timestamps/`createdBy` are server-stamped — se
 User action
   ├─→ Zustand store        (0ms)
   ├─→ IndexedDB            (0ms)
-  ├─→ BroadcastChannel → other tabs (~1ms)
+  ├─→ BroadcastChannel → other tabs (~1ms)   → useBroadcastSync → store.applyBroadcast
   └─→ Firestore client SDK (update/delete/create-project/create-milestone/create-template)
         OR  fetch('/api/createIssue')  / fetch('/api/createCycle')   ← sequential IDs
         └─→ onSnapshot fires on all sessions (100–300ms), reconciles temp → real
 ```
+
+### Layer 3 — Cross-tab receive (§16)
+`hooks/useBroadcastSync` is mounted once in `WorkspaceLayout` and is the only subscriber. It is a
+**latency optimisation, not a correctness mechanism** — `onSnapshot` already syncs every tab in
+100–300ms; this closes the gap to ~1ms. **The one case where it IS load-bearing is a FAILED write:**
+a rejected mutation emits no snapshot event, so the rollback delta is the only thing that will ever
+correct the peers. **Every rollback path therefore broadcasts**, and undoing a DELETE broadcasts a
+CREATE (the peer dropped the row; there is nothing left to merge a patch into).
+
+Three rules the receiver keeps, all for the same reason — the *originating* tab owns the write:
+- **no `idb.set`** — IndexedDB is shared per-origin and the sender already persisted; re-writing
+  from every receiver races N tabs on one key,
+- **no re-broadcast** — that is the infinite loop,
+- **no service call.**
+
+`applyBroadcast` is a SEPARATE store action from `applyDelta`, because the two deltas are different
+shapes: the snapshot delta always carries a full document, a broadcast `UPDATE` carries a partial
+patch (CREATE assigns, UPDATE merges, an UPDATE for an unknown id is dropped rather than stubbed).
+Milestones route to `projectStore.applyMilestoneBroadcast` — they have no store of their own, so
+`delta.id` is a milestone id and every milestone payload, DELETE included, carries its `projectId`.
 
 ---
 
@@ -1252,7 +1335,19 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
     **Cleanup carried here:** `__mockIssues.ts` deleted (both fallbacks — `Issues.tsx` and
     `IssueDetailView`), and the Issues page gained the empty state that fallback was hiding.
     **Not done:** scroll position is lost across a layout switch; an empty page shows no strip.
-16. **BroadcastChannel** — wire tab-sync into all store mutations
+16. ✅ **BroadcastChannel — the RECEIVE half (2026-08-18)** — the sends were already wired by steps
+    5/11/13/14; `subscribeToBroadcast` had no caller, so nothing listened. `hooks/useBroadcastSync`
+    ★ (mounted in `WorkspaceLayout`, workspace-filtered, `switch` + `never` so a new entity can't
+    go unrouted) + **`applyBroadcast` on all four stores** — a separate action from `applyDelta`
+    because a broadcast UPDATE is a PARTIAL patch while the snapshot delta is a full doc — plus
+    `applyMilestoneBroadcast` on `projectStore`, since milestones have no store of their own (§4).
+    `BroadcastDelta` became a **per-entity discriminated union** (CREATE requires a full doc,
+    UPDATE a partial) and gained a required **`workspaceId`**, because one origin-wide channel
+    serves workspace-scoped caches. **The real fix: nine rollback paths never broadcast** — and a
+    failed write emits no `onSnapshot`, so the rollback delta is the ONLY thing that can correct a
+    peer tab. `templateStore` already did this and was the reference. Receiver writes the store
+    only: no idb re-write (shared per-origin, the sender already wrote it), no re-broadcast, no
+    service call. `viewPreferenceStore` deliberately does NOT sync. Full detail in §0.
 17. **Filters** — `useSearchParams` per page + Topbar chips (priority/assignee/project/cycle)
 18. ★ **Rules hardening + indexes** — final `firestore.rules` (§8) + composite indexes
 19. **Vercel deploy** — Admin SDK env vars, strip MSW from prod, deploy functions
@@ -1352,12 +1447,32 @@ and it draws real history from the day the fields shipped. What is left when som
   sidebar and browser Back — all four must raise "Discard changes?", and saving must NOT.
   Apply an issue template that sets a project, pick a milestone, then switch to a template with a
   different project: `milestoneId` must clear rather than cross projects.
-- **Tab sync**: two tabs — a mutation appears in the other in ~1ms ahead of the onSnapshot echo.
+- **Tab sync ⚠️ (not yet run)**: two tabs on the same workspace, side by side.
+  - **Forward**: edit an issue / project / cycle / template in tab A → tab B updates in ~1ms, visibly
+    ahead of the onSnapshot echo. Do a **milestone** too (rename one in tab A): it takes the map-field
+    path (`applyMilestoneBroadcast` → `projects[projectId].milestones[id]`), not an entity store.
+  - **Rollback — the case the whole step exists for**: force a service to throw, then watch **tab B**,
+    not tab A. A failed write emits NO snapshot event, so the rollback delta is the only thing that
+    can correct the peer; before this step tab B would keep the optimistic value forever. Test both
+    an update (peer reverts the field) and a delete (peer's row comes BACK — the undo is a CREATE,
+    since the peer has nothing left to merge a patch into).
+  - **Temp-id path** (issues + cycles): create in tab A → tab B shows the `LIN-…` placeholder, then
+    the real identifier, and **never both at once** — the DELETE tempId / CREATE realId pair must
+    arrive in that order.
+  - **Default swap**: promote a template in tab A → tab B must never render two defaults of one type
+    (the swap crosses as two ordered UPDATEs), and the other type's default stays put.
+  - **Deliberate non-sync**: toggle list⇄board in tab A → tab B must NOT move (§16).
 - **Rules**: emulator confirms client `addDoc` to `issues`/`cycles` denied (server-only) while
   `projects`/`templates` client writes succeed; cross-workspace reads denied. Milestone writes are
   covered by the `projects` case — they're `updateDoc`s on the project document (§4).
-- `npm run build` (tsc + vite) passes; `npm run lint` clean (remove leftover `console.log` in
-  `routes/Guards.tsx`).
+- `npm run build` (tsc + vite) **passes as of §16** — it was red before it, on two unused imports
+  (`useParams` in `WorkspaceLayout`, `BoxIcon` in `CreateProjectModal`) failing `noUnusedLocals`;
+  both removed there. Keep it green: `tsc -b` is the gate the stores' typed deltas rely on.
+- `npm run lint` is **NOT clean ⚠️** — ~49 pre-existing errors, concentrated in
+  `routes/workspace/templates/TemplatesPage.tsx` (`no-empty-object-type`, `no-empty-pattern`) and
+  others untouched since. Also still pending: the leftover `console.log` in `routes/Guards.tsx`.
+  Not a §16 regression — every file that step touched lints clean — but the suite gives no signal
+  until this is cleared, so it belongs to the step-18 cleanup pass at the latest.
 
 ---
 

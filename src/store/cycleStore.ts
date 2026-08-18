@@ -7,7 +7,7 @@ import type { CreateCycleInput, Cycle } from '@/types/cycle'
 import type { SnapshotDelta } from '@/hooks/useEntitySync'
 import { cycleService } from '@/services/cycleService'
 import { useAuthStore } from '@/store/authStore'
-import { broadcastDelta } from '@/lib/broadcastChannel'
+import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { cacheKey, idb } from '@/lib/idb'
 
 interface CycleState {
@@ -17,6 +17,9 @@ interface CycleState {
   setAll: (docs: Cycle[]) => void
   applyDelta: (delta: SnapshotDelta<Cycle>) => void
   selectAll: () => Cycle[]
+
+  // — peer-tab binding (§6, pipeline step 3) —
+  applyBroadcast: (delta: EntityBroadcast<'cycles'>) => void
 
   // — optimistic mutations (§6, Layer 2) —
   createCycle: (data: CreateCycleInput) => Promise<string | undefined>
@@ -46,6 +49,21 @@ export const useCycleStore = create<CycleState>()(
 
     selectAll: () => Object.values(get().cycles),
 
+    // Store only — no persist, no re-broadcast, no service call (issueStore).
+    applyBroadcast: (delta) =>
+      set((s) => {
+        if (delta.type === 'DELETE') {
+          delete s.cycles[delta.id]
+          return
+        }
+        if (delta.type === 'CREATE') {
+          s.cycles[delta.id] = delta.payload
+          return
+        }
+        const target = s.cycles[delta.id]
+        if (target) Object.assign(target, delta.payload)
+      }),
+
     createCycle: async (data) => {
       const { user } = useAuthStore.getState()
       if (!user) return
@@ -65,7 +83,13 @@ export const useCycleStore = create<CycleState>()(
         s.cycles[tempId] = optimistic
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'cycles', type: 'CREATE', id: tempId, payload: optimistic })
+      broadcastDelta({
+        entity: 'cycles',
+        workspaceId: user.workspaceId,
+        type: 'CREATE',
+        id: tempId,
+        payload: optimistic,
+      })
 
       try {
         const { id, number } = await cycleService.create(user.workspaceId, data)
@@ -75,15 +99,31 @@ export const useCycleStore = create<CycleState>()(
           s.cycles[id] = created
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'cycles', type: 'DELETE', id: tempId })
-        broadcastDelta({ entity: 'cycles', type: 'CREATE', id, payload: created })
+        broadcastDelta({
+          entity: 'cycles',
+          workspaceId: user.workspaceId,
+          type: 'DELETE',
+          id: tempId,
+        })
+        broadcastDelta({
+          entity: 'cycles',
+          workspaceId: user.workspaceId,
+          type: 'CREATE',
+          id,
+          payload: created,
+        })
         return id
       } catch {
         set((s) => {
           delete s.cycles[tempId]
         })
         await persist(user.workspaceId, get().selectAll())
-        broadcastDelta({ entity: 'cycles', type: 'DELETE', id: tempId })
+        broadcastDelta({
+          entity: 'cycles',
+          workspaceId: user.workspaceId,
+          type: 'DELETE',
+          id: tempId,
+        })
         notify.error('Failed to create cycle', {
           action: { label: 'Retry', onClick: () => void get().createCycle(data) },
         })
@@ -101,7 +141,13 @@ export const useCycleStore = create<CycleState>()(
         Object.assign(s.cycles[id], patch)
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'cycles', type: 'UPDATE', id, payload: patch })
+      broadcastDelta({
+        entity: 'cycles',
+        workspaceId: user.workspaceId,
+        type: 'UPDATE',
+        id,
+        payload: patch,
+      })
 
       try {
         await cycleService.update(user.workspaceId, id, patch)
@@ -110,6 +156,13 @@ export const useCycleStore = create<CycleState>()(
           s.cycles[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'cycles',
+          workspaceId: user.workspaceId,
+          type: 'UPDATE',
+          id,
+          payload: previous,
+        })
         notify.error('Failed to update cycle')
       }
     },
@@ -125,7 +178,12 @@ export const useCycleStore = create<CycleState>()(
         delete s.cycles[id]
       })
       await persist(user.workspaceId, get().selectAll())
-      broadcastDelta({ entity: 'cycles', type: 'DELETE', id })
+      broadcastDelta({
+        entity: 'cycles',
+        workspaceId: user.workspaceId,
+        type: 'DELETE',
+        id,
+      })
 
       try {
         await cycleService.remove(user.workspaceId, id)
@@ -134,6 +192,13 @@ export const useCycleStore = create<CycleState>()(
           s.cycles[id] = previous
         })
         await persist(user.workspaceId, get().selectAll())
+        broadcastDelta({
+          entity: 'cycles',
+          workspaceId: user.workspaceId,
+          type: 'CREATE',
+          id,
+          payload: previous,
+        })
         notify.error('Failed to delete cycle')
       }
     },
