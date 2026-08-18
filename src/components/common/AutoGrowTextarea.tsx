@@ -38,7 +38,16 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, AutoGrowTextareaProps>(
             }
         }, [props.value, props.defaultValue, keepCaretInView]);
 
-        // Re-fit if the field's width changes (e.g. responsive layout / resize).
+
+        useLayoutEffect(() => {
+            const el = innerRef.current;
+            if (!el || !props.autoFocus) return;
+            const end = el.value.length;
+            el.setSelectionRange(end, end);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []);
+
+
         useEffect(() => {
             const el = innerRef.current;
             if (!el || typeof ResizeObserver === 'undefined') return;

@@ -15,6 +15,9 @@ import {
 } from '@/types/project'
 import { Button } from '../ui/button'
 import { Switch } from '@/components/ui/switch'
+import ConfirmDialog from '../common/ConfirmDialog'
+import { useUnsavedGuard } from '@/hooks/useUnsavedGuard'
+import { projectTemplateFingerprint } from '@/lib/templateForm'
 import { useTemplateStore } from '@/store/templateStore'
 import type { CreateTemplateInput, ProjectTemplate } from '@/types/template'
 
@@ -54,6 +57,19 @@ function TemplateProject({ template }: Props) {
 
   const submitted = useRef(false)
 
+  const current = {
+    icon, color, name, description, isDefault,
+    projectName, summary, content, status, priority, milestones,
+  }
+
+  const [seedFingerprint] = useState(() => projectTemplateFingerprint(current))
+  const guard = useUnsavedGuard(projectTemplateFingerprint(current) !== seedFingerprint)
+
+  const leave = () => {
+    guard.release()
+    navigate(templatesPath)
+  }
+
   const createTemplate = () => {
     const trimmedName = name.trim()
     if (!trimmedName || submitted.current) return
@@ -80,10 +96,11 @@ function TemplateProject({ template }: Props) {
 
     void (template ? patchTemplate(template.id, input) : postTemplate(input))
 
-    navigate(templatesPath)
+    leave()
   }
 
   return (
+    <>
      <div className='space-y-6'>
       <div className='px-3'>
         <AutoGrowTextarea
@@ -219,6 +236,16 @@ function TemplateProject({ template }: Props) {
       </div>
 
     </div>
+
+    <ConfirmDialog
+      open={guard.open}
+      title='Discard changes?'
+      description="Are you sure you want to discard the changes you've made to this template?"
+      confirmLabel='Discard'
+      onConfirm={guard.confirm}
+      onCancel={guard.cancel}
+    />
+    </>
   )
 }
 

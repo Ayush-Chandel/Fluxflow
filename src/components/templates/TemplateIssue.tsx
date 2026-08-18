@@ -9,6 +9,9 @@ import { ISSUE_PRIORITIES, ISSUE_STATUSES, PILL_TRIGGER, type IssuePriority, typ
 import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
 import { Button } from '../ui/button';
 import { Switch } from '@/components/ui/switch';
+import ConfirmDialog from '../common/ConfirmDialog';
+import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
+import { issueTemplateFingerprint } from '@/lib/templateForm';
 import { useTemplateStore } from '@/store/templateStore';
 import type { CreateTemplateInput, IssueTemplate } from '@/types/template';
 
@@ -39,6 +42,19 @@ function TemplateIssue({ template }: Props) {
 
   const submitted = useRef(false)
 
+  const current = {
+    icon, color, name, description, isDefault,
+    title, issueDescription, status, priority, projectId,
+  }
+
+  const [seedFingerprint] = useState(() => issueTemplateFingerprint(current))
+  const guard = useUnsavedGuard(issueTemplateFingerprint(current) !== seedFingerprint)
+
+  const leave = () => {
+    guard.release()
+    navigate(templatesPath)
+  }
+
   const createTemplate = ()=>{
     const trimmedName = name.trim()
     if (!trimmedName || submitted.current) return
@@ -62,10 +78,11 @@ function TemplateIssue({ template }: Props) {
 
     void (template ? patchTemplate(template.id, input) : postTemplate(input))
 
-    navigate(templatesPath)
+    leave()
   }
 
   return (
+    <>
     <div className='space-y-6'>
       <div className='px-3 space-y-2'>
         <div className='flex items-center gap-x-4'>
@@ -188,6 +205,18 @@ function TemplateIssue({ template }: Props) {
       </div>
 
     </div>
+
+    {/* Fired by the ROUTER, not by Cancel — the back link, the sidebar and the
+        browser's Back all land here too. */}
+    <ConfirmDialog
+      open={guard.open}
+      title='Discard changes?'
+      description="Are you sure you want to discard the changes you've made to this template?"
+      confirmLabel='Discard'
+      onConfirm={guard.confirm}
+      onCancel={guard.cancel}
+    />
+    </>
   )
 }
 

@@ -14,7 +14,7 @@ service cloud.firestore {
     // stores' rollback paths already handle.
     //
     // NOTE: issues (step 7), projects (step 11), cycles (step 13) and templates
-    // (step 17) are covered here; the full hardening pass — field-level
+    // (step 14) are covered here; the full hardening pass — field-level
     // validation on updates — is step 18 (§8, §14.2).
     function inWorkspace(ws) {
       return request.auth != null && request.auth.token.get('workspaceId', '') == ws;

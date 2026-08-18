@@ -84,15 +84,17 @@ const mergeTemplate = (
   const fillable = <K extends keyof DraftState>(key: K) =>
     current[key] === blank[key] || current[key] === previous[key]
 
+  const projectId = fillable('projectId') ? next.projectId : current.projectId
+
   return {
-    // milestoneId and cycleId ride through untouched: no template sets them.
     ...current,
     templateId: next.templateId,
     title: fillable('title') ? next.title : current.title,
     description: fillable('description') ? next.description : current.description,
     status: fillable('status') ? next.status : current.status,
     priority: fillable('priority') ? next.priority : current.priority,
-    projectId: fillable('projectId') ? next.projectId : current.projectId,
+    projectId,
+    milestoneId: projectId === current.projectId ? current.milestoneId : null,
   }
 }
 

@@ -32,9 +32,12 @@ model / stores / routing / rules once so nothing is retrofitted.
   `› LIN-N <title>` when a detail is open; the `Issues` crumb `Link` owns back-navigation to the list.
   The primary create button ✅ landed with §10.5 (dispatches by `activeKey`). Still pending on the
   topbar: filter chips (→ step 17) and the list⇄board view toggle — the toggle is explicitly **step
-  15**'s job now, shipping for issues/projects/cycles at once rather than once per entity. **No
-  sidebar nav items yet** (only `SideHeader` project-selector popover). `router.tsx` uses
-  `handle: { sidebarKey }` for active state.
+  15**'s job now, shipping for issues/projects/cycles at once rather than once per entity.
+  **Sidebar nav ✅** — `SideContent` lists Projects/Issues/Cycles plus the nested **Templates** group
+  (§14 widened `StaggerAccordion` to one level of children). A separate `SidebarNav.tsx` never
+  happened: the links are data in `SideContent` and the accordion renders them. `router.tsx` uses
+  `handle: { sidebarKey }` for active state; nested children prefix-match the pathname instead, since
+  they share their parent's key.
 - ✅ **Step 4 — Shared foundation**: `types/{issue,project,cycle,template}.ts`, `lib/idb.ts`,
   `lib/broadcastChannel.ts`, `hooks/useEntitySync.ts` (the sync engine), `store/viewPreferenceStore.ts`.
 - ✅ **Step 5 — Issue store + `useIssues`**: `store/issueStore.ts` (optimistic CRUD + rollback,
@@ -275,13 +278,81 @@ model / stores / routing / rules once so nothing is retrofitted.
   **NOT yet runtime-verified ⚠️**: nothing in this step has been run against the emulator —
   `/api/createCycle`, the status stamps, and cycle create/update/delete through the rules. Together
   with §12's untested milestone map writes this is the whole outstanding risk for steps 12–13 (§13).
-- ❌ **Step 14+ not started**: no templates store/service/hook; `templates` has no rules block yet.
+- ✅ **Step 14 — Templates (2026-08-16 → 08-17)**: shipped for **BOTH issues and projects**, which
+  supersedes the original "issue templates only" scope — §12 no longer lists project templates as
+  out-of-scope. One `templates` collection and ONE pipeline: `types/template.ts` carries a
+  **discriminated union** (`WithPayload<TemplateBase>` → `{type:'issue', data:TemplateIssueData}` |
+  `{type:'project', data:TemplateProjectData}`, plus `IssueTemplate`/`ProjectTemplate` via `Extract`),
+  so `t.type === 'issue'` narrows `t.data` and nothing needs a cast. Two collections would have bought
+  a second sync engine, store, cache key and rules block for a read we never perform — the same
+  argument §4 used against a milestones subcollection. `services/templateService.ts` (client CRUD,
+  `newId()` + `setDoc` like projects — no temp-id dance), `store/templateStore.ts`,
+  `hooks/useTemplates.ts` (wired in `WorkspaceLayout`), `hooks/useTemplateSelectors.ts`
+  (`useTemplateList(type)` / `useTemplate(id)` / `useDefaultTemplate`), and the **`templates` rules
+  block** (client-writable like projects).
+  **`isDefault` is PER TYPE, and a toggle rather than a radio:** one default issue template and one
+  default project template coexist, so `currentDefaultId(templates, type, exceptId)` scopes the
+  demotion; clicking Default on the current default clears it, leaving zero defaults — the state a
+  fresh workspace is in anyway, so nothing has to special-case it. The swap is ONE `writeBatch`
+  (`writeWithDefaultCleared`), and every rollback path restores **both** affected rows, not just the
+  edited one.
+  **Pages, not modals (decided 2026-08-16):** templates are a settings surface — you arrive at the page
+  *to* manage them, so there is nothing to overlay. Routes `templates/:type` (manager),
+  `templates/:type/new` and `templates/:type/:id` — the same form page in its two modes (static `new`
+  outranks dynamic `:id` in React Router, and a 20-char Firestore auto-id can't collide with it).
+  `:type` is the plural URL slug bridged to the singular field by `TEMPLATE_TYPE_BY_SLUG` /
+  `TEMPLATE_SLUG_BY_TYPE`, so the two vocabularies can't drift into ad-hoc `slice(0,-1)` calls.
+  `TemplatesPage` → `TemplateManager` (shared, `type` prop; rows use a stretched-link overlay so the
+  whole row opens the editor, with `TemplateActionsMenu` above it at `z-10`). `TemplateFormPage` picks
+  the body and reuses ProjectDetail's hydrating-vs-missing grace. **The split is the whole form body**,
+  not the "shared shell + field block" §9F imagined: `TemplateIssue`/`TemplateProject` each carry their
+  own header, Default switch and footer (~40 duplicated lines, accepted — everything else, manager, row,
+  menu, picker, takes `type` as a prop). **Seeding is `key={template.id}`** — a remount, not a re-seed
+  effect.
+  **`icon`/`color` live on `TemplateBase`, not in the project payload:** for a project template they do
+  double duty (the created project inherits them), so there is no second glyph to keep in sync; for an
+  issue template they are presentation only.
+  **The Topbar is hidden on `/app/templates/*`** (`WorkspaceLayout`) — the manager owns its header and
+  `+`, the form page its back link. Consequence: `CustomTrigger` lives in the Topbar, so these pages
+  have no sidebar PIN button (hover-reveal still works).
+  **Sidebar sub-nav:** `types/layout.ts` gained `NavChild`/`NavGroup`/`NavItem` and `StaggerAccordion`
+  renders one level of nesting — a **static, non-collapsible** Templates label with Issues/Projects
+  always visible beneath it on a `border-l` rail. Group children can't light from `sidebarKey` (they
+  share their parent's), so `NavLeaf` takes **`isActive` as a prop**: flat rows compare keys, children
+  prefix-match the pathname (`=== path || startsWith(path + '/')`, so the create/edit pages keep the
+  parent lit).
+  **Applying a template — "what the user typed always wins" (decided 2026-08-13):** `TemplatePicker`
+  (the `ProjectPicker` wrapper pattern a fourth time) sits in the HEADER of `CreateIssueModal` and
+  `CreateProjectModal`, not among the option pills, because applying one rebuilds the whole draft
+  instead of editing one field. A field is the template's to fill when it still holds the BLANK draft's
+  value **or** the value the PREVIOUS template put there; anything else was typed by hand and survives.
+  That test replaced a dirty-field set — no extra state to keep in sync. **Prefill outranks the
+  template** (a column `+`'s status is more specific than a stored default), and an explicit choice
+  (`openWith(prefill, templateId)`, from the row menu's "New issue/project") outranks the workspace
+  default, which is read imperatively via `getDefaultTemplate(type)` because the dialogs seed inside a
+  store action, not a render. A swap that moves `projectId` **clears `milestoneId`** — a milestone lives
+  in exactly one project, the same clause `ProjectPicker` applies to a manual change.
+  **Unsaved-changes guard (`hooks/useUnsavedGuard.ts` ★):** a page form has four ways out (Cancel, the
+  back link, the sidebar, browser Back), so the block lives at the ROUTER via `useBlocker` rather than
+  on the Cancel button. `isDirty` is read through a ref at navigation time — a form navigates to its
+  list the instant it submits, with no render in between, so a captured value would block its own
+  success path; `release()` is what that path calls.
+  **Deliberately absent:** `labelIds`/`assigneeId` on `TemplateIssueData` (no label or member entity —
+  the same gap as everywhere else); dates on project templates (a template is a SHAPE, not a schedule —
+  a stored absolute date is stale the day after it is saved, so template milestones carry names only);
+  no template picker in `IssueDetailView` (templates apply at create time only); no "duplicate
+  template" action.
+  **Known unused-but-kept:** `useDefaultTemplate` has no caller — both dialogs need the imperative
+  `getDefaultTemplate` — exactly the position `useCycleProgress` is in after §13.
+  **NOT yet runtime-verified ⚠️**: the two-document default swap, the `templates` rules block and
+  template create/update/delete have never been run against the emulator, joining §12's milestone map
+  writes and §13's cycle Fn on the same list (§13).
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
 **Locked decisions:** Milestones included now · Cycles = manual MVP (no auto-schedule / no rollover) ·
-Templates = issue templates only · full data pipeline (IndexedDB + onSnapshot + optimistic +
-BroadcastChannel) for **every** entity.
+Templates = **issue AND project templates** (widened 2026-08-16; one collection, one union — §4) ·
+full data pipeline (IndexedDB + onSnapshot + optimistic + BroadcastChannel) for **every** entity.
 
 ---
 
@@ -328,17 +399,18 @@ project-root/
 │   │       ├── issues/IssuesPage.tsx            🚧 stub → build
 │   │       ├── projects/{ProjectsPage,ProjectDetailPage}.tsx   ★
 │   │       ├── cycles/{Cycles,CycleDetail}.tsx                 ✅
-│   │       └── settings/TemplatesSettingsPage.tsx             ★
+│   │       └── templates/{TemplatesPage,TemplateFormPage}.tsx  ✅ (NOT under settings/ — §3)
 │   │
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── WorkspaceLayout.tsx  ✅  Sidebar + Topbar + <Outlet> (NEVER remounts)
 │   │   │   ├── Topbar/Topbar.tsx    🚧 breadcrumb ✅ (owns back-nav) + create btn ✅ → view toggle (step 15), filter chips (step 17)
-│   │   │   └── sidebar/{Sidebar,SidebarContent,SideHeader,CustomTrigger}.tsx ✅
-│   │   │        └── SidebarNav.tsx  ★ Issues / Projects / Cycles / Settings nav
+│   │   │   └── sidebar/{Sidebar,SidebarContent,SideHeader,SideContent,CustomTrigger}.tsx ✅
+│   │   │        — nav links are DATA in SideContent (no SidebarNav.tsx); common/StaggerAccordion
+│   │   │          renders them, incl. the nested Templates group (§14)
 │   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
 │   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
-│   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment + selectors deferred) · TemplatePicker ★
+│   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment deferred)
 │   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal +
 │   │   │                 CreateIssueMinimizedBar + CreateProjectModal + CreateCycleModal
 │   │   ├── projects/   🚧 projectColumns, SortHeader, MilestoneDraftList ✅ ·
@@ -364,7 +436,10 @@ project-root/
 │   │   │                 kanban-view/{CycleBoardView,CycleBoardColumn,CycleCard} ✅ (NO dnd —
 │   │   │                   status is derived from dates, so there is nothing to drop)
 │   │   │                 — NO detail/ folder: a cycle's page is just its issues (§9E)
-│   │   ├── templates/  ★ TemplateManager, TemplateForm
+│   │   ├── templates/  ✅ TemplateManager (list + rows, `type` prop) · TemplateActionsMenu ·
+│   │   │                 TemplatePicker (in BOTH create modals' headers) ·
+│   │   │                 TemplateIssue / TemplateProject — the two page-form bodies, the ONLY
+│   │   │                   split components; each carries its own header/footer (§9F)
 │   │   └── ui/         ✅ shadcn primitives (button, card, popover, sheet, sidebar, tooltip…)
 │   │
 │   ├── services/
@@ -373,7 +448,8 @@ project-root/
 │   │   ├── projectService.ts ✅ Firestore SDK (client CRUD; newId → no temp-id) · milestones ✅
 │   │   │                        (dotted-path writes into the project doc's map field)
 │   │   ├── cycleService.ts   ✅ Firestore SDK + fetch(/api/createCycle)
-│   │   └── templateService.ts★ Firestore SDK
+│   │   └── templateService.ts✅ Firestore SDK (client CRUD; newId → no temp-id) · the default
+│   │                            swap is ONE writeBatch over the two affected docs
 │   │
 │   ├── store/
 │   │   ├── authStore.ts          ✅
@@ -383,7 +459,9 @@ project-root/
 │   │   │                            they live here because a milestone IS a project field)
 │   │   ├── cycleStore.ts         ✅ optimistic CRUD + rollback (temp-id dance, like issues)
 │   │   ├── createCycleDialogStore.ts ✅ cycle modal open/close + editingId (create AND edit)
-│   │   ├── templateStore.ts      ★
+│   │   ├── templateStore.ts      ✅ optimistic CRUD + rollback · setDefault (per TYPE, toggle) ·
+│   │   │                            getDefaultTemplate(type) read imperatively by both dialogs
+│   │   ├── createProjectDialogStore.ts ✅ open/close + prefill + templateId
 │   │   └── viewPreferenceStore.ts✅ layout/groupBy/orderBy per viewId (IndexedDB)
 │   │
 │   ├── lib/
@@ -397,11 +475,15 @@ project-root/
 │   │   ├── progress.ts       ✅ derived done/total/pct for project · milestone · cycle
 │   │   ├── statusStamps.ts   ★ status transition → startedAt/completedAt patch (§4);
 │   │   │                        BOTH updateStatus and updateIssue route through it
+│   │   ├── templateForm.ts   ✅ dirty-check fingerprints for the two template page forms
+│   │   │                        (trimmed the way saving trims, so no phantom "unsaved")
 │   │   └── broadcastChannel.ts ✅ channel + broadcastDelta()
 │   │
 │   ├── hooks/
 │   │   ├── useEntitySync.ts  ✅ generic idb-read + onSnapshot + idb-writeback (the engine)
-│   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts ✅ · useTemplates.ts ★ wrappers
+│   │   ├── useIssues.ts ✅ · useProjects.ts ✅ · useCycles.ts ✅ · useTemplates.ts ✅ wrappers
+│   │   ├── useTemplateSelectors.ts ✅ list-by-type / one / default
+│   │   ├── useUnsavedGuard.ts ✅ useBlocker + "discard changes?" for PAGE forms (§9F)
 │   │   ├── useCycleSelectors.ts ✅ rows / board-groups / one / list / issues / progress
 │   │   ├── useOpenCycle.ts ✅
 │   │   ├── useProjectSelectors.ts ✅ useProjectList/useProject/useProjectIssues/useProjectProgress
@@ -416,7 +498,8 @@ project-root/
 │   ├── createIssue.ts        ✅ verify token → sequential LIN-xxx → add()
 │   └── createCycle.ts        ✅ verify token → sequential number → add()
 │
-├── firestore.rules          🚧 issues (step 7) + projects (step 11); rest of §8 pending (step 18)
+├── firestore.rules          🚧 issues (7) + projects (11) + cycles (13) + templates (14);
+│                               field-level hardening still pending (step 18)
 ├── firestore.indexes.json   (add issue-by-project / -cycle / -milestone composites)
 ├── firebase.json  .firebaserc  vercel.json  vite.config.ts  tsconfig*.json  .env.local
 ```
@@ -436,9 +519,20 @@ project-root/
   ├── projects/:id/:slug? ProjectDetail        Overview + Issues tabs (local state) ✅
   ├── cycles              Cycles               handle:{sidebarKey:'cycles'}         ✅
   ├── cycles/:id/:slug?   CycleDetail          the cycle's ISSUES (no metadata form) ✅
-  └── settings/templates  TemplatesSettingsPage                                     ★
+  └── templates           handle:{sidebarKey:'templates'} on the PARENT              ✅
+      ├── (index)         → redirect /app/templates/issues
+      ├── :type           TemplatesPage        the manager for that type             ✅
+      ├── :type/new       TemplateFormPage     create                                ✅
+      └── :type/:id       TemplateFormPage     edit — same page, other mode          ✅
 *                         NotFound
 ```
+
+**Templates are top-level, not under `settings/`** (decided 2026-08-16): they earn a sidebar entry of
+their own, so `/app/settings/templates` from the original plan is gone. `:type` stays in the SAME
+position across all three routes, which is what lets one `isTemplateTypeSlug` check serve every page
+and makes create/edit two modes of one component. Static `new` outranks dynamic `:id` in React
+Router's ranking, and a 20-char Firestore auto-id can never be the literal string `new`. `handle` sits
+on the parent — `useSidebarKey` does `findLast` over all matches, so the children inherit it.
 
 **URL vs storage rule (unchanged):** layout (`list` | `board`) lives in **IndexedDB, never the URL**.
 Only **filters** live in the URL for shareability:
@@ -496,11 +590,36 @@ workspaces/{workspaceId}/
 │     — status is DERIVED client-side (upcoming|active|completed), NOT stored
 │     createdAt, updatedAt, createdBy
 │
-└── templates/{templateId}              ★  (issue templates only)
-      name (req), type:'issue', isDefault:boolean
-      data { title?, description?, priority?, labelIds?, status?, assigneeId? }
+└── templates/{templateId}              ★  (ISSUE and PROJECT templates — one collection)
+      name (req), description, icon, color
+      isDefault    boolean             ← at most one per TYPE (see below)
+      type         'issue' | 'project' ← discriminates `data`
+      data — when type==='issue':   { title, description, status, priority, projectId }
+             when type==='project': { name, description, content, status, priority,
+                                      milestones: {name, description}[] }
       createdAt, updatedAt, createdBy
 ```
+
+**Templates: one collection, a discriminated union (2026-08-16 — widens the original "issue templates
+only" scope).** `Template = WithPayload<TemplateBase>` in `types/template.ts`, so `t.type === 'issue'`
+narrows `t.data` and no call site casts. Two collections would have meant a second sync engine, store,
+cache key, hook and rules block for a read we never perform — the same trade §4 already made for
+milestones. Consequences, all deliberate:
+- **`icon`/`color` live on the TEMPLATE, not in the project payload.** For a project template they do
+  double duty: the project created from it inherits them, so there is no second glyph to keep in sync
+  (`{ ...template.data, icon: template.icon, color: template.color }`). For an issue template they are
+  presentation only — issues have no icon, and nothing is stamped onto the created issue.
+- **`isDefault` is scoped per type and is a TOGGLE.** One default issue template and one default
+  project template coexist; promoting one demotes only its own type's incumbent, in a single
+  `writeBatch` over the two documents. Clicking Default on the current default clears it — zero
+  defaults is the state a fresh workspace is already in, so no surface has to special-case it.
+- **No dates anywhere in a template.** A template is a *shape*, not a schedule: a stored absolute
+  `targetDate` is stale the day after it is saved. Project-template milestones therefore carry a name
+  and description only, and the created project's own start/target come from the modal.
+- **No `labelIds`/`assigneeId`** on the issue payload — no label or member entity exists to point at,
+  the same gap the issue row and the projects table still carry.
+- **Nothing links an issue or project back to the template it came from.** A template is applied at
+  create time and forgotten; `templateId` lives in the create-dialog draft, never on the document.
 
 **Progress bars** (project, milestone, cycle) are computed client-side: count issues matching
 `projectId`/`milestoneId`/`cycleId` with `status==='done'` against everything **in scope**. No stored
@@ -715,11 +834,18 @@ export const cycleService = {
   remove: (ws,id)       => deleteDoc(doc(db,`workspaces/${ws}/cycles/${id}`)),
 }
 
-// services/templateService.ts — pure client CRUD
+// services/templateService.ts — pure client CRUD, newId + setDoc like projects.
+// Every write that can PROMOTE a default goes through one batch helper, because
+// promoting is really two writes (set this one, clear the incumbent) and they
+// must not half-apply. `clearDefaultId` is the store's answer to "who holds the
+// default for THIS type right now" — the service never queries for it.
 export const templateService = {
-  create: (ws,t)     => addDoc(collection(db,`workspaces/${ws}/templates`), t),
-  update: (ws,id,p)  => updateDoc(doc(db,`workspaces/${ws}/templates/${id}`), p),
-  remove: (ws,id)    => deleteDoc(doc(db,`workspaces/${ws}/templates/${id}`)),
+  newId:  (ws)                        => doc(collection(db,`workspaces/${ws}/templates`)).id,
+  create: (ws,id,data,clearDefaultId) => batch(set(id,{...data,...stamps}), clear(clearDefaultId)),
+  update: (ws,id,input,clearDefaultId)=> batch(update(id,{...input,updatedAt}), clear(clearDefaultId)),
+  remove: (ws,id)                     => deleteDoc(templateDoc(ws,id)),
+  // nextId null → clear only; that IS the "remove as default" case.
+  setDefault: (ws,nextId,prevId)      => batch(nextId && update(nextId,{isDefault:true}), clear(prevId)),
 }
 ```
 
@@ -925,11 +1051,39 @@ member entity that `assigneeId`/`leadId` are still waiting on. The ring in our r
 completion (`cycleProgress` → done/scope), which is the same number the "N% success" on a finished
 cycle shows. Do not stub a capacity ring.
 
-### F. Issue Templates — *file issues fast with consistent structure*
-**Why:** enforces repeatable fields; a team default speeds the common case. **Build:**
-`TemplatesSettingsPage` (`/app/settings/templates`) to CRUD templates and mark one `isDefault`.
-`TemplatePicker` in the create-issue form pre-fills from `template.data`; if a default exists the
-new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
+### F. Templates — *file issues and spin up projects fast, with consistent structure*
+**Why:** enforces repeatable fields; a workspace default speeds the common case. **Scope widened
+2026-08-16 to ISSUE *and* PROJECT templates** — one collection, one union, one pipeline (§4).
+
+**Surface:** `/app/templates/:type` (§3), reached from the sidebar's nested Templates group.
+`TemplatesPage` → `TemplateManager` lists that type's templates, each row showing icon, name,
+description and a **Default** badge, with `TemplateActionsMenu` (⋯) carrying *New issue/project from
+this template · Edit · Set/Remove as default · Delete-behind-confirm*. The row itself is a stretched
+`<Link>` overlay so its whole area opens the editor while the menu stays clickable above it.
+
+**Pages, not modals (decided 2026-08-16).** The other three create surfaces are dialogs because they
+interrupt whatever you were doing; templates are a settings surface you navigate *to*, so there is
+nothing to overlay. `templates/:type/new` and `templates/:type/:id` are the same page in two modes,
+seeded by `key={template.id}` — a remount rather than a re-seed effect. Two consequences the modal
+version got for free and this one has to build: the **Topbar is hidden** on these routes (the pages own
+their header, `+` and back link — which also costs them `CustomTrigger`, so no sidebar pin button), and
+the **discard guard moves to the router** (`hooks/useUnsavedGuard`, `useBlocker`) because a page has
+four ways out — Cancel, back link, sidebar, browser Back — where a dialog had one.
+
+**Shared vs split.** Only the form BODY splits: `TemplateIssue` / `TemplateProject`. The manager, the
+row, the actions menu and the picker all take `type` as a prop, because name/description/icon/colour/
+`isDefault` live on the shared base and only `data` differs. (The two bodies do each carry their own
+header and footer — ~40 duplicated lines, accepted over threading a dozen props through a shell.)
+
+**Applying — the user's typing always wins.** `TemplatePicker` sits in the HEADER of
+`CreateIssueModal` and `CreateProjectModal`, not among the option pills, because applying a template
+rebuilds the whole draft rather than editing one field. A field is the template's to fill when it
+still holds the **blank** draft's value *or* the value the **previous** template put there; anything
+else was typed by hand and survives. Swapping templates therefore replaces the old one's contribution
+and nothing more. Precedence is `prefill` > explicit `templateId` > the type's default template. A
+swap that changes `projectId` clears `milestoneId` — a milestone belongs to exactly one project.
+
+`templateStore` / `templateService` / `useTemplates` / `useTemplateSelectors`, stored in
 `workspaces/{ws}/templates`.
 
 ---
@@ -1015,7 +1169,19 @@ new-issue form opens pre-filled. `templateStore`/`templateService`. Stored in
     one helper, carried here ONLY because history is unbackfillable. No step-13 feature reads them.
     The burn-up chart they enable was deliberately NOT built: it is deferred (§12), and landing the
     fields is exactly what made deferring it free. Full detail in §0. MSW's handler list is now empty.
-14. ★ **Issue Templates** — store/service, TemplatesSettingsPage, TemplatePicker + default behavior
+14. ✅ **Templates — issue AND project** (scope widened from "issue templates only"): one
+    `templates` collection with a **type-discriminated union** (§4), so store/service/hook/rules are
+    built once. `templateService` (client CRUD + the two-doc default `writeBatch`), `templateStore`
+    (optimistic CRUD, per-type `setDefault`, both rows restored on rollback), `useTemplates` +
+    `useTemplateSelectors`, `templates` rules block. UI is **pages, not modals**:
+    `templates/:type` manager + `:type/new` | `:type/:id` form (§3), a nested non-collapsible
+    **Templates group in the sidebar** (`NavGroup`/`NavChild`, children prefix-match the pathname),
+    and `TemplatePicker` in both create modals with "typed input always wins" merge semantics.
+    Plus `hooks/useUnsavedGuard` (router-level discard confirm for page forms).
+    **Not done on purpose:** no dates in templates, no `labelIds`/`assigneeId`, no link from a created
+    issue/project back to its template, no duplicate-template action.
+    **Still unverified at runtime** — the default swap batch and the rules block have not been run
+    against the emulator.
 15. **View chrome — switcher + detail tab strips, all entities in one pass** — the
     `viewPreferenceStore` itself landed back in step 4 ✅ (persisted to IndexedDB, `layout` keyed per
     `viewId`). What remains is the UI:
@@ -1058,9 +1224,13 @@ Vercel dashboard env vars (Prod+Preview+Dev): all `VITE_FIREBASE_*` + `FIREBASE_
 ## 12. What we're NOT building yet (slots in without architectural change)
 
 Multi-user collaboration (same workspace, many accounts) · Initiatives (projects grouped under
-strategy) · Cycle auto-schedule / cooldown / rollover · Project templates · Comments / reactions /
+strategy) · Cycle auto-schedule / cooldown / rollover · Comments / reactions /
 activity log · Notifications · Command palette + keyboard shortcuts · GitHub/Slack integrations
 (first HTTP-trigger function) · Public API.
+
+*(**Project templates left this list on 2026-08-16** — they shipped with step 14. Adding them cost one
+variant of an existing union rather than a new entity, which is exactly why the widening was cheap
+then and would not have been later.)*
 
 **Cycle burn-up chart — deferred, but UNBLOCKED (decided 2026-08-10).** Linear expands the current
 cycle's row into a burn-up: scope line, dotted ideal, cumulative *Started* and *Completed* curves,
@@ -1118,7 +1288,15 @@ and it draws real history from the day the fields shipped. What is left when som
   once from the **detail view's picker** (`updateIssue`), since stamping only one path is the easy
   miss. Reload after each: the stamps must survive the IndexedDB round-trip as `{seconds}` objects
   that `lib/date.ts` can still read.
-- **Templates**: mark a default → new-issue form pre-filled; switch template → fields swap.
+- **Templates ⚠️ (not yet run)**: mark a default → the new-issue / new-project form opens pre-filled;
+  switch template mid-form → the previous template's fields swap out **but anything typed by hand
+  stays**; clear the picker → back to blank. Mark a second template of the SAME type default and
+  confirm the incumbent is demoted in one batch (never two defaults, never zero after a promote),
+  while the OTHER type's default is untouched. Toggle the current default off → zero defaults, and the
+  create form opens blank again. Then leave a half-edited template page by Cancel, the back link, the
+  sidebar and browser Back — all four must raise "Discard changes?", and saving must NOT.
+  Apply an issue template that sets a project, pick a milestone, then switch to a template with a
+  different project: `milestoneId` must clear rather than cross projects.
 - **Tab sync**: two tabs — a mutation appears in the other in ~1ms ahead of the onSnapshot echo.
 - **Rules**: emulator confirms client `addDoc` to `issues`/`cycles` denied (server-only) while
   `projects`/`templates` client writes succeed; cross-workspace reads denied. Milestone writes are
