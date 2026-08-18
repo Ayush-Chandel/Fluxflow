@@ -7,7 +7,13 @@ import { useCycleStore } from '@/store/cycleStore'
 import { useIssueStore } from '@/store/issueStore'
 import { cycleProgress, EMPTY_PROGRESS, progressByKey, type Progress } from '@/lib/progress'
 import { toDate } from '@/lib/date'
-import { CYCLE_STATUSES, cycleStatusFromDates, type Cycle, type CycleStatus } from '@/types/cycle'
+import {
+  CYCLE_STATUSES,
+  cycleStatusFromDates,
+  type Cycle,
+  type CycleQuickView,
+  type CycleStatus,
+} from '@/types/cycle'
 import type { Issue } from '@/types/issue'
 
 /** A cycle paired with everything a row renders, so a row touches no store. */
@@ -70,6 +76,25 @@ export function useCycleBoardGroups(): Record<CycleStatus, CycleRow[]> {
 /** One cycle by id; undefined while the cache is cold or after a delete. */
 export function useCycle(cycleId: string | undefined): Cycle | undefined {
   return useCycleStore((s) => (cycleId ? s.cycles[cycleId] : undefined))
+}
+
+
+export function useQuickViewCycle(view: CycleQuickView | undefined): Cycle | undefined {
+  const cyclesMap = useCycleStore((s) => s.cycles)
+  return useMemo(() => (view ? pickQuickViewCycle(cyclesMap, view) : undefined), [cyclesMap, view])
+}
+
+function pickQuickViewCycle(
+  cyclesMap: Record<string, Cycle>,
+  view: CycleQuickView,
+): Cycle | undefined {
+  const wanted: CycleStatus = view === 'current' ? 'active' : 'upcoming'
+  const boundary = view === 'current' ? 'endDate' : 'startDate'
+  const now = Date.now()
+
+  return Object.values(cyclesMap)
+    .filter((cycle) => cycleStatusFromDates(cycle.startDate, cycle.endDate, now) === wanted)
+    .sort((a, b) => (toDate(a[boundary])?.getTime() ?? 0) - (toDate(b[boundary])?.getTime() ?? 0))[0]
 }
 
 /** All cycles as a stable array — the picker's option source. */

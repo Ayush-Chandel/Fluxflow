@@ -19,6 +19,10 @@ type NavLeafProps = {
     isActive: boolean;
 }
 
+
+const isPathActive = (pathname: string, path: string) =>
+    pathname === path || pathname.startsWith(path + '/')
+
 function NavLeaf({ to, label, icon, isActive }: NavLeafProps) {
     return (
         <Link
@@ -104,11 +108,23 @@ function StaggerAccordion({
                             }} >
                             {'children' in nav ? (
                                 <>
-                                    <div className='flex items-center gap-2 px-2 py-0.5 text-[13px] font-medium text-muted select-none'>
-                                        {nav.icon}
-                                        <span>{nav.label}</span>
-                                    </div>
-                                
+                                    {nav.path ? (
+                                        <NavLeaf
+                                            to={nav.path}
+                                            label={nav.label}
+                                            icon={nav.icon}
+                                            isActive={
+                                                activeKey === nav.key &&
+                                                !nav.children.some((child) => isPathActive(pathname, child.path))
+                                            }
+                                        />
+                                    ) : (
+                                        <div className='flex items-center gap-2 px-2 py-0.5 text-[13px] font-medium text-muted select-none'>
+                                            {nav.icon}
+                                            <span>{nav.label}</span>
+                                        </div>
+                                    )}
+
                                     <motion.ul variants={navparentVariants} className='mt-1 ml-[15px] space-y-1 border-l border-edge pl-1.5'>
                                         {nav.children.map((child)=>(
                                             <motion.li
@@ -122,7 +138,7 @@ function StaggerAccordion({
                                                     to={child.path}
                                                     label={child.label}
                                                     icon={child.icon}
-                                                    isActive={pathname === child.path || pathname.startsWith(child.path + '/')}
+                                                    isActive={isPathActive(pathname, child.path)}
                                                 />
                                             </motion.li>
                                         ))}

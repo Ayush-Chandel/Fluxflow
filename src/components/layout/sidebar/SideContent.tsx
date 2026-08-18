@@ -13,7 +13,16 @@ function SideContent({}: Props) {
     const navItems: NavItem[] = [
         { path:'/app/projects', icon:<BoxIcon className='fill-muted' size={14}/>, label:'Projects', key:'projects' },
         { path:'/app/issues',   icon:<CopyIcon className='fill-muted' size={14}/>, label:'Issues',   key:'issues' },
-        { path:'/app/cycles',   icon:<PlayCircleIcon className='fill-muted' size={14}/>, label:'Cycles', key:'cycles' },
+        {
+            path:'/app/cycles',
+            icon:<PlayCircleIcon className='fill-muted' size={14}/>,
+            label:'Cycles',
+            key:'cycles',
+            children: [
+                { path:'/app/cycles/current',  label:'Current' },
+                { path:'/app/cycles/upcoming', label:'Upcoming' },
+            ],
+        },
         {
             icon: <NoteIcon className='fill-muted' size={13}/>,
             label: 'Templates',

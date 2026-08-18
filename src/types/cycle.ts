@@ -5,6 +5,13 @@ import type { Timestamp } from 'firebase/firestore'
 export const CYCLE_STATUSES = ['upcoming', 'active', 'completed'] as const
 export type CycleStatus = (typeof CYCLE_STATUSES)[number]
 
+
+export const CYCLE_QUICK_VIEWS = ['current', 'upcoming'] as const
+export type CycleQuickView = (typeof CYCLE_QUICK_VIEWS)[number]
+
+export const isCycleQuickView = (value: string | undefined): value is CycleQuickView =>
+  CYCLE_QUICK_VIEWS.includes(value as CycleQuickView)
+
 export interface Cycle {
   id: string
   number: number // server-sequential (Vercel Fn) → displayed "Cycle N"

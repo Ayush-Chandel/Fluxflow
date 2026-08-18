@@ -61,6 +61,16 @@ export const router = createBrowserRouter([
               handle: sidebarHandle('cycles'),
             },
             {
+              path: 'cycles/current',
+              lazy: () => import('@/routes/workspace/cycles/CycleQuickView'),
+              handle: sidebarHandle('cycles'),
+            },
+            {
+              path: 'cycles/upcoming',
+              lazy: () => import('@/routes/workspace/cycles/CycleQuickView'),
+              handle: sidebarHandle('cycles'),
+            },
+            {
               path: 'cycles/:id/:slug?',
               lazy: () => import('@/routes/workspace/cycles/CycleDetail'),
               handle: sidebarHandle('cycles'),

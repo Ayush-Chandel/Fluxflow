@@ -9,6 +9,8 @@ import { useCreateIssueDialog } from '@/store/createIssueDialogStore';
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore';
 import { useCreateCycleDialog } from '@/store/createCycleDialogStore';
 import { useCycleStore } from '@/store/cycleStore';
+import { useCycleQuickViewParam } from '@/hooks/useCycleQuickView';
+import { useQuickViewCycle } from '@/hooks/useCycleSelectors';
 import { cycleLabel } from '@/types/cycle';
 import type { SidebarKey } from '@/types/layout';
 
@@ -30,7 +32,9 @@ function Topbar({activeKey,isPinned,pin,unpin,topLabel,path}: TopbarProps) {
     : undefined)
     const project = useProjectStore(s => (id ? s.projects[id] : undefined))
 
-    const cycle = useCycleStore(s => (id ? s.cycles[id] : undefined))
+    const quickView = useCycleQuickViewParam()
+    const quickViewCycle = useQuickViewCycle(quickView)
+    const cycle = useCycleStore(s => (id ? s.cycles[id] : undefined)) ?? quickViewCycle
 
     const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
     const openCreateProject = useCreateProjectDialog((s) => s.openWith)

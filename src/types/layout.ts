@@ -22,6 +22,7 @@ export type NavChild = {
 }
 
 export type NavGroup = Omit<Navlinks, 'path'> & {
+    path?: string;
     children: NavChild[]
 }
 
