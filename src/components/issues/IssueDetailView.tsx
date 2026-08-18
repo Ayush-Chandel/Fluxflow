@@ -8,7 +8,6 @@ import { ISSUE_MAP, PRIORITY_MAP } from '../common/constants/constants';
 import ProjectPicker from '../projects/ProjectPicker';
 import MilestonePicker from '../projects/MilestonePicker';
 import CyclePicker from '../cycles/CyclePicker';
-import { MOCK_ISSUES } from './__mockIssues';
 
 type IssueDetailViewProps = {
     identifier: string;
@@ -16,10 +15,8 @@ type IssueDetailViewProps = {
 
 function IssueDetailView({identifier}: IssueDetailViewProps) {
 
-    const storeIssue = useIssueStore(s =>
+    const issue = useIssueStore(s =>
         Object.values(s.issues).find(i => i.identifier === identifier.toUpperCase()))
-    // TEMP: falls back to seed data until real issues exist — remove with the mock file.
-    const issue = storeIssue ?? MOCK_ISSUES.find(i => i.identifier === identifier.toUpperCase())
 
     if (!issue) {
         return (
@@ -32,15 +29,12 @@ function IssueDetailView({identifier}: IssueDetailViewProps) {
     return <IssueDetail issue={issue} />
 }
 
-// Split from the lookup above so the edit hooks can sit below the "not found"
-// early return without breaking the rules of hooks.
+
 function IssueDetail({ issue }: { issue: Issue }) {
 
     const updateStatus = useIssueStore((s)=>s.updateStatus);
     const updateIssue = useIssueStore((s)=>s.updateIssue);
 
-    // Title/description commit once per editing session — on blur, on unmount
-    // (breadcrumb back-nav) or on tab-hide/refresh, whichever comes first.
     const title = useCommitOnExit(
         issue.title,
         (next: string) => {

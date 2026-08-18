@@ -2,7 +2,7 @@ import { Link, Navigate } from 'react-router'
 import CycleDetailView from '@/components/cycles/CycleDetailView'
 import { PlayCircleIcon } from '@/components/icons'
 import { useCycleQuickViewParam } from '@/hooks/useCycleQuickView'
-import { useQuickViewCycle } from '@/hooks/useCycleSelectors'
+import { cycleIssuesViewId, useQuickViewCycle } from '@/hooks/useCycleSelectors'
 import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
 import type { CycleQuickView as QuickView } from '@/types/cycle'
 
@@ -55,7 +55,13 @@ function CycleQuickView() {
   const cycle = useQuickViewCycle(view)
   if (!view) return <Navigate to='/app/cycles' replace />
 
-  return <CycleDetailView cycleId={cycle?.id} missing={<QuickViewEmpty view={view} />} />
+  return (
+    <CycleDetailView
+      cycleId={cycle?.id}
+      viewId={cycleIssuesViewId(view)}
+      missing={<QuickViewEmpty view={view} />}
+    />
+  )
 }
 
 export { CycleQuickView as Component }

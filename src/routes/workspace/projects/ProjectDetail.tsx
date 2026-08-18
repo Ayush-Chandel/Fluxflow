@@ -1,82 +1,22 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
-import { Columns3Icon, Rows3Icon } from 'lucide-react'
-import { projectIssuesViewId, useProject } from '@/hooks/useProjectSelectors'
+import { useProject } from '@/hooks/useProjectSelectors'
 import { useProjectStore } from '@/store/projectStore'
-import { DEFAULT_PREFERENCE, useViewPreferenceStore, type LayoutMode } from '@/store/viewPreferenceStore'
 import { Skeleton } from '@/components/ui/skeleton'
-import ProjectIssues from '@/components/projects/detail/ProjectIssues'
+import ViewBar, { ViewTabs, type ViewTab } from '@/components/common/ViewBar'
+import ProjectIssues, { ProjectIssuesBar } from '@/components/projects/detail/ProjectIssues'
 import ProjectOverview from '@/components/projects/detail/ProjectOverview'
 
 const HYDRATION_GRACE_MS = 1200
 
 type DetailTab = 'overview' | 'issues'
-const TABS: { key: DetailTab; label: string }[] = [
+// Milestones stay inside Overview (§12) rather than earning a tab — the list is
+// short and reads as project metadata, not as a third surface.
+const TABS: ViewTab<DetailTab>[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'issues', label: 'Issues' },
 ]
-
-const LAYOUTS: { key: LayoutMode; label: string; Icon: typeof Rows3Icon }[] = [
-  { key: 'list', label: 'List view', Icon: Rows3Icon },
-  { key: 'board', label: 'Board view', Icon: Columns3Icon },
-]
-
-
-function DetailTabsTemp({
-  projectId,
-  tab,
-  onTabChange,
-}: {
-  projectId: string
-  tab: DetailTab
-  onTabChange: (tab: DetailTab) => void
-}) {
-  const viewId = projectIssuesViewId(projectId)
-  const layout = useViewPreferenceStore(
-    (s) => (s.preferences[viewId] ?? DEFAULT_PREFERENCE).layout,
-  )
-  const setLayout = useViewPreferenceStore((s) => s.setLayout)
-
-  return (
-    <div className='flex shrink-0 items-center gap-1 border-b border-edge px-3 py-1.5'>
-      {TABS.map(({ key, label }) => (
-        <button
-          key={key}
-          type='button'
-          onClick={() => onTabChange(key)}
-          aria-current={tab === key ? 'page' : undefined}
-          className={`rounded-lg px-2 py-1 text-lsm transition-colors ${
-            tab === key ? 'bg-elevated text-foreground' : 'text-muted hover:bg-hover'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
-
-      {/* Only meaningful while the issues are on screen — the Overview has no
-          layout to switch. */}
-      {tab === 'issues' && (
-        <div className='ml-auto flex items-center gap-0.5'>
-          {LAYOUTS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              type='button'
-              onClick={() => setLayout(viewId, key)}
-              aria-label={label}
-              aria-pressed={layout === key}
-              className={`rounded-md p-1 transition-colors ${
-                layout === key ? 'bg-elevated text-foreground' : 'text-muted hover:bg-hover'
-              }`}
-            >
-              <Icon className='h-3.5 w-3.5' />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function ProjectDetail() {
   const { id } = useParams()
@@ -121,11 +61,13 @@ function ProjectDetail() {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col'>
-      <DetailTabsTemp projectId={project.id} tab={tab} onTabChange={setTab} />
+      <ViewBar>
+        <ViewTabs tabs={TABS} active={tab} onChange={setTab} />
 
-      {/* Each tab brings its own shell: the Overview is a centred column in a
-          vertical scroller, while the Issues tab fills the height and scrolls
-          internally (the board's columns must not sit inside a page scroller). */}
+        {tab === 'issues' && <ProjectIssuesBar project={project} />}
+      </ViewBar>
+
+
       {tab === 'overview' ? (
         <div className='min-h-0 flex-1 overflow-y-auto'>
           <div className='mx-auto w-full max-w-2xl px-6 py-10'>

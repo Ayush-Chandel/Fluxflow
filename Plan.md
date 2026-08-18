@@ -31,8 +31,10 @@ model / stores / routing / rules once so nothing is retrofitted.
   (framer-motion) exist. **`Topbar/Topbar.tsx` now renders a breadcrumb** — the `Issues` crumb, plus
   `› LIN-N <title>` when a detail is open; the `Issues` crumb `Link` owns back-navigation to the list.
   The primary create button ✅ landed with §10.5 (dispatches by `activeKey`). Still pending on the
-  topbar: filter chips (→ step 17) and the list⇄board view toggle — the toggle is explicitly **step
-  15**'s job now, shipping for issues/projects/cycles at once rather than once per entity.
+  topbar: filter chips (→ step 17). **The list⇄board toggle deliberately did NOT land in the Topbar**
+  (decided 2026-08-18): §15 put it in a `ViewBar` strip directly *under* it, so the Topbar never has
+  to know the current surface's `viewId` — which is param-dependent on detail pages and tab-dependent
+  on the project detail, where the open tab is local state and not routable.
   **Sidebar nav ✅** — `SideContent` lists Projects/Issues/Cycles plus the nested **Templates** group
   (§14 widened `StaggerAccordion` to one level of children). A separate `SidebarNav.tsx` never
   happened: the links are data in `SideContent` and the accordion renders them. `router.tsx` uses
@@ -142,7 +144,8 @@ model / stores / routing / rules once so nothing is retrofitted.
   step-15 tab strip will mount, built whole ahead of it: `useProjectIssues(projectId)` (no longer
   unused) → **both** `IssueListView` and `IssueKanbanView`, an `N issues` count, and a create that
   prefills `projectId` (header `+` and the empty state's button), exactly as `CycleDetail` prefills
-  `cycleId`. Layout comes from `viewPreferenceStore` under **`project:<id>:issues`** — the key is
+  `cycleId`. *(§15 moved that header row out of the panel and into the shared strip as
+  `ProjectIssuesBar`; the panel is now the empty state or the `ViewSurface`, nothing else.)* Layout comes from `viewPreferenceStore` under **`project:<id>:issues`** — the key is
   minted by `projectIssuesViewId(id)` in `useProjectSelectors` so the step-15 toggle addresses the same
   string the panel reads, making that step a pure `setLayout(viewId, …)` wiring. **The branch between
   the two lives inside the panel, not the page,** because the shells differ: the list scrolls
@@ -150,12 +153,9 @@ model / stores / routing / rules once so nothing is retrofitted.
   scroller is the failure mode §9C names). `ProjectDetail` now renders `overview | issues` off local
   state — **not** the URL, since §3 puts layout in IndexedDB and only filters in the URL, and an open
   tab is neither — with each tab bringing its own shell, and reseeds to Overview when `:id` changes.
-  **`DetailTabsTemp` inside `ProjectDetail.tsx` is explicitly temporary:** a stand-in tab strip +
-  list⇄board buttons so the tab is reachable before step 15; its layout buttons already make the exact
-  call the real toggle will, so step 15 deletes the component rather than rewriting the wiring.
-  `ProjectsPage` hardcodes the board today — the list⇄board
-  **switcher is deliberately not here**, it ships for issues/projects/cycles together in step 15, and
-  the two views need different page shells (the board must not sit in a vertical scroller).
+  **`DetailTabsTemp` is gone (§15, 2026-08-18)** — replaced by the shared `ViewBar` + `ViewTabs` +
+  `ViewToggle`. The stand-in's layout buttons made exactly the right `setLayout(viewId, …)` call, so
+  the swap was a deletion, not a rewrite. `ProjectsPage` no longer hardcodes its table either.
 - ✅ **Table sorting groundwork (2026-08-02)**: `ViewPreference` gains **`sortDir`** and `OrderBy`
   widens with the project columns (`name`/`status`/`lead`/`target`/`issues`/`progress`);
   `toggleSort(viewId, column)` implements header-click semantics (same column flips, new column starts
@@ -267,14 +267,13 @@ model / stores / routing / rules once so nothing is retrofitted.
   `updateIssue({status, sortOrder})` — so both entry points stamp through one path and cannot drift.
   `issueService.updateStatus` was deleted as a consequence (a status write is no longer single-field).
   `api/createIssue` stamps the same fields server-side for issues filed straight into in_progress/done.
-  **Deferred out of this step:** the list⇄board **switcher** → step 15, so `CyclesPage` hardcodes the
-  timeline and `CycleDetail` hardcodes the board, as `ProjectsPage` hardcodes its own; the **burn-up
-  chart** → §12. *Note the cycle detail's "Issues tab" is no longer pending — the detail page simply
-  IS the issues now, so step 15's tab strip has nothing to add here beyond the view toggle.*
+  **Deferred out of this step:** the list⇄board **switcher** → step 15 (✅ landed 2026-08-18: both
+  `CyclesPage` and `CycleDetail` now switch instead of hardcoding); the **burn-up chart** → §12.
+  *Note the cycle detail's "Issues tab" is no longer pending — the detail page simply IS the issues
+  now, so step 15's strip added only the view toggle beside the count/status/range chips.*
   **Known unused-but-kept:** `useCycleProgress` has no caller — rows carry their own derived
   progress, so nothing needs the single-id form (exactly the position `milestoneProgress` is in after
-  §12). `CycleBoardView` and its column/card are built and **unreachable** until the step-15 switcher
-  imports them; `CyclesPage` hardcodes the timeline.
+  §12). *`CycleBoardView` was in this list too until §15 wired the switcher — it is reachable now.*
   **NOT yet runtime-verified ⚠️**: nothing in this step has been run against the emulator —
   `/api/createCycle`, the status stamps, and cycle create/update/delete through the rules. Together
   with §12's untested milestone map writes this is the whole outstanding risk for steps 12–13 (§13).
@@ -347,6 +346,45 @@ model / stores / routing / rules once so nothing is retrofitted.
   **NOT yet runtime-verified ⚠️**: the two-document default swap, the `templates` rules block and
   template create/update/delete have never been run against the emulator, joining §12's milestone map
   writes and §13's cycle Fn on the same list (§13).
+- ✅ **Step 15 — View chrome (2026-08-18)**: the list⇄board switcher + the shared strip, wired for
+  **six** surfaces in one pass — issues, projects, cycles, the project detail's Issues tab, the cycle
+  detail, and the two **cycle quick views** (`/cycles/current`, `/cycles/upcoming`), which landed
+  after §13 was written and are the sixth surface the step grew. Four small pieces:
+  `hooks/useViewPreference.ts` ★ (`useLayout(viewId)` → `[layout, setLayout]`; selects the PRIMITIVE,
+  never `getPreference()`, which spreads a fresh object per call and would re-render on writes to
+  unrelated views), `common/ViewToggle` (two buttons, lucide `List`/`Columns3`),
+  `common/ViewBar` + `ViewTabs` (the strip, generic over the tab key), and `common/ViewSurface`.
+  **`ViewSurface` is the real content of this step, not the toggle.** The six views disagreed about
+  who owns the scroll — `CycleListView`/`CycleBoardView` brought their own root shells,
+  `IssueListView`/`ProjectListView` brought none — and that drift had already produced a live bug:
+  `ProjectsPage` wrapped its table in a flex column with **no `overflow-y-auto`** under a
+  `overflow-hidden` `main`, so the projects table was *clipped rather than scrollable* and its
+  `sticky top-0` header had no scroll container to stick in. The invariant now is **the surface owns
+  the VERTICAL scroller, each view owns its HORIZONTAL one** — which is exactly the shape of the
+  problem (only lists scroll down, only boards scroll across) and makes "board inside a vertical
+  scroller" (the §9C failure mode) structurally impossible instead of a rule six call sites must
+  remember. `CycleListView` gave up its own scroller; every branch is now
+  `<ViewSurface viewId list={…} board={…} />`.
+  **`ViewBar` is the ONLY strip on every surface** — no page hand-rolls a chrome row beside it. That
+  cost one move: `ProjectIssues`'s own `N issues` + `+` row would have stacked *under* the tab strip,
+  giving the project detail two chrome rows where the cycle detail has one, so it became
+  **`ProjectIssuesBar`** — exported from the panel's module and rendered INTO `ProjectDetail`'s
+  `ViewBar` when the Issues tab is open (count · create · toggle). It lives beside the panel, not in
+  the page, so the page needn't know what that tab has to say; it calls `useProjectIssues` a second
+  time on purpose, a memoized selector being cheaper than lifting the array up and drilling it back
+  down to both. (The templates pages' headers are NOT this: they replace a hidden Topbar, §14.)
+  **Decisions:** the strip sits under the Topbar on **every** surface (not in the Topbar — §0 step 3);
+  the quick views key their layout by **slug** (`cycle:current:issues`), only `/cycles/:id` keys by
+  id, because "current" is a different cycle each sprint and the layout belongs to the surface;
+  **Milestones stay inside Overview** rather than earning a tab (§12's list is project metadata, not
+  a third surface). `inert` moved up to the whole surface on the Issues page — it used to sit on the
+  list wrapper only, so the board under an open detail overlay stayed focusable and drag-targetable.
+  **Also cleaned up here:** `__mockIssues.ts` is **deleted** — `Issues.tsx`'s fallback was the last
+  thing §10.5 left, and `IssueDetailView` had a second one that could only ever resolve a mock the
+  list no longer showed. The Issues page gained the real empty state that fallback was hiding.
+  **Known gaps:** switching layout unmounts the other view, so scroll position is not preserved
+  (Linear behaves the same); the strip is hidden entirely on an empty page, so there is nothing to
+  toggle before the first issue/project/cycle exists.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -404,7 +442,8 @@ project-root/
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── WorkspaceLayout.tsx  ✅  Sidebar + Topbar + <Outlet> (NEVER remounts)
-│   │   │   ├── Topbar/Topbar.tsx    🚧 breadcrumb ✅ (owns back-nav) + create btn ✅ → view toggle (step 15), filter chips (step 17)
+│   │   │   ├── Topbar/Topbar.tsx    🚧 breadcrumb ✅ (owns back-nav) + create btn ✅ → filter chips (step 17)
+│   │   │   │        — the view toggle is NOT here: it lives in common/ViewBar, one row below (§15)
 │   │   │   └── sidebar/{Sidebar,SidebarContent,SideHeader,SideContent,CustomTrigger}.tsx ✅
 │   │   │        — nav links are DATA in SideContent (no SidebarNav.tsx); common/StaggerAccordion
 │   │   │          renders them, incl. the nested Templates group (§14)
@@ -422,7 +461,10 @@ project-root/
 │   │   │                 detail/ProjectMilestoneList ✅ (editable rows + drafts) ·
 │   │   │                 detail/ProjectIssues ✅ (project-scoped issues, BOTH layouts, prefilled
 │   │   │                   create; layout keyed `project:<id>:issues` — step 15 only adds the toggle)
-│   │   ├── common/     ✅ ProgressBar, MilestoneProgressIcon (quarter-filling diamond),
+│   │   ├── common/     ✅ ViewBar(+ViewTabs) · ViewToggle · ViewSurface — the step-15 chrome:
+│   │   │                 the strip under the Topbar, the list⇄board switcher, and the shell that
+│   │   │                 owns the VERTICAL scroll so a board can never sit inside one ·
+│   │   │                 ProgressBar, MilestoneProgressIcon (quarter-filling diamond),
 │   │   │                 ProgressRing (continuous donut — the cycle counterpart),
 │   │   │                 ProjectIcon(+Picker), ConfirmDialog, DatePillPicker,
 │   │   │                 DatePickerPanel, Calendar, AutoGrowTextarea, OptionPill…
@@ -489,7 +531,7 @@ project-root/
 │   │   ├── useProjectSelectors.ts ✅ useProjectList/useProject/useProjectIssues/useProjectProgress
 │   │   ├── useOpenIssue.ts ✅ · useOpenProject.ts ✅ (host handlers for the view callbacks)
 │   │   ├── useProjectMilestones.ts ✅ useProjectMilestoneList (manual order) + rows w/ progress
-│   │   └── useViewPreference.ts ★
+│   │   └── useViewPreference.ts ✅ useLayout(viewId) → [layout, setLayout] (§15)
 │   │
 │   └── mocks/{browser,handlers}.ts  ✅ (extend handlers)
 │
@@ -518,6 +560,8 @@ project-root/
   ├── projects            ProjectsPage         handle:{sidebarKey:'projects'}       ✅
   ├── projects/:id/:slug? ProjectDetail        Overview + Issues tabs (local state) ✅
   ├── cycles              Cycles               handle:{sidebarKey:'cycles'}         ✅
+  ├── cycles/current      CycleQuickView       the running cycle's issues            ✅
+  ├── cycles/upcoming     CycleQuickView       the next scheduled cycle's issues     ✅
   ├── cycles/:id/:slug?   CycleDetail          the cycle's ISSUES (no metadata form) ✅
   └── templates           handle:{sidebarKey:'templates'} on the PARENT              ✅
       ├── (index)         → redirect /app/templates/issues
@@ -535,6 +579,12 @@ Router's ranking, and a 20-char Firestore auto-id can never be the literal strin
 on the parent — `useSidebarKey` does `findLast` over all matches, so the children inherit it.
 
 **URL vs storage rule (unchanged):** layout (`list` | `board`) lives in **IndexedDB, never the URL**.
+Its key is a `viewId`, and the ids are minted beside their entity's selectors: `ISSUES_VIEW_ID`
+(`useIssues`), `PROJECTS_VIEW_ID`/`projectIssuesViewId` (`useProjectSelectors`),
+`CYCLES_VIEW_ID`/`cycleIssuesViewId` (`useCycleSelectors`). **The quick views key by SLUG**
+(`cycle:current:issues`) while `/cycles/:id` keys by id — "current" resolves to a different cycle
+every sprint, and the layout a user picked belongs to the surface they picked it on, not to whichever
+cycle happens to be running (decided 2026-08-18).
 Only **filters** live in the URL for shareability:
 `/app/issues?priority=high&assignee=me&project=<id>&cycle=<id>` parsed via `useSearchParams`.
 Keep the existing `lazy: () => import()` + `handle.sidebarKey` conventions for every new route.
@@ -905,9 +955,11 @@ Add composite indexes in `firestore.indexes.json` for issues filtered by `projec
 **Why:** the shell (`WorkspaceLayout`) must never remount so navigation feels instant and store
 subscriptions stay alive. **Build:** `SidebarNav.tsx` with Issues/Projects/Cycles/Settings `Link`s,
 active state from `useMatches()` → `handle.sidebarKey`, styled with tokens (`text-muted` idle →
-`text-brand`/active). Fill `Topbar.tsx`: breadcrumb/title ✅ and one `bg-brand` primary create action ✅;
-the list⇄board toggle (writes `viewPreferenceStore`) moved out to **step 15** so it can be wired for
-issues/projects/cycles in one pass, and filter chips (`useSearchParams`) to **step 17**.
+`text-brand`/active). Fill `Topbar.tsx`: breadcrumb/title ✅ and one `bg-brand` primary create action ✅; filter chips
+(`useSearchParams`) → **step 17**. The list⇄board toggle moved out to **step 15** and ✅ landed there —
+but in `common/ViewBar`, a strip one row *below* the Topbar, not in the Topbar itself: a detail page's
+`viewId` is param- and tab-dependent, so hoisting it would have made the Topbar track state it has no
+business knowing.
 
 ### B. Issues — *the fundamental unit; reference implementation of the whole pipeline*
 **Why:** every other feature reuses the issue views (`Accepts Issue[]`) and the store pattern.
@@ -963,10 +1015,11 @@ as the table. **Board order is always manual** — like the issue kanban it igno
 `viewId` preference without fighting over it. (The table's `orderBy: 'manual'` is no longer a dead
 branch either — it now reads `sortOrder`, so a table left on manual mirrors the board's sequence.)
 
-**The list⇄board switcher is NOT part of this step** — the toggle ships once, for issues, projects and
-cycles together, in **step 15** (decided 2026-08-06). Until it lands each page renders whichever view
-it hardcodes. Nothing about the board has to change when the toggle arrives: `viewPreferenceStore`
-already keys `layout` per `viewId`, so the switcher is pure wiring on top of finished views.
+**The list⇄board switcher was NOT part of this step** — it shipped once, for issues, projects and
+cycles together, in **step 15** ✅ (decided 2026-08-06, landed 2026-08-18). That prediction held for
+the toggle: `viewPreferenceStore` already keyed `layout` per `viewId`, so the switch itself was pure
+wiring. What was *not* free was the page shell — see §15's `ViewSurface` and the clipped-table bug it
+fixed here.
 
 **Build:** the table + the board above + `ProjectDetailPage` tabs — **Overview** (metadata + progress), **Issues** (reuses
 `IssueListView`/`IssueKanbanView` filtered by `projectId`), **Milestones**. Issue detail panel gets a
@@ -1022,7 +1075,8 @@ specced as "Active / Upcoming / Completed sections", just ordered by date with t
 grouped under headings, so it costs nothing extra to build it this way. Status derived by
 `cycleStatusFromDates(start,end,now)` in `types/cycle.ts` (not stored). **Both views ship in step 13**
 (decided 2026-08-06) — `CycleListView` plus a `CycleBoardView` whose columns are the three derived
-statuses — with the list⇄board **switcher deferred to step 15**, same as projects. One difference from
+statuses — with the list⇄board **switcher deferred to step 15** ✅ (landed 2026-08-18), same as
+projects. One difference from
 the project board: cycle cards are **not drag-orderable across columns**, because cycle status is
 derived from `startDate`/`endDate` — a cross-column drop would have to rewrite the date range, which
 is out of scope. So `Cycle` needs no `sortOrder` and the board is read-only in that axis.
@@ -1182,21 +1236,22 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
     issue/project back to its template, no duplicate-template action.
     **Still unverified at runtime** — the default swap batch and the rules block have not been run
     against the emulator.
-15. **View chrome — switcher + detail tab strips, all entities in one pass** — the
-    `viewPreferenceStore` itself landed back in step 4 ✅ (persisted to IndexedDB, `layout` keyed per
-    `viewId`). What remains is the UI:
-    (a) the **list⇄board toggle** wired for **issues, projects AND cycles**, each page choosing its
-    view from `getPreference(viewId).layout` instead of hardcoding one;
-    (b) the **detail tab strip** — one shared strip used by every detail page, replacing
-    `DetailTabsTemp` in `ProjectDetail.tsx` (the stand-in strip + layout buttons shipped 2026-08-12);
-    the same strip then serves the cycle detail. The **panel** it switches to is already built —
-    `detail/ProjectIssues` (`useProjectIssues` + `IssueListView`/`IssueKanbanView`, viewId
-    `project:<id>:issues`) — so this half is now deleting the stand-in, not building a tab. Moved here
-    from step 11 on 2026-08-10. A **Milestones** tab is optional now rather than pending: §12 shipped
-    `ProjectMilestoneList` inside **Overview**, so this step only has to decide whether it stays there
-    or earns its own tab — no new milestone work either way.
-    Batched on purpose — every view is built ahead of it, so this step is pure wiring and the chrome
-    behaves identically everywhere instead of being re-invented per entity.
+15. ✅ **View chrome — switcher + detail strips, all entities in one pass (2026-08-18)** — batching
+    paid: every view was built ahead of it, so the chrome is one set of components rather than six.
+    `hooks/useViewPreference` (`useLayout`) + `common/{ViewBar(+ViewTabs), ViewToggle, ViewSurface}`,
+    wired into **six** surfaces: `Issues`, `Projects`, `Cycles`, `ProjectIssues` (the detail's tab),
+    `CycleDetailView`, and the two **cycle quick views** — the sixth surface, which landed after this
+    step was written. `DetailTabsTemp` deleted. Missing viewIds minted beside their selectors (§3).
+    **The toggle was the easy half; the SHELL was the step.** `ViewSurface` now owns the vertical
+    scroller for every switchable surface while each view keeps its own horizontal one — which fixed a
+    live bug (`ProjectsPage`'s table was clipped, not scrollable, and its sticky header had no scroll
+    container) and makes the §9C failure mode structurally impossible rather than a convention.
+    **Decisions:** strip under the Topbar on every surface, not in it; quick views key layout by slug;
+    **Milestones stay in Overview**, no third tab. `inert` hoisted to the whole Issues surface so an
+    open detail overlay disables the board too, not just the list.
+    **Cleanup carried here:** `__mockIssues.ts` deleted (both fallbacks — `Issues.tsx` and
+    `IssueDetailView`), and the Issues page gained the empty state that fallback was hiding.
+    **Not done:** scroll position is lost across a layout switch; an empty page shows no strip.
 16. **BroadcastChannel** — wire tab-sync into all store mutations
 17. **Filters** — `useSearchParams` per page + Topbar chips (priority/assignee/project/cycle)
 18. ★ **Rules hardening + indexes** — final `firestore.rules` (§8) + composite indexes

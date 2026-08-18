@@ -1,7 +1,11 @@
 import { useProjectStore } from '@/store/projectStore'
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore'
 import { useOpenProject } from '@/hooks/useOpenProject'
+import { PROJECTS_VIEW_ID } from '@/hooks/useProjectSelectors'
 import { BoxIcon } from '@/components/icons'
+import ViewBar from '@/components/common/ViewBar'
+import ViewSurface from '@/components/common/ViewSurface'
+import ViewToggle from '@/components/common/ViewToggle'
 import ProjectKanbanView from '@/components/projects/kanban-view/ProjectKanbanView'
 import ProjectListView from '@/components/projects/list-view/ProjectListView'
 
@@ -39,10 +43,16 @@ function Projects() {
   }
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col'>
-      <ProjectListView onOpenProject={openProject}/>
-      {/* <ProjectKanbanView onOpenProject={openProject} /> */}
-    </div>
+    <>
+      <ViewBar>
+        <ViewToggle viewId={PROJECTS_VIEW_ID} className='ml-auto' />
+      </ViewBar>
+      <ViewSurface
+        viewId={PROJECTS_VIEW_ID}
+        list={<ProjectListView onOpenProject={openProject} />}
+        board={<ProjectKanbanView onOpenProject={openProject} />}
+      />
+    </>
   )
 }
 

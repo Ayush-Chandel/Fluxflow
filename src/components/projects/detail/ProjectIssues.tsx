@@ -1,18 +1,9 @@
-// src/components/projects/detail/ProjectIssues.tsx — the project's Issues tab.
-//
-// Everything the step-15 tab strip has to mount: the project-scoped issues,
-// BOTH layouts, the empty state, and a create that lands in this project. The
-// panel owns its layout preference under `project:<id>:issues`, so the step-15
-// toggle only ever calls setLayout(viewId, …) and nothing in here changes.
-//
-// The two layouts need different shells, which is why the branch lives here and
-// not in the caller: the list scrolls vertically, while the board must NOT sit
-// in a vertical scroller (its columns scroll internally and its height is the
-// viewport's).
+
 import { useOpenIssue } from '@/hooks/useOpenIssue'
 import { projectIssuesViewId, useProjectIssues } from '@/hooks/useProjectSelectors'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
-import { DEFAULT_PREFERENCE, useViewPreferenceStore } from '@/store/viewPreferenceStore'
+import ViewSurface from '@/components/common/ViewSurface'
+import ViewToggle from '@/components/common/ViewToggle'
 import IssueKanbanView from '@/components/issues/kanban-view/IssueKanbanView'
 import IssueListView from '@/components/issues/list-view/IssueListView'
 import { PlusIcon } from '@/components/icons'
@@ -38,47 +29,51 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   )
 }
 
-function ProjectIssues({ project }: { project: Project }) {
-  const issues = useProjectIssues(project.id)
-  const openIssue = useOpenIssue()
+function useCreateInProject(projectId: string) {
   const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
+  return () => openCreateIssue({ projectId })
+}
 
-  // Select the primitive, not getPreference() — that returns a fresh object on
-  // every call and would re-render this panel on unrelated store writes.
-  const layout = useViewPreferenceStore(
-    (s) => (s.preferences[projectIssuesViewId(project.id)] ?? DEFAULT_PREFERENCE).layout,
-  )
 
-  // Prefills the project so an issue created from this page lands in the one
-  // the user is looking at — the same move the cycle detail's `+` makes.
-  const createInProject = () => openCreateIssue({ projectId: project.id })
+export function ProjectIssuesBar({ project }: { project: Project }) {
+  const issues = useProjectIssues(project.id)
+  const createInProject = useCreateInProject(project.id)
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col'>
-      {/* Above the empty branch on purpose: the count is a fact about the
-          project ("zero in scope") and the create stays reachable either way. */}
-      <div className='flex shrink-0 items-center gap-2 px-4 pt-3 text-xs text-muted'>
-        <span className='tabular-nums'>
-          {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
-        </span>
+    <>
+      <span className='tabular-nums'>
+        {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
+      </span>
+      <div className='ml-auto flex items-center gap-1'>
         <button
           type='button'
           onClick={createInProject}
           aria-label='New issue in this project'
-          className='ml-auto rounded-full p-1 text-muted transition-colors hover:bg-hover hover:text-foreground'
+          className='rounded-full p-1 text-muted transition-colors hover:bg-hover hover:text-foreground'
         >
           <PlusIcon size={14} />
         </button>
+        <ViewToggle viewId={projectIssuesViewId(project.id)} />
       </div>
+    </>
+  )
+}
 
+function ProjectIssues({ project }: { project: Project }) {
+  const issues = useProjectIssues(project.id)
+  const openIssue = useOpenIssue()
+  const createInProject = useCreateInProject(project.id)
+
+  return (
+    <div className='flex min-h-0 flex-1 flex-col'>
       {issues.length === 0 ? (
         <EmptyState onCreate={createInProject} />
-      ) : layout === 'list' ? (
-        <div className='min-h-0 flex-1 overflow-y-auto'>
-          <IssueListView issues={issues} onOpenIssue={openIssue} />
-        </div>
       ) : (
-        <IssueKanbanView issues={issues} onOpenIssue={openIssue} />
+        <ViewSurface
+          viewId={projectIssuesViewId(project.id)}
+          list={<IssueListView issues={issues} onOpenIssue={openIssue} />}
+          board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} />}
+        />
       )}
     </div>
   )

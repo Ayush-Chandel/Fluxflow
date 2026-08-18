@@ -1,12 +1,12 @@
-// src/hooks/useIssues.ts — thin wrapper binding the issue store to the sync engine.
-// Call once where the workspace mounts (WorkspaceLayout); it hydrates from
-// IndexedDB then keeps the store live via onSnapshot. Components read issues from
-// useIssueStore directly — this hook only wires the subscription.
+
 import { useEntitySync } from '@/hooks/useEntitySync'
 import { cacheKey } from '@/lib/idb'
 import { useAuthStore } from '@/store/authStore'
 import { useIssueStore } from '@/store/issueStore'
 import type { Issue } from '@/types/issue'
+
+
+export const ISSUES_VIEW_ID = 'issues'
 
 export function useIssues() {
   const ws = useAuthStore((s) => s.user?.workspaceId)

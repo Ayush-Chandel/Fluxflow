@@ -4,7 +4,11 @@ import { useCycleStore } from '@/store/cycleStore'
 import { useOpenIssue } from '@/hooks/useOpenIssue'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import { Skeleton } from '@/components/ui/skeleton'
+import ViewBar from '@/components/common/ViewBar'
+import ViewSurface from '@/components/common/ViewSurface'
+import ViewToggle from '@/components/common/ViewToggle'
 import IssueKanbanView from '@/components/issues/kanban-view/IssueKanbanView'
+import IssueListView from '@/components/issues/list-view/IssueListView'
 import { CycleRangeChip, CycleStatusBadge } from '@/components/cycles/CycleStatusBadge'
 import { cycleStatusFromDates } from '@/types/cycle'
 
@@ -12,10 +16,11 @@ const HYDRATION_GRACE_MS = 1200
 
 type Props = {
   cycleId: string | undefined
+  viewId: string
   missing?: ReactNode
 }
 
-function CycleDetailView({ cycleId, missing }: Props) {
+function CycleDetailView({ cycleId, viewId, missing }: Props) {
   const cycle = useCycle(cycleId)
   const issues = useCycleIssues(cycleId)
   const hasCycles = useCycleStore((s) => Object.keys(s.cycles).length > 0)
@@ -56,13 +61,14 @@ function CycleDetailView({ cycleId, missing }: Props) {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col'>
-      <div className='flex shrink-0 items-center gap-2 px-4 pt-3 text-xs text-muted'>
+      <ViewBar>
         <span className='tabular-nums'>
           {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
         </span>
         <CycleStatusBadge status={status} />
         <CycleRangeChip cycle={cycle} />
-      </div>
+        {issues.length > 0 && <ViewToggle viewId={viewId} className='ml-auto' />}
+      </ViewBar>
 
       {issues.length === 0 ? (
         <div className='flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center'>
@@ -83,9 +89,11 @@ function CycleDetailView({ cycleId, missing }: Props) {
           </button>
         </div>
       ) : (
-        // Hardcodes the board, exactly as the Issues page does today; the
-        // list⇄board switcher ships for all three surfaces in step 15.
-        <IssueKanbanView issues={issues} onOpenIssue={openIssue} />
+        <ViewSurface
+          viewId={viewId}
+          list={<IssueListView issues={issues} onOpenIssue={openIssue} />}
+          board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} />}
+        />
       )}
     </div>
   )

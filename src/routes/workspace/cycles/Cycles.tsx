@@ -1,7 +1,12 @@
 import { useCycleStore } from '@/store/cycleStore'
 import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
 import { useOpenCycle } from '@/hooks/useOpenCycle'
+import { CYCLES_VIEW_ID } from '@/hooks/useCycleSelectors'
 import { PlayCircleIcon } from '@/components/icons'
+import ViewBar from '@/components/common/ViewBar'
+import ViewSurface from '@/components/common/ViewSurface'
+import ViewToggle from '@/components/common/ViewToggle'
+import CycleBoardView from '@/components/cycles/kanban-view/CycleBoardView'
 import CycleListView from '@/components/cycles/list-view/CycleListView'
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
@@ -36,13 +41,17 @@ function Cycles() {
     )
   }
 
-  // Hardcodes the timeline, exactly as ProjectsPage hardcodes its board. The
-  // list⇄board switcher ships for issues/projects/cycles together in step 15;
-  // CycleBoardView is built and waiting for it.
   return (
-    <div className='flex min-h-0 flex-1 flex-col'>
-      <CycleListView onOpenCycle={openCycle} />
-    </div>
+    <>
+      <ViewBar>
+        <ViewToggle viewId={CYCLES_VIEW_ID} className='ml-auto' />
+      </ViewBar>
+      <ViewSurface
+        viewId={CYCLES_VIEW_ID}
+        list={<CycleListView onOpenCycle={openCycle} />}
+        board={<CycleBoardView onOpenCycle={openCycle} />}
+      />
+    </>
   )
 }
 

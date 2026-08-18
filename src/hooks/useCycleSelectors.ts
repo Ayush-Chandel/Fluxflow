@@ -16,6 +16,11 @@ import {
 } from '@/types/cycle'
 import type { Issue } from '@/types/issue'
 
+
+export const CYCLES_VIEW_ID = 'cycles'
+
+export const cycleIssuesViewId = (key: string) => `cycle:${key}:issues`
+
 /** A cycle paired with everything a row renders, so a row touches no store. */
 export interface CycleRow {
   cycle: Cycle
@@ -29,9 +34,6 @@ const byStartDesc = (a: CycleRow, b: CycleRow) =>
 
 function buildRows(cyclesMap: Record<string, Cycle>, issuesMap: Record<string, Issue>): CycleRow[] {
   const progress = progressByKey(Object.values(issuesMap), 'cycleId')
-  // Status is derived per render rather than memoized against a clock: it only
-  // changes when a boundary is crossed, and the store churns far more often than
-  // that, so a timer would buy nothing a re-render doesn't already give us.
   const now = Date.now()
   return Object.values(cyclesMap).map((cycle) => ({
     cycle,
