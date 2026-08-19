@@ -27,11 +27,14 @@ model / stores / routing / rules once so nothing is retrofitted.
 - ✅ **Step 2 — Auth flow**: `authService.ts`, `authStore.ts` (`onIdTokenChanged`, reads `workspaceId`
   claim), `routes/Guards.tsx` (AuthRoute/ProtectedRoute + AppSplash), Login/SignUp with Zod
   (`lib/validation.ts`), `api/setWorkspaceClaims.ts` implemented.
-- 🚧 **Step 3 — App shell (in progress)**: `WorkspaceLayout.tsx` + pinnable/hover-reveal `Sidebar`
+- ✅ **Step 3 — App shell (closed 2026-08-19)**: every part of it has now landed — the sidebar nav
+  with §14, the view toggle with §15, the filter chips with §17 — so the 🚧 it carried since the
+  beginning is finally gone. `WorkspaceLayout.tsx` + pinnable/hover-reveal `Sidebar`
   (framer-motion) exist. **`Topbar/Topbar.tsx` now renders a breadcrumb** — the `Issues` crumb, plus
   `› LIN-N <title>` when a detail is open; the `Issues` crumb `Link` owns back-navigation to the list.
-  The primary create button ✅ landed with §10.5 (dispatches by `activeKey`). Still pending on the
-  topbar: filter chips (→ step 17). **The list⇄board toggle deliberately did NOT land in the Topbar**
+  The primary create button ✅ landed with §10.5 (dispatches by `activeKey`). **The Topbar is now
+  COMPLETE** — §17 put the filter chips in `ViewBar` too (2026-08-19), so breadcrumb + create button
+  is all it will ever hold. **The list⇄board toggle deliberately did NOT land in the Topbar**
   (decided 2026-08-18): §15 put it in a `ViewBar` strip directly *under* it, so the Topbar never has
   to know the current surface's `viewId` — which is param-dependent on detail pages and tab-dependent
   on the project detail, where the open tab is local state and not routable.
@@ -88,7 +91,7 @@ model / stores / routing / rules once so nothing is retrofitted.
   minimize-to-corner bar (`CreateIssueMinimizedBar`), maximize toggle, "Create more". Entity selectors
   deferred (§11–§14; Assignee/Project pills static today). Remaining cleanup: `MOCK_ISSUES` fallback in
   `Issues.tsx` still present (harmless — only shows at zero real issues).
-- 🚧 **Step 11 — Projects (logic landed, UI pending)**: the whole non-UI half is built —
+- ✅ **Step 11 — Projects (closed 2026-08-19; the board, detail and pickers all landed long ago — the 🚧 outlived them)**: the non-UI half was built first —
   `types/project.ts` gains `CreateProjectInput`/`NewProjectDoc`, `services/projectService.ts`
   (client-only CRUD; `newId()` pre-generates the doc id so create needs no temp-id dance),
   `store/projectStore.ts` (optimistic create/update/delete + rollback, array cache via `selectAll()`,
@@ -369,7 +372,7 @@ model / stores / routing / rules once so nothing is retrofitted.
   cost one move: `ProjectIssues`'s own `N issues` + `+` row would have stacked *under* the tab strip,
   giving the project detail two chrome rows where the cycle detail has one, so it became
   **`ProjectIssuesBar`** — exported from the panel's module and rendered INTO `ProjectDetail`'s
-  `ViewBar` when the Issues tab is open (count · create · toggle). It lives beside the panel, not in
+  `ViewBar` when the Issues tab is open (count · filter · toggle · create, since §17). It lives beside the panel, not in
   the page, so the page needn't know what that tab has to say; it calls `useProjectIssues` a second
   time on purpose, a memoized selector being cheaper than lifting the array up and drilling it back
   down to both. (The templates pages' headers are NOT this: they replace a hidden Topbar, §14.)
@@ -441,6 +444,30 @@ model / stores / routing / rules once so nothing is retrofitted.
   `noUnusedLocals`. Removed so the step could be typechecked at all.
   **NOT yet runtime-verified ⚠️**: the receive path has not been exercised in two live tabs, and
   joins §12's milestone map writes, §13's cycle Fn and §14's default swap on that list (§13).
+- ✅ **Step 17 — Filters (2026-08-19)**: status/priority/project/cycle across the four issue
+  surfaces (Issues · project detail's Issues tab · cycle detail · both cycle quick views, which
+  render through `CycleDetailView` and so came free). **Nothing server-side changed** — every issue
+  is already in the store, so a filter is one array pass; no service, store, rules or index touched.
+  `lib/issueFilters.ts` ★ + `hooks/useIssueFilters.ts` ★ + `common/{FilterBar,NoFilterMatches}` ★.
+  **The chips went in `ViewBar`, not the Topbar** — superseding §9A/§10.3, on §15's own reasoning
+  (per-surface state; and the Topbar is hidden on `/app/templates/*`). The Topbar is now finished.
+  **The chip component is VENDORED, not written**: `components/reui/filters.tsx` (§2). It gives the
+  one thing `IssueCommandBox` structurally cannot — **multi-select** — and being controlled, the URL
+  stays canonical and it is only an editor. **Operators pinned to `is_any_of`** so §3's URL contract
+  stays flat. Full detail, including the three shape problems (empty-param = pending chip, chip ids
+  must be the field name, memo on values not the params object) in §10.17.
+  **Also settled here:** the emptiness check moved to the **pre-filter** array so filtering to zero
+  keeps the bar (and the chips) on screen instead of stranding the user; and **reordering is
+  disabled while a filter is active** (`sortable` prop → `useSensors(sortable ? pointer : null)`),
+  since a drop between visible neighbours would write a `sortOrder` blind to the hidden rows.
+  **Landed while doing it:** the vendored file arrived as ReUI's **base-ui** build and did not
+  compile against this project's Radix primitives — `npm run build` was red on 5 errors before a
+  line of §17 was written. Replaced with ReUI's own **radix-nova** build (identical exports),
+  `@base-ui/react` **uninstalled** (nothing else imported it), and `components.json` now pins
+  `@reui` to `radix-nova` — the `{style}` placeholder was silently resolving to `base-nova`, which
+  is how a base-ui component entered a Radix project unasked.
+  **NOT yet runtime-verified ⚠️**: nothing here has been exercised in the browser — the chips, the
+  URL round-trip, and the two empty states join the list in §13.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -490,7 +517,7 @@ project-root/
 │   │   ├── Guards.tsx   ✅
 │   │   ├── auth/{Login,SignUp}.tsx  ✅
 │   │   └── workspace/
-│   │       ├── issues/IssuesPage.tsx            🚧 stub → build
+│   │       ├── issues/IssuesPage.tsx            ✅ list+board, detail overlay, filters
 │   │       ├── projects/{ProjectsPage,ProjectDetailPage}.tsx   ★
 │   │       ├── cycles/{Cycles,CycleDetail}.tsx                 ✅
 │   │       └── templates/{TemplatesPage,TemplateFormPage}.tsx  ✅ (NOT under settings/ — §3)
@@ -498,17 +525,18 @@ project-root/
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── WorkspaceLayout.tsx  ✅  Sidebar + Topbar + <Outlet> (NEVER remounts)
-│   │   │   ├── Topbar/Topbar.tsx    🚧 breadcrumb ✅ (owns back-nav) + create btn ✅ → filter chips (step 17)
-│   │   │   │        — the view toggle is NOT here: it lives in common/ViewBar, one row below (§15)
+│   │   │   ├── Topbar/Topbar.tsx    ✅ breadcrumb (owns back-nav) + create btn — COMPLETE
+│   │   │   │        — NEITHER the view toggle (§15) NOR the filter chips (§17) are here:
+│   │   │   │          both live in common/ViewBar, one row below
 │   │   │   └── sidebar/{Sidebar,SidebarContent,SideHeader,SideContent,CustomTrigger}.tsx ✅
 │   │   │        — nav links are DATA in SideContent (no SidebarNav.tsx); common/StaggerAccordion
 │   │   │          renders them, incl. the nested Templates group (§14)
-│   │   ├── issues/     🚧 IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
+│   │   ├── issues/     ✅ IssueListView, IssueKanbanView, KanbanColumn, IssueRow, IssueCard,
 │   │   │                 IssueCommandBox ✅ (list/kanban take a host-agnostic onOpenIssue) ·
 │   │   │                 IssueDetailView ✅ (overlay + deep-link + inline edit; side-panel treatment deferred)
 │   │   ├── modals/     ✅ CreateIssueDialog (global, in WorkspaceLayout) + CreateIssueModal +
 │   │   │                 CreateIssueMinimizedBar + CreateProjectModal + CreateCycleModal
-│   │   ├── projects/   🚧 projectColumns, SortHeader, MilestoneDraftList ✅ ·
+│   │   ├── projects/   ✅ projectColumns, SortHeader, MilestoneDraftList ✅ ·
 │   │   │                 ProjectPicker ✅ · MilestonePicker ✅ (project-scoped, nullable,
 │   │   │                   options show per-milestone progress) ·
 │   │   │                 list-view/{ProjectListView,ProjectRow} ✅ ·
@@ -517,7 +545,13 @@ project-root/
 │   │   │                 detail/ProjectMilestoneList ✅ (editable rows + drafts) ·
 │   │   │                 detail/ProjectIssues ✅ (project-scoped issues, BOTH layouts, prefilled
 │   │   │                   create; layout keyed `project:<id>:issues` — step 15 only adds the toggle)
-│   │   ├── common/     ✅ ViewBar(+ViewTabs) · ViewToggle · ViewSurface — the step-15 chrome:
+│   │   ├── common/     ✅ FilterBar ★ (the §17 chips — builds the vendored <Filters>' `fields`
+│   │   │                   from ISSUE_MAP/PRIORITY_MAP/the project+cycle lists, so a glyph is
+│   │   │                   never minted twice; its MENU_STYLE/CHIP_STYLE/PINNED/CYCLE_RANK
+│   │   │                   constants live in common/constants/constants.tsx beside the maps
+│   │   │                   they extend) · NoFilterMatches ★ (filtered-to-zero; NOT the
+│   │   │                   same as a surface's "nothing yet" state — this one keeps the bar) ·
+│   │   │                 ViewBar(+ViewTabs) · ViewToggle · ViewSurface — the step-15 chrome:
 │   │   │                 the strip under the Topbar, the list⇄board switcher, and the shell that
 │   │   │                 owns the VERTICAL scroll so a board can never sit inside one ·
 │   │   │                 ProgressBar, MilestoneProgressIcon (quarter-filling diamond),
@@ -538,7 +572,43 @@ project-root/
 │   │   │                 TemplatePicker (in BOTH create modals' headers) ·
 │   │   │                 TemplateIssue / TemplateProject — the two page-form bodies, the ONLY
 │   │   │                   split components; each carries its own header/footer (§9F)
-│   │   └── ui/         ✅ shadcn primitives (button, card, popover, sheet, sidebar, tooltip…)
+│   │   ├── ui/         ✅ shadcn primitives (button, card, popover, sheet, sidebar, tooltip…)
+│   │   └── reui/       ✅ VENDORED — filters.tsx (ReUI, ~2,150 lines), the multi-select filter
+│   │                      chips §17 configures. **This folder sits OUTSIDE the "everything
+│   │                      shared and derived" discipline the rest of the tree follows**: it is
+│   │                      third-party source we own but do not author, treated exactly like
+│   │                      ui/ — you configure it from the call site (`fields`, `size`,
+│   │                      `operators`), you never restyle it line by line. Most of it is
+│   │                      unused (async loadOptions, renderOptionList virtualization, the
+│   │                      text/validation field types, the i18n config, FilterGroup) and that
+│   │                      is FINE — unused ≠ needing removal. Trimming it is what converts a
+│   │                      small delta into a fork that can never take an upstream update.
+│   │                      Local delta from upstream is **+50/−36** — much of it comment; the
+│   │                      changes are: (d) `LOCAL PATCH (§17)` — the submenu opens on
+│   │                      `onMouseEnter` instead of waiting for Radix's hardcoded 100ms
+│   │                      SubTrigger timer, which has no prop. `open` is controlled here, so
+│   │                      setting it directly beats the timer and the timer's own
+│   │                      onOpenChange lands as a no-op; (a) resolving ReUI's build-time icon shim to lucide,
+│   │                      which its own installer would have done; (b) `LOCAL PATCH (§17)` —
+│   │                      the add-filter submenu falls back to finding a field's existing
+│   │                      filter when the menu session has no id for it, since
+│   │                      `sessionFilterIds` resets on every open and a REOPENED menu would
+│   │                      otherwise show an unchecked, add-only submenu beside a chip that
+│   │                      already holds values; (c) `LOCAL PATCH (§17)` — **`menuPopupClassName`
+│   │                      now reaches every menu the component renders**, which upstream it
+│   │                      does not: the sub-content hardcoded its class, and the operator
+│   │                      dropdown (rendered deep inside a chip, not by `Filters`) had no route
+│   │                      to one at all, so it is passed down the existing context. Without it
+│   │                      those two popups keep stock shadcn styling while the other two follow
+│   │                      the app. Re-apply all three after an upstream update.
+│   │                      **Everything else is configured from FilterBar**, styling included:
+│   │                      the menus take IssueCommandBox's look (`bg-surface`, 13px `text-lsm`,
+│   │                      brand-tinted chosen row) through descendant selectors in one
+│   │                      `MENU_STYLE` constant, not by editing the file's classes.
+│   │                      Installed from the **radix-nova** style — `components.json`
+│   │                      pins `@reui` to it, because the `{style}` placeholder silently fell
+│   │                      back to `base-nova` and pulled in a `@base-ui/react` dependency the
+│   │                      project (Radix everywhere) had no other use for.
 │   │
 │   ├── services/
 │   │   ├── authService.ts    ✅
@@ -567,6 +637,9 @@ project-root/
 │   │   ├── validation.ts     ✅
 │   │   ├── utils.ts (cn)     ✅
 │   │   ├── idb.ts            ✅ idb-keyval get/set helpers
+│   │   ├── issueFilters.ts   ★ the §17 predicate — pure, one pass, identity back when nothing
+│   │   │                        is filtered; null projectId/cycleId travel as sentinels, since
+│   │   │                        a URL param cannot carry null
 │   │   ├── ordering.ts       ✅ generic fractional-index engine (issues + projects share it);
 │   │   │                        appendOrder() for column-less lists (milestones)
 │   │   ├── issueOrdering.ts  ✅ issue-typed wrappers: drop → {status, sortOrder} patches
@@ -594,7 +667,9 @@ project-root/
 │   │   ├── useProjectSelectors.ts ✅ useProjectList/useProject/useProjectIssues/useProjectProgress
 │   │   ├── useOpenIssue.ts ✅ · useOpenProject.ts ✅ (host handlers for the view callbacks)
 │   │   ├── useProjectMilestones.ts ✅ useProjectMilestoneList (manual order) + rows w/ progress
-│   │   └── useViewPreference.ts ✅ useLayout(viewId) → [layout, setLayout] (§15)
+│   │   ├── useViewPreference.ts ✅ useLayout(viewId) → [layout, setLayout] (§15)
+│   │   └── useIssueFilters.ts ★ the §17 URL codec — the ONE place search params are read or
+│   │                            written; hands the vendored <Filters> its controlled array
 │   │
 │   └── mocks/{browser,handlers}.ts  ✅ (extend handlers)
 │
@@ -648,8 +723,16 @@ Its key is a `viewId`, and the ids are minted beside their entity's selectors: `
 (`cycle:current:issues`) while `/cycles/:id` keys by id — "current" resolves to a different cycle
 every sprint, and the layout a user picked belongs to the surface they picked it on, not to whichever
 cycle happens to be running (decided 2026-08-18).
-Only **filters** live in the URL for shareability:
-`/app/issues?priority=high&assignee=me&project=<id>&cycle=<id>` parsed via `useSearchParams`.
+Only **filters** live in the URL for shareability, parsed via `useSearchParams` in
+`hooks/useIssueFilters.ts` — the ONE place that reads or writes them (§17):
+`/app/issues?status=todo,in_progress&priority=high&project=<id>&cycle=<id>`. The grammar is flat and
+multi-value: one param per facet, comma-separated, **no operators** — every field is pinned to
+"is any of", so negation would need a widened contract rather than a new value. Unknown values are
+dropped on parse, so a stale or hand-edited URL degrades to a wider list instead of crashing a chip.
+A present-but-empty param (`?status=`) is a chip the user has added but not yet filled — distinct
+from an absent one, which is no chip at all. Writes use `replace: true`, so toggling a chip does not
+stack history entries. **`assignee=me` is NOT implemented** — no member entity exists to resolve it
+against (§10.8's standing gap).
 Keep the existing `lazy: () => import()` + `handle.sidebarKey` conventions for every new route.
 
 ---
@@ -1038,8 +1121,11 @@ Add composite indexes in `firestore.indexes.json` for issues filtered by `projec
 **Why:** the shell (`WorkspaceLayout`) must never remount so navigation feels instant and store
 subscriptions stay alive. **Build:** `SidebarNav.tsx` with Issues/Projects/Cycles/Settings `Link`s,
 active state from `useMatches()` → `handle.sidebarKey`, styled with tokens (`text-muted` idle →
-`text-brand`/active). Fill `Topbar.tsx`: breadcrumb/title ✅ and one `bg-brand` primary create action ✅; filter chips
-(`useSearchParams`) → **step 17**. The list⇄board toggle moved out to **step 15** and ✅ landed there —
+`text-brand`/active). Fill `Topbar.tsx`: breadcrumb/title ✅ and one `bg-brand` primary create action ✅.
+**The filter chips did NOT land here either** — §17 (2026-08-19) put them in `common/ViewBar`
+alongside the toggle, for the same two reasons: filters are per-surface state the Topbar has no
+business tracking, and the Topbar is hidden on `/app/templates/*`. With that, the Topbar is **done**:
+breadcrumb + create button, nothing else. The list⇄board toggle moved out to **step 15** and ✅ landed there —
 but in `common/ViewBar`, a strip one row *below* the Topbar, not in the Topbar itself: a detail page's
 `viewId` is param- and tab-dependent, so hoisting it would have made the Topbar track state it has no
 business knowing.
@@ -1229,8 +1315,11 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
 
 1. ✅ Firebase setup
 2. ✅ Auth flow + guards
-3. 🚧 **App shell** — `SidebarNav` (Issues/Projects/Cycles); `Topbar` breadcrumb ✅ (owns
-   back-navigation) + create btn ✅; view toggle → step 15, filter chips → step 17; wire active state
+3. ✅ **App shell (closed 2026-08-19)** — sidebar nav ✅ (links are DATA in `SideContent`, rendered by
+   `StaggerAccordion`; no `SidebarNav.tsx` was ever built), `Topbar` breadcrumb ✅ (owns
+   back-navigation) + create btn ✅, active state ✅. The two pieces this step deferred both landed
+   elsewhere and NEITHER in the Topbar: view toggle → step 15 ✅, filter chips → step 17 ✅, both in
+   `common/ViewBar` one row below (§9A)
 4. ✅ **Shared foundation** — `types/*`, `lib/idb.ts`, `lib/broadcastChannel.ts`,
    `hooks/useEntitySync.ts`, `viewPreferenceStore`
 5. ✅ **Issue store + `useIssues`** — optimistic CRUD w/ rollback (reference impl); immer middleware,
@@ -1271,7 +1360,7 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
     11–13 (Assignee/Project pills are static placeholders today); `TemplatePicker` + template-default
     merges into `prefill` with step 14. **Remaining cleanup:** `MOCK_ISSUES` fallback in
     `IssuesPage` (`Issues.tsx`) not yet removed — harmless, only renders at zero real issues.
-11. 🚧 **Projects** — store/service/hook ✅ + project rules ✅ + derived progress ✅
+11. ✅ **Projects** — store/service/hook ✅ + project rules ✅ + derived progress ✅
     (`lib/progress.ts`, `hooks/useProjectSelectors.ts`) + **`priority` on projects** ✅ (shared
     `IssuePriority` scale / `PRIORITY_MAP`, §4) + `CreateProjectModal` ✅ + the **projects table** ✅
     (`ProjectListView` + sortable sticky header) + the **board data layer** ✅ (`sortOrder` on
@@ -1348,7 +1437,95 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
     peer tab. `templateStore` already did this and was the reference. Receiver writes the store
     only: no idb re-write (shared per-origin, the sender already wrote it), no re-broadcast, no
     service call. `viewPreferenceStore` deliberately does NOT sync. Full detail in §0.
-17. **Filters** — `useSearchParams` per page + Topbar chips (priority/assignee/project/cycle)
+17. ✅ **Filters (2026-08-19)** — status/priority/project/cycle over the issue surfaces, filtered
+    **client-side**: every issue is already in the store via onSnapshot, so this is one array pass
+    and touches no service, store, rule or index. `lib/issueFilters.ts` ★ (the predicate — returns
+    the SAME array reference when nothing is filtered, so downstream memos hold),
+    `hooks/useIssueFilters.ts` ★ (the URL codec), `common/FilterBar.tsx` ★ (the config),
+    `common/NoFilterMatches.tsx` ★. Wired into **four** surfaces: Issues, the project detail's
+    Issues tab, the cycle detail, and the two cycle quick views (which render through
+    `CycleDetailView`, so they came free).
+    **The chips are in `ViewBar`, NOT the Topbar** (decided 2026-08-19, superseding §9A and §10.3).
+    Filters are per-surface exactly like layout is, so the argument §15 used for the view toggle
+    applies unchanged — and the Topbar is hidden on `/app/templates/*` (§14), which a Topbar-hosted
+    control could not survive.
+    **The component is vendored, not written**: `components/reui/filters.tsx` (ReUI, ~2,150 lines) —
+    see §2. It supplies the one thing `IssueCommandBox` structurally cannot, a **multi-select** with
+    per-option icons, and it is **controlled**, so the URL stays the source of truth and the
+    component is only an editor over state it does not own.
+    **Operators are PINNED to `is_any_of`** — one entry in `field.operators` per field, so the chip's
+    operator segment renders as a static label and §3's URL contract stays flat (`?status=todo,done`).
+    Encoding operators (`?status=is_not_any_of:todo`) would widen §3 and turn the predicate into an
+    expression evaluator; the machinery stays available for free if negation is ever wanted.
+    **Three details that are load-bearing, not polish:**
+    (a) **A present-but-empty param is a chip with no values yet** (`?status=`), distinct from an
+    absent one. Without that distinction, adding a chip from the "+ Filter" menu writes nothing to
+    the URL and the chip vanishes under the pointer on the next render.
+    (b) **Chip ids are the FIELD NAME**, not `createFilter()`'s generated one. The array is rebuilt
+    from the URL after every change, so a fresh random id would remount the chip and close its
+    popover on each value the user picked.
+    (c) **The `filter` memo keys on the param VALUES, not the `URLSearchParams` object** — react-router
+    returns a new instance per render, which would rebuild every derived issue array on every
+    unrelated re-render.
+    **The add-filter menu keeps active facets LISTED (`allowMultiple`), which took three passes to
+    get right.** Dropping them (the obvious reading of "one chip per field") had the menu item and
+    its open submenu unmount on the FIRST ticked value — the item and the submenu are one node — so
+    exactly one value could be picked per visit and the chip was the only way to add a second.
+    Keeping them listed needs two supports: `setFilters` **unions** duplicate entries for a field
+    rather than overwriting (the URL has one param per facet, so a second chip started by a
+    reopened menu would otherwise drop the first chip's values, and the union self-heals into one
+    chip on the next rebuild); and the vendored `LOCAL PATCH` (§2) so a reopened submenu resolves
+    the field's existing chip instead of showing unchecked, add-only options. Ticking several
+    values in one visit, accurate checkmarks, and un-ticking all work now; there is still exactly
+    one chip per field.
+    **Two empty states, and the emptiness check moved to the PRE-filter array.** `all.length === 0`
+    keeps the old bar-less onboarding state; `all.length > 0 && filtered.length === 0` keeps the
+    **`ViewBar` on screen** and renders `NoFilterMatches`. Hiding the bar there would have stranded
+    the user with no way to undo the filter that emptied the page — the chips live in it.
+    **Reordering is disabled while a filter is active.** Both views gained `sortable?: boolean`
+    (default true) and the pages pass `!active`. It withholds the SENSOR (`useSensors(sortable ?
+    pointer : null)` — one argument always, so the dep array keeps its length) rather than
+    restructuring: rows/cards call `useSortable` unconditionally, they simply never receive a drag.
+    A drop between two visible neighbours would otherwise write a `sortOrder` ignoring the hidden
+    rows between them. This costs the BOARD more than the list — dragging is also how a card changes
+    status, so with a filter on, the card's own picker becomes the only route.
+    **Deliberately absent:** `assignee` — §3's example URL lists it, but there is still no member
+    entity (the same gap as avatars and labels everywhere else), so the facet has no options to
+    offer; and no filtering on the **Projects/Cycles** tables themselves — those filter entities, not
+    issues, and would need their own predicate and facets. **Deep links are unaffected**:
+    `IssueDetailView` resolves by identifier from the store, not from the filtered array, so an
+    issue a filter excludes still opens.
+    **Perf pass (2026-08-19), after the filter UI measured as laggy while the rest of the app did
+    not.** The DevTools summary was the thing that cracked it: **Scripting 14.1s vs Rendering 0.7s
+    and Painting 0.07s** over 30s. That ratio rules out layout thrash — two plausible-sounding
+    theories died on it (a `scrollIntoView`-per-hovered-row reflow, and re-render breadth), and both
+    speculative patches were reverted rather than left in earning nothing. `console.count` probes
+    then showed the app side was already clean — **one** render of `IssuesPage`/`FilterBar` per
+    selection, and the issue list not re-rendering at all — while hovering four rows cost 15 renders
+    of the vendored component. Modest. So the cost was neither ours nor breadth: it was **deliberate
+    latency**, ~250ms of it per menu visit, and removing it is what fixed the feel:
+    - shadcn's menu content animates at tw-animate-css's 150ms default, and Radix's `Presence` waits
+      for `animationend` before unmounting — so it is paid on the way OUT as well as in. Halved to
+      75ms via `!animation-duration-75` in `MENU_STYLE` (config; the animation is kept, not removed).
+    - Radix's `MenuSubTrigger` sits on a hardcoded 100ms timer with no prop to shorten it → the
+      `LOCAL PATCH` in §2.
+    **Two real fixes found while looking, both worth keeping on their own merit:** `FilterBar` used
+    `useCycleRows()`, which subscribes to the whole ISSUE store and runs `progressByKey` over every
+    issue — to render cycle *labels*. It shows no counts, so that bought nothing and rebuilt every
+    field object plus a React element per project/cycle icon on EVERY issue mutation; now
+    `useCycleList()`, with status derived from the cycle's own dates. And **pre-existing, unrelated
+    to §17**: both issue views passed an inline `{activationConstraint:{distance:5}}` to dnd-kit's
+    `useSensor`, which memoizes on `[sensor, options]` — so a fresh object each render meant
+    `DndContext` tore down and rebuilt every sensor binding on every render of the list. Hoisted to
+    a module constant in both views.
+    **Known characteristic, not fixed:** the vendored component keeps the add-filter menu's
+    `highlightedIndex` on its TOP-LEVEL component, so each hovered row re-renders every chip and
+    every chip's value popover. Measured at 15 renders for four rows with one chip up — fine at this
+    scale, and not reachable from outside; if it ever matters, the fix is to move that state down,
+    which is a real fork rather than a patch.
+    **Known gaps:** filters do not persist across navigation (they live in the URL, by §3's rule, and
+    a fresh visit starts clean); the strip is still hidden entirely on a workspace with zero issues,
+    so there is nothing to filter before the first one exists.
 18. ★ **Rules hardening + indexes** — final `firestore.rules` (§8) + composite indexes
 19. **Vercel deploy** — Admin SDK env vars, strip MSW from prod, deploy functions
 20. **Landing page** — last
@@ -1447,6 +1624,20 @@ and it draws real history from the day the fields shipped. What is left when som
   sidebar and browser Back — all four must raise "Discard changes?", and saving must NOT.
   Apply an issue template that sets a project, pick a milestone, then switch to a template with a
   different project: `milestoneId` must clear rather than cross projects.
+- **Filters ⚠️ (not yet run)**: add a Status chip from "+ Filter" and confirm it **survives with no
+  values picked** (the URL shows `?status=`) — if it vanishes, the empty-param distinction broke.
+  Pick several values in one popover without it closing between clicks (that is the chip-id test).
+  Then, **without leaving the add-filter menu**, tick three statuses in a row: the Status item must
+  stay listed and its submenu stay open, each tick showing a checkmark. Close the menu, reopen it,
+  hover Status again: the submenu must show those three **already checked**, and un-ticking one
+  must remove it (that is the `LOCAL PATCH` test — before it, the reopened submenu was blank and
+  could only add). Throughout, there must never be TWO Status chips.
+  Copy the URL into a second tab: the same chips and the same rows. Then hand-edit it to
+  `?status=nonsense` → the full list renders, no crash. Filter to zero and confirm the **ViewBar
+  stays** with a working Clear; filter on a workspace with zero issues and confirm you get the
+  onboarding state instead. With a filter active, try to drag a row and a card: **neither lifts**.
+  Clear it and confirm both drag again. Finally open an issue the filter excludes by its deep link —
+  the detail must still render, since it resolves from the store, not the filtered array.
 - **Tab sync ⚠️ (not yet run)**: two tabs on the same workspace, side by side.
   - **Forward**: edit an issue / project / cycle / template in tab A → tab B updates in ~1ms, visibly
     ahead of the onSnapshot echo. Do a **milestone** too (rename one in tab A): it takes the map-field

@@ -11,12 +11,15 @@ import {
 } from '@dnd-kit/core';
 import KanbanColumn from './KanbanColumn';
 
+const POINTER_ACTIVATION = { activationConstraint: { distance: 5 } };
+
 type IssueKanbanProps = {
     issues:Issue[];
     onOpenIssue?: (issue: Issue) => void;
+    sortable?: boolean;
 }
 
-function IssueKanbanView({issues, onOpenIssue}: IssueKanbanProps) {
+function IssueKanbanView({issues, onOpenIssue, sortable = true}: IssueKanbanProps) {
 
   const updateIssue = useIssueStore((s)=>s.updateIssue);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
@@ -25,7 +28,9 @@ function IssueKanbanView({issues, onOpenIssue}: IssueKanbanProps) {
 
   const justDragged = useRef(false);
 
-  const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 5}}));
+  const pointer = useSensor(PointerSensor, POINTER_ACTIVATION);
+  // One argument always; dnd-kit drops the null and no drag can start.
+  const sensors = useSensors(sortable ? pointer : null);
 
   const groupedIssues = Object.fromEntries(ISSUE_STATUSES.map((status)=>(
     [status, sortIssues(issues.filter((issue)=>issue.status === status))]

@@ -1,9 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useCycle, useCycleIssues } from '@/hooks/useCycleSelectors'
 import { useCycleStore } from '@/store/cycleStore'
 import { useOpenIssue } from '@/hooks/useOpenIssue'
+import { useIssueFilters } from '@/hooks/useIssueFilters'
+import { filterIssues, type FilterField } from '@/lib/issueFilters'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import { Skeleton } from '@/components/ui/skeleton'
+import FilterBar from '@/components/common/FilterBar'
+import NoFilterMatches from '@/components/common/NoFilterMatches'
 import ViewBar from '@/components/common/ViewBar'
 import ViewSurface from '@/components/common/ViewSurface'
 import ViewToggle from '@/components/common/ViewToggle'
@@ -14,6 +18,8 @@ import { cycleStatusFromDates } from '@/types/cycle'
 
 const HYDRATION_GRACE_MS = 1200
 
+const HIDE_CYCLE: readonly FilterField[] = ['cycle']
+
 type Props = {
   cycleId: string | undefined
   viewId: string
@@ -22,8 +28,11 @@ type Props = {
 
 function CycleDetailView({ cycleId, viewId, missing }: Props) {
   const cycle = useCycle(cycleId)
-  const issues = useCycleIssues(cycleId)
+  const all = useCycleIssues(cycleId)
   const hasCycles = useCycleStore((s) => Object.keys(s.cycles).length > 0)
+
+  const { filter, clear, active } = useIssueFilters()
+  const issues = useMemo(() => filterIssues(all, filter), [all, filter])
 
   const openIssue = useOpenIssue()
   const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
@@ -67,10 +76,11 @@ function CycleDetailView({ cycleId, viewId, missing }: Props) {
         </span>
         <CycleStatusBadge status={status} />
         <CycleRangeChip cycle={cycle} />
+        {all.length > 0 && <div className='ml-0.5'><FilterBar hide={HIDE_CYCLE} /></div>}
         {issues.length > 0 && <ViewToggle viewId={viewId} className='ml-auto' />}
       </ViewBar>
 
-      {issues.length === 0 ? (
+      {all.length === 0 ? (
         <div className='flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center'>
           <div>
             <p className='text-sm font-medium text-foreground'>No issues in this cycle</p>
@@ -88,11 +98,13 @@ function CycleDetailView({ cycleId, viewId, missing }: Props) {
             New issue
           </button>
         </div>
+      ) : issues.length === 0 ? (
+        <NoFilterMatches onClear={clear} />
       ) : (
         <ViewSurface
           viewId={viewId}
-          list={<IssueListView issues={issues} onOpenIssue={openIssue} />}
-          board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} />}
+          list={<IssueListView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
+          board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
         />
       )}
     </div>

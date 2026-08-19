@@ -213,6 +213,7 @@ interface FilterContextValue {
   showSearchInput?: boolean
   trigger?: React.ReactNode
   allowMultiple?: boolean
+  menuPopupClassName?: string
 }
 
 const FilterContext = createContext<FilterContextValue>({
@@ -224,6 +225,7 @@ const FilterContext = createContext<FilterContextValue>({
   showSearchInput: true,
   trigger: undefined,
   allowMultiple: true,
+  menuPopupClassName: undefined,
 })
 
 const useFilterContext = () => useContext(FilterContext)
@@ -828,7 +830,11 @@ function FilterOperatorDropdown<T = unknown>({
           {operatorLabel}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-fit min-w-fit">
+      {/* style this popup with the caller's menu class too. */}
+      <DropdownMenuContent
+        align="start"
+        className={cn("w-fit min-w-fit", context.menuPopupClassName)}
+      >
         {operators.map((op) => (
           <DropdownMenuItem
             key={op.value}
@@ -1781,8 +1787,18 @@ export function Filters<T = unknown>({
       className,
       trigger,
       allowMultiple,
+      menuPopupClassName,
     }),
-    [variant, size, radius, mergedI18n, className, trigger, allowMultiple]
+    [
+      variant,
+      size,
+      radius,
+      mergedI18n,
+      className,
+      trigger,
+      allowMultiple,
+      menuPopupClassName,
+    ]
   )
 
   return (
@@ -1936,9 +1952,15 @@ export function Filters<T = unknown>({
                           const isMultiSelect = field.type === "multiselect"
                           const fieldKey = field.key as string
                           const sessionFilterId = sessionFilterIds[fieldKey]
-                          const sessionFilter = sessionFilterId
-                            ? filters.find((f) => f.id === sessionFilterId)
-                            : null
+                          // LOCAL PATCH (§17): fall back to the field's existing
+                          // filter when this menu session has no id for it —
+                          // sessionFilterIds resets every time the menu opens, so
+                          // without this a REOPENED menu shows an unchecked,
+                          // add-only submenu beside a chip that already has values.
+                          const sessionFilter =
+                            (sessionFilterId
+                              ? filters.find((f) => f.id === sessionFilterId)
+                              : null) ?? filters.find((f) => f.field === fieldKey)
                           const currentValues = sessionFilter?.values || []
 
                           return (
@@ -1963,13 +1985,29 @@ export function Filters<T = unknown>({
                                 role="option"
                                 aria-selected={isHighlighted}
                                 data-highlighted={isHighlighted || undefined}
-                                onMouseEnter={() => setHighlightedIndex(index)}
+                                onMouseEnter={() => {
+                                  setHighlightedIndex(index)
+                                  // LOCAL PATCH (§17): open the submenu NOW.
+                                  // Radix's SubTrigger waits on a hardcoded
+                                  // 100ms timer before calling onOpenChange,
+                                  // with no prop to shorten it. `open` is
+                                  // controlled here, so setting it directly
+                                  // beats the timer; when the timer does fire
+                                  // its onOpenChange is a no-op.
+                                  setOpenSubMenu(fieldKey)
+                                }}
                                 className="data-[state=open]:bg-accent data-[state=open]:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                               >
                                 {field.icon}
                                 <span>{field.label}</span>
                               </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-[200px]">
+                              {/* honor menuPopupClassName here
+                                  too. The root content already does, so without
+                                  this the add-filter submenu is the ONE menu
+                                  surface a caller cannot style. */}
+                              <DropdownMenuSubContent
+                                className={cn("w-[200px]", menuPopupClassName)}
+                              >
                                 <FilterSubmenuContent
                                   field={field}
                                   currentValues={currentValues}

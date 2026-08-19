@@ -17,9 +17,12 @@ import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 
 const keepRowsInPlace: SortingStrategy = () => null;
 
+const POINTER_ACTIVATION = { activationConstraint: { distance: 5 } };
+
 type IssueListProps = {
     issues:Issue[];
     onOpenIssue?: (issue: Issue) => void;
+    sortable?: boolean;
 }
 
 function GroupHeader({status, count}: {status: IssueStatus; count: number}) {
@@ -39,7 +42,7 @@ function GroupHeader({status, count}: {status: IssueStatus; count: number}) {
     )
 }
 
-function IssueListView({issues, onOpenIssue}: IssueListProps) {
+function IssueListView({issues, onOpenIssue, sortable = true}: IssueListProps) {
 
   const updateIssue = useIssueStore((s)=>s.updateIssue);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
@@ -48,7 +51,8 @@ function IssueListView({issues, onOpenIssue}: IssueListProps) {
 
   // Require 5px of movement before a drag starts, so plain clicks still reach
   // the pickers inside the row.
-  const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 5}}));
+  const pointer = useSensor(PointerSensor, POINTER_ACTIVATION);
+  const sensors = useSensors(sortable ? pointer : null);
 
   const groupedIssues = Object.fromEntries(ISSUE_STATUSES.map((status)=>(
     [status, sortIssues(issues.filter((issue)=>issue.status === status))]

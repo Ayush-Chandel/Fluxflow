@@ -382,6 +382,17 @@ export const AssigneeIcon = createIcon(
   "lch(39.576% 1.25 282 / 1)"
 );
 
+export const FilterIcon = createIcon(
+  "FilterIcon",
+  "0 0 16 16",
+  <path
+    fillRule="evenodd"
+    clipRule="evenodd"
+    d="M14.25 3a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5h12.5ZM4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8Zm2.75 3.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"
+  />,
+  "lch(39.176% 1.25 282 / 1)"
+);
+
 export const ArrowUpIcon = createIcon(
   "ArrowUpIcon",
   "0 0 16 16",

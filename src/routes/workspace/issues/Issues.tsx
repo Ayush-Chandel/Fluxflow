@@ -4,7 +4,11 @@ import { useParams } from "react-router"
 import { useIssueStore } from "@/store/issueStore"
 import { useCreateIssueDialog } from "@/store/createIssueDialogStore"
 import { useOpenIssue } from "@/hooks/useOpenIssue"
+import { useIssueFilters } from "@/hooks/useIssueFilters"
+import { filterIssues } from "@/lib/issueFilters"
 import { ISSUES_VIEW_ID } from "@/hooks/useIssues"
+import FilterBar from "@/components/common/FilterBar"
+import NoFilterMatches from "@/components/common/NoFilterMatches"
 import ViewBar from "@/components/common/ViewBar"
 import ViewSurface from "@/components/common/ViewSurface"
 import ViewToggle from "@/components/common/ViewToggle"
@@ -40,27 +44,33 @@ function Issues() {
 
   // Subscribe only to the issues map; rebuild the array when it actually changes.
   const issuesMap = useIssueStore((s) => s.issues)
-  const issues = useMemo(() => Object.values(issuesMap), [issuesMap])
+  const all = useMemo(() => Object.values(issuesMap), [issuesMap])
+
+  const { filter, clear, active } = useIssueFilters()
+  const issues = useMemo(() => filterIssues(all, filter), [all, filter])
 
   return (
     <>
-    {issues.length === 0 ? (
+    {all.length === 0 ? (
       <div className='min-h-0 flex-1 pt-2'>
         <EmptyState onCreate={() => openCreateIssue()} />
       </div>
     ) : (
       <>
         <ViewBar>
+          <FilterBar />
           <ViewToggle viewId={ISSUES_VIEW_ID} className='ml-auto' />
         </ViewBar>
-        {/* inert covers BOTH layouts: with the detail overlay open nothing
-            underneath should be focusable or drag-targetable. */}
-        <ViewSurface
-          viewId={ISSUES_VIEW_ID}
-          inert={!!identifier}
-          list={<IssueListView issues={issues} onOpenIssue={openIssue} />}
-          board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} />}
-        />
+        {issues.length === 0 ? (
+          <NoFilterMatches onClear={clear} />
+        ) : (
+          <ViewSurface
+            viewId={ISSUES_VIEW_ID}
+            inert={!!identifier}
+            list={<IssueListView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
+            board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
+          />
+        )}
       </>
     )}
     {identifier &&
