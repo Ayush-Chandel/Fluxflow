@@ -87,7 +87,16 @@ function ProjectIssues({ project }: { project: Project }) {
         <ViewSurface
           viewId={projectIssuesViewId(project.id)}
           list={<IssueListView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
-          board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
+          board={
+            <IssueKanbanView
+              issues={issues}
+              onOpenIssue={openIssue}
+              sortable={!active}
+              // A column's `+` here means "new issue in THIS project", the same
+              // as the `+` in the bar above — the column only adds its status.
+              createPrefill={{ projectId: project.id }}
+            />
+          }
         />
       )}
     </div>

@@ -104,7 +104,16 @@ function CycleDetailView({ cycleId, viewId, missing }: Props) {
         <ViewSurface
           viewId={viewId}
           list={<IssueListView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
-          board={<IssueKanbanView issues={issues} onOpenIssue={openIssue} sortable={!active} />}
+          board={
+            <IssueKanbanView
+              issues={issues}
+              onOpenIssue={openIssue}
+              sortable={!active}
+              // Matches the empty state's "New issue" above: created from this
+              // page, the issue lands in the cycle the user is looking at.
+              createPrefill={{ cycleId: cycle.id }}
+            />
+          }
         />
       )}
     </div>

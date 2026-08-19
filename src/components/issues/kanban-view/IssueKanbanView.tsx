@@ -1,4 +1,4 @@
-import { ISSUE_STATUSES, type Issue } from '@/types/issue'
+import { ISSUE_STATUSES, type CreateIssueInput, type Issue } from '@/types/issue'
 import { useRef, useState } from 'react'
 import IssueCard from './IssueCard';
 import { useIssueStore } from '@/store/issueStore';
@@ -17,9 +17,12 @@ type IssueKanbanProps = {
     issues:Issue[];
     onOpenIssue?: (issue: Issue) => void;
     sortable?: boolean;
+    /** Scope every column's `+` inherits — set by the project and cycle pages so
+     *  an issue created from their board joins that project/cycle. */
+    createPrefill?: Partial<CreateIssueInput>;
 }
 
-function IssueKanbanView({issues, onOpenIssue, sortable = true}: IssueKanbanProps) {
+function IssueKanbanView({issues, onOpenIssue, sortable = true, createPrefill}: IssueKanbanProps) {
 
   const updateIssue = useIssueStore((s)=>s.updateIssue);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
@@ -126,7 +129,13 @@ function IssueKanbanView({issues, onOpenIssue, sortable = true}: IssueKanbanProp
     >
         <div className='pt-4  pl-3 pr-2 flex gap-x-2 overflow-x-auto  flex-1 min-h-0'>
             {ISSUE_STATUSES.map((status)=>(
-                <KanbanColumn key={status} status={status} group={groups[status]} onOpenCard={openCard}/>
+                <KanbanColumn
+                    key={status}
+                    status={status}
+                    group={groups[status]}
+                    onOpenCard={openCard}
+                    createPrefill={createPrefill}
+                />
             ))}
         </div>
         {/* Card that follows the pointer; the original stays in place, dimmed. */}

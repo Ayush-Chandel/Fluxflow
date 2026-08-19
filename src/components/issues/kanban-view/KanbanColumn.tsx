@@ -5,18 +5,27 @@ import { PlusIcon } from 'lucide-react';
 import { useDroppable,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import type { Issue, IssueStatus } from '@/types/issue';
+import { useCreateIssueDialog } from '@/store/createIssueDialogStore';
+import type { CreateIssueInput, Issue, IssueStatus } from '@/types/issue';
 
 type KanbanColumnProps = {
     status: IssueStatus;
     group: Issue[];
     onOpenCard?: (issue: Issue) => void;
+    /** What the surrounding view is scoped to — a project's or a cycle's issues.
+     *  The column stacks its own status on top, so an issue started here lands in
+     *  the column it was started from AND in the view it was started in. */
+    createPrefill?: Partial<CreateIssueInput>;
 }
 
-function KanbanColumn({status, group, onOpenCard}: KanbanColumnProps) {
+function KanbanColumn({status, group, onOpenCard, createPrefill}: KanbanColumnProps) {
 
     // Column = drop target; its id is the status a dropped card will get.
     const {setNodeRef,over} = useDroppable({id: status});
+
+    const openCreateIssue = useCreateIssueDialog((s) => s.openWith);
+    const createHere = () => openCreateIssue({ ...createPrefill, status });
+    const createLabel = `New issue in ${ISSUE_MAP[status].label}`;
 
     const isOverColumn = over != null
     && (over.id === status || group.some((issue) => issue.id === over.id));
@@ -29,9 +38,16 @@ function KanbanColumn({status, group, onOpenCard}: KanbanColumnProps) {
                     <span>{ISSUE_MAP[status].label}</span>
                     <span>{group.length}</span>
                 </div>
-                <div className='flex items-center gap-x-2'>
+                <div className='flex items-center gap-x-2 text-muted'>
                     <MoreIcon size={14}/>
-                    <PlusIcon size={12}/>
+                    <button
+                        type='button'
+                        onClick={createHere}
+                        aria-label={createLabel}
+                        className='rounded transition-colors hover:text-foreground'
+                    >
+                        <PlusIcon size={12}/>
+                    </button>
                 </div>
             </div>
             <div className='overflow-auto flex-1 min-h-0 pb-4'>
@@ -46,8 +62,17 @@ function KanbanColumn({status, group, onOpenCard}: KanbanColumnProps) {
                         ))}
                     </SortableContext>
                 </div>
-                <div className='rounded-xl border border-edge-subtle bg-raised    items-center invisible opacity-0 transition-all duration-200 group-hover:opacity-100 flex group-hover:visible justify-center px-2 py-1.5 pt-3 mt-3 mx-2'>
-                    <PlusIcon size={12}/>
+                {/* Inset by the same px-2 as the cards above, so the ghost lines up
+                    with them; w-full then needs no calc against its own margins. */}
+                <div className='px-2'>
+                    <button
+                        type='button'
+                        onClick={createHere}
+                        aria-label={createLabel}
+                        className='w-full rounded-xl border border-edge-subtle bg-raised text-muted items-center invisible opacity-0 transition-all duration-200 group-hover:opacity-100 flex group-hover:visible hover:text-foreground justify-center px-2 py-1.5 pt-3 mt-3'
+                    >
+                        <PlusIcon size={12}/>
+                    </button>
                 </div>
             </div>
         </div>
