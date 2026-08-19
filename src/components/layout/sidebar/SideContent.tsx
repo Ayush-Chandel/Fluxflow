@@ -3,9 +3,7 @@ import { BoxIcon, CopyIcon, NoteIcon, PlayCircleIcon } from '@/components/icons'
 import { useSidebarKey } from '@/lib/utils';
 import type { NavItem, SidebarKey } from '@/types/layout';
 
-type Props = {}
-
-function SideContent({}: Props) {
+function SideContent() {
 
     const activeKey:SidebarKey = useSidebarKey()?.sidebarKey;
 

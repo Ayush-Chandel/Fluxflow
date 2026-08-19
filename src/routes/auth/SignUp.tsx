@@ -35,7 +35,7 @@ type SignUpFormData = z.infer<typeof signUpSchema>; // replaces
         try {
          await authService.signUp(data?.email, data?.password)
          // ← no navigate() here — authService handles it
-       } catch (err: any) {
+       } catch {
          toast.error('An error occured')
        }
   };

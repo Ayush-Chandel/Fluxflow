@@ -1,51 +1,25 @@
 {
-  // Example (Standard Edition):
+  // Deliberately EMPTY — decided in build order 18, superseding §8's line about
+  // "composite indexes for issues filtered by projectId / cycleId / milestoneId".
   //
-  // "indexes": [
-  //   {
-  //     "collectionGroup": "widgets",
-  //     "queryScope": "COLLECTION",
-  //     "fields": [
-  //       { "fieldPath": "foo", "arrayConfig": "CONTAINS" },
-  //       { "fieldPath": "bar", "mode": "DESCENDING" }
-  //     ]
-  //   },
+  // That line assumed the app would query Firestore per project/cycle/milestone.
+  // It does not, and by design: hooks/useEntitySync.ts subscribes to each whole
+  // collection with onSnapshot(collection(db, path)) and every by-project,
+  // by-cycle, by-milestone and by-filter read is an array pass over the store
+  // (useProjectIssues, useCycleIssues, lib/progress.ts, lib/issueFilters.ts).
+  // There is not one where() / query() / orderBy() call in src/.
   //
-  //  "fieldOverrides": [
-  //    {
-  //      "collectionGroup": "widgets",
-  //      "fieldPath": "baz",
-  //      "indexes": [
-  //        { "order": "ASCENDING", "queryScope": "COLLECTION" }
-  //      ]
-  //    },
-  //   ]
-  // ]
+  // Composite indexes exist to serve compound QUERIES. With no query there is
+  // nothing to serve, and Firestore already maintains single-field indexes
+  // automatically — so adding them now would be config that can only rot: it
+  // would drift from the real access pattern and imply a query shape the app
+  // does not have.
   //
-  // Example (Enterprise Edition):
-  //
-  // "indexes": [
-  //   {
-  //     "collectionGroup": "reviews",
-  //     "queryScope": "COLLECTION_GROUP",
-  //     "apiScope": "MONGODB_COMPATIBLE_API",
-  //     "density": "DENSE",
-  //     "multikey": false,
-  //     "fields": [
-  //       { "fieldPath": "baz", "mode": "ASCENDING" }
-  //     ]
-  //   },
-  //   {
-  //     "collectionGroup": "items",
-  //     "queryScope": "COLLECTION_GROUP",
-  //     "apiScope": "MONGODB_COMPATIBLE_API",
-  //     "density": "SPARSE_ANY",
-  //     "multikey": true,
-  //     "fields": [
-  //       { "fieldPath": "baz", "mode": "ASCENDING" }
-  //     ]
-  //   },
-  // ]
+  // WHEN THIS CHANGES: the hydrate-all model is bounded by workspace size. The
+  // day one collection outgrows a full subscription and useEntitySync grows a
+  // where()/limit(), the matching composite index belongs here in the SAME
+  // change — a missing index surfaces as a runtime FAILED_PRECONDITION with a
+  // console link, never as a slow query, so it cannot go unnoticed.
   "indexes": [],
   "fieldOverrides": []
 }

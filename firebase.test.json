@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Emulator config for `npm run test:rules` ONLY (build order 18).",
+    "It exists so the rules suite never shares an emulator with your dev one:",
+    "the suite calls clearFirestore() between tests, which would wipe the",
+    "workspace you are developing against. Different ports = different process,",
+    "so `firebase emulators:start` can stay up while the tests run.",
+    "The UI is off and auth is absent because rules-unit-testing mints its own",
+    "tokens in-process — no Auth emulator is involved."
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8085
+    },
+    "hub": {
+      "port": 4405
+    },
+    "logging": {
+      "port": 4505
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
+  }
+}

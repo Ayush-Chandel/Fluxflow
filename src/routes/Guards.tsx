@@ -21,12 +21,7 @@ export function AuthRoute() {
 // Wraps all /app/* routes — boots unauthenticated users
 export function ProtectedRoute() {
   const { user, loading } = useAuthStore();
-  console.log(loading,'loagin');
-  
-  console.log(user,'user');
-  console.log('check');
-  
-  
+
   if (loading) return <AppSplash />  // prevents /login flash on hard refresh
   if (!user) return <Navigate to="/login" replace />
   return <Outlet />

@@ -7,7 +7,7 @@ export const logInSchema = z.object({
     .string()
     .min(6, 'Password must be at least 6 characters')
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/,
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/,
       'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
     ),
 });
@@ -18,7 +18,7 @@ export const signUpSchema = z.object({
     .string()
     .min(6, 'Password must be at least 6 characters')
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/,
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/,
       'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
     ),
 });

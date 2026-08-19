@@ -4,9 +4,7 @@ import { Button } from '@/components/ui/button'
 import { authService } from '@/services/authService'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 
-type Props = {}
-
-function SideHeader({}: Props) {
+function SideHeader() {
   const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
 
   return (

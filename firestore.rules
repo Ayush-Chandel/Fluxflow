@@ -1,61 +1,292 @@
-rules_version='2'
+rules_version = '2';
+
+// FluxFlow security rules — §8, build order 18 (the hardening pass).
+//
+// TWO layers, and the second one is what step 18 added:
+//
+//   1. AUTHORIZATION — every path is gated on the caller's `workspaceId` custom
+//      claim matching the {ws} segment (minted by api/setWorkspaceClaims).
+//
+//   2. FIELD VALIDATION — an authorized caller may only touch the fields its UI
+//      actually writes. This is not belt-and-braces: services/issueService.ts
+//      (and its project/cycle/template siblings) spread an arbitrary client
+//      patch into updateDoc(), so before this layer any signed-in user could
+//      overwrite `identifier`, `createdBy`, `createdAt` or a cycle's `number` —
+//      exactly the server-minted values that create-blocking those collections
+//      exists to protect (§14.2). Create-blocking the write and then leaving the
+//      update wide open protects nothing.
+//
+// HOW THE ALLOW-LISTS WORK. Each collection declares the fields a client may
+// CHANGE; everything else is protected by omission, including keys that don't
+// exist yet — an unknown key added by a write shows up in affectedKeys() and is
+// denied. Note that `diff()` is a VALUE diff: a key rewritten with an identical
+// value is not "affected", which is what lets templateService resend the
+// immutable `type` on every update while `type` stays off the mutable list.
+//
+// These lists mirror src/types/*.ts. Add a field there and you must add it here
+// in the same change, or the write is denied at runtime. `test/firestore.rules.test.mjs`
+// is the guard: `npm run test:rules` runs it against the emulator.
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Workspace-scoped access: a user's token carries a `workspaceId` claim
-    // (see api/setWorkspaceClaims.ts) that must match the path segment.
-    //
+
+    // ----------------------------------------------------------- authz ------
+
     // Read the claim via .get() with a default, NEVER as
     // `request.auth.token.workspaceId`: on a token that lacks the claim the bare
     // property access is a hard evaluation error ("Property workspaceId is
     // undefined on object") that aborts the whole commit, which surfaces client
     // side as a dead WebChannel Write stream rather than a catchable failure.
-    // With the default, an unclaimed token is a plain permission-denied the
+    // With the default, an unclaimed token is a plain permission-denied that the
     // stores' rollback paths already handle.
-    //
-    // NOTE: issues (step 7), projects (step 11), cycles (step 13) and templates
-    // (step 14) are covered here; the full hardening pass — field-level
-    // validation on updates — is step 18 (§8, §14.2).
     function inWorkspace(ws) {
       return request.auth != null && request.auth.token.get('workspaceId', '') == ws;
     }
 
+    // ---------------------------------------------------- vocabularies ------
+    // Mirrors ISSUE_STATUSES / PROJECT_STATUSES / ISSUE_PRIORITIES in src/types.
+    // There is ONE priority list because projects deliberately share the issue
+    // scale (§4) — the same reason the app has one PRIORITY_MAP, not two.
+
+    function issueStatuses() {
+      return ['backlog', 'todo', 'in_progress', 'done', 'cancelled'];
+    }
+    function projectStatuses() {
+      return ['backlog', 'planned', 'in_progress', 'completed', 'cancelled'];
+    }
+    function priorities() {
+      return ['urgent', 'high', 'medium', 'low', 'no_priority'];
+    }
+
+    // ---------------------------------------------------------- helpers -----
+
+    // Keys whose VALUE this write changes (added, removed or modified).
+    //
+    // Reading `resource` here means a denied write logs "evaluation error at L…"
+    // next to its verdict, which looks alarming and is not §14.1 coming back:
+    // Firestore evaluates every rule TWICE — once in a pre-read pass where
+    // `resource` is undefined (so this diff() genuinely errors) and again with
+    // the document loaded, which is the pass that decides. Verified against the
+    // emulator's ruleCoverage report, and pinned by the "leaves the connection
+    // usable after a denial" test.
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Every client write stamps updatedAt with serverTimestamp(), which resolves
+    // to request.time — so a hand-written or stale updatedAt is denied. Creates
+    // must stamp createdAt the same way.
+    function touchedNow() {
+      return request.resource.data.updatedAt == request.time;
+    }
+    function createdNow() {
+      return request.resource.data.createdAt == request.time && touchedNow();
+    }
+    // A client-created doc must own up to who made it (projects, templates).
+    function ownedByCaller() {
+      return request.resource.data.createdBy == request.auth.uid;
+    }
+
+    function nullableString(v) { return v == null || v is string; }
+    function nullableTimestamp(v) { return v == null || v is timestamp; }
+    function nonEmptyString(v) { return v is string && v.size() > 0; }
+
+    // ----------------------------------------------------------- shapes -----
+
+    // Fields the issue UI writes. `identifier` / `createdBy` / `createdAt` are
+    // absent on purpose: they are minted by api/createIssue and immutable after.
+    // assigneeId + labelIds have no UI yet (no member or label entity) but are
+    // real Issue fields, so they are allowed rather than blocked by accident.
+    function issueMutable() {
+      return ['title', 'description', 'status', 'priority', 'assigneeId', 'labelIds',
+              'projectId', 'milestoneId', 'cycleId', 'sortOrder',
+              'startedAt', 'completedAt', 'updatedAt'];
+    }
+
+    // `d` is the POST-write document, so this validates the result rather than
+    // the patch — an update that leaves a field alone still has to leave it valid.
+    function issueValid(d) {
+      return nonEmptyString(d.title)            // matches the UI's "an issue may never lose its title"
+        && d.description is string
+        && d.status in issueStatuses()
+        && d.priority in priorities()
+        && nullableString(d.assigneeId)
+        && d.labelIds is list
+        && nullableString(d.projectId)
+        && nullableString(d.milestoneId)
+        && nullableString(d.cycleId)
+        && (!('sortOrder' in d) || d.sortOrder is number)
+        && (!('startedAt' in d) || nullableTimestamp(d.startedAt))
+        && (!('completedAt' in d) || nullableTimestamp(d.completedAt));
+    }
+
+    // Milestones are a map FIELD on the project doc (§4), so `milestones` is one
+    // key here and every milestone write is a project update. Rules cannot
+    // iterate a map, so the per-milestone shape is not validated — the trade the
+    // map-field design already accepted, and the reason `milestones` must stay
+    // on this list or §12's dotted-path writes all fail.
+    function projectMutable() {
+      return ['name', 'description', 'content', 'icon', 'color', 'status', 'priority',
+              'leadId', 'memberIds', 'startDate', 'targetDate', 'sortOrder',
+              'milestones', 'updatedAt'];
+    }
+
+    function projectValid(d) {
+      return nonEmptyString(d.name)             // matches "a project may never lose its name"
+        && d.description is string
+        && d.content is string
+        && d.icon is string
+        && d.color is string
+        && d.status in projectStatuses()
+        && d.priority in priorities()
+        && nullableString(d.leadId)
+        && d.memberIds is list
+        && nullableTimestamp(d.startDate)
+        && nullableTimestamp(d.targetDate)
+        && (!('sortOrder' in d) || d.sortOrder is number)
+        && (!('milestones' in d) || d.milestones is map);
+    }
+
+    // `number` is off this list: it is the server-sequential value api/createCycle
+    // mints, and the whole point of create-blocking cycles.
+    function cycleMutable() {
+      return ['name', 'goal', 'startDate', 'endDate', 'updatedAt'];
+    }
+
+    function cycleValid(d) {
+      return d.number is int
+        && nullableString(d.name)
+        && nullableString(d.goal)
+        && d.startDate is timestamp
+        && d.endDate is timestamp
+        // The same invariant api/createCycle rejects on and the modal enforces:
+        // an inverted range would make cycleStatusFromDates() nonsense.
+        && d.endDate > d.startDate;
+    }
+
+    // `type` is off this list, so it is immutable — it discriminates `data`
+    // (§14's union), and flipping it would leave a template whose payload no
+    // longer matches its own type. templateService resends it unchanged on every
+    // update, which the value-diff ignores.
+    function templateMutable() {
+      return ['name', 'description', 'icon', 'color', 'isDefault', 'data', 'updatedAt'];
+    }
+
+    function templateValid(d) {
+      return nonEmptyString(d.name)
+        && d.description is string
+        && d.icon is string
+        && d.color is string
+        && d.isDefault is bool
+        && d.type in ['issue', 'project']
+        && d.data is map
+        && (d.type == 'issue' ? templateIssueData(d.data) : templateProjectData(d.data));
+    }
+
+    function templateIssueData(p) {
+      return p.keys().hasOnly(['title', 'description', 'status', 'priority', 'projectId'])
+        && p.title is string
+        && p.description is string
+        && p.status in issueStatuses()
+        && p.priority in priorities()
+        && nullableString(p.projectId);
+    }
+
+    // Exact key sets for the two client-created collections. Creates are checked
+    // with hasAll + hasOnly against these (rules have no set-equality operator),
+    // so a create can neither omit a required field nor smuggle in an extra one.
+    function projectRequiredKeys() {
+      return ['name', 'description', 'content', 'icon', 'color', 'status', 'priority',
+              'leadId', 'memberIds', 'startDate', 'targetDate', 'milestones',
+              'createdBy', 'createdAt', 'updatedAt'];
+    }
+    function templateRequiredKeys() {
+      return ['name', 'description', 'icon', 'color', 'isDefault', 'type', 'data',
+              'createdBy', 'createdAt', 'updatedAt'];
+    }
+
+    function templateProjectData(p) {
+      return p.keys().hasOnly(['name', 'description', 'content', 'status', 'priority', 'milestones'])
+        && p.name is string
+        && p.description is string
+        && p.content is string
+        && p.status in projectStatuses()
+        && p.priority in priorities()
+        && p.milestones is list;
+    }
+
+    // ------------------------------------------------------------ paths -----
+
     match /workspaces/{ws} {
+      // The workspace document itself is written only by api/setWorkspaceClaims
+      // through the Admin SDK, which bypasses rules — so there is deliberately
+      // no client write rule here.
       allow read: if inWorkspace(ws);
 
-      // Issues are created by the Vercel Fn (api/createIssue) so it can mint the
-      // sequential 'LIN-N' identifier — clients are create-blocked.
+      // Issues are created by api/createIssue so it can mint the sequential
+      // 'LIN-N' identifier race-free; clients are create-blocked.
       match /issues/{id} {
-        allow read, update, delete: if inWorkspace(ws);
+        allow read, delete: if inWorkspace(ws);
         allow create: if false;
+        allow update: if inWorkspace(ws)
+          && changedKeys().hasOnly(issueMutable())
+          && touchedNow()
+          && issueValid(request.resource.data);
       }
 
       // Projects carry no server-generated field, so the client SDK creates them
-      // directly (build order 11).
+      // directly (build order 11) — which is why create needs its own validation
+      // rather than trusting the Fn.
       //
-      // MILESTONES need no rule of their own: they are a map FIELD on the project
-      // document (§4, build order 12), so every milestone write is an update to
-      // the project and is already covered here. The subcollection path that the
-      // original plan used stays denied by default, which is now correct — nothing
-      // writes there.
+      // MILESTONES need no rule of their own: they are a map FIELD on this
+      // document (§4, build order 12), so every milestone write is a project
+      // update and is covered by the `milestones` entry in projectMutable(). The
+      // subcollection path the original plan used stays denied by default, which
+      // is now correct — nothing writes there.
       match /projects/{id} {
-        allow read, create, update, delete: if inWorkspace(ws);
+        allow read, delete: if inWorkspace(ws);
+        allow create: if inWorkspace(ws)
+          && request.resource.data.keys().hasAll(projectRequiredKeys())
+          // sortOrder is the one optional field — the board assigns it on drop,
+          // never at create, so it may be present but is not required.
+          && request.resource.data.keys().hasOnly(projectRequiredKeys().concat(['sortOrder']))
+          && ownedByCaller()
+          && createdNow()
+          && projectValid(request.resource.data);
+        allow update: if inWorkspace(ws)
+          && changedKeys().hasOnly(projectMutable())
+          && touchedNow()
+          && projectValid(request.resource.data);
       }
 
       // Cycles carry a server-sequential `number` (api/createCycle), so clients
       // are create-blocked here exactly like issues (build order 13).
       match /cycles/{id} {
-        allow read, update, delete: if inWorkspace(ws);
+        allow read, delete: if inWorkspace(ws);
         allow create: if false;
+        allow update: if inWorkspace(ws)
+          && changedKeys().hasOnly(cycleMutable())
+          && touchedNow()
+          && cycleValid(request.resource.data);
       }
 
       // Templates are pure client CRUD like projects — nothing on them is
       // server-generated, so the store mints the id and writes directly.
       // The default swap writes two documents in one batch (templateService
       // .setDefault); a batch is evaluated per-document, so both are covered by
-      // this single rule.
+      // the update rule — the demotion only touches isDefault + updatedAt.
       match /templates/{id} {
-        allow read, create, update, delete: if inWorkspace(ws);
+        allow read, delete: if inWorkspace(ws);
+        allow create: if inWorkspace(ws)
+          && request.resource.data.keys().hasAll(templateRequiredKeys())
+          && request.resource.data.keys().hasOnly(templateRequiredKeys())
+          && ownedByCaller()
+          && createdNow()
+          && templateValid(request.resource.data);
+        allow update: if inWorkspace(ws)
+          && changedKeys().hasOnly(templateMutable())
+          && touchedNow()
+          && templateValid(request.resource.data);
       }
     }
   }

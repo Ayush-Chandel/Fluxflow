@@ -468,6 +468,29 @@ model / stores / routing / rules once so nothing is retrofitted.
   is how a base-ui component entered a Radix project unasked.
   **NOT yet runtime-verified ⚠️**: nothing here has been exercised in the browser — the chips, the
   URL round-trip, and the two empty states join the list in §13.
+- ✅ **Step 18 — Rules hardening + indexes (2026-08-19)**: `firestore.rules` gained **field-level
+  validation** under the existing workspace gate, closing §14.2's hole — every service spreads an
+  arbitrary client patch into `updateDoc`, so `identifier` / `createdBy` / `createdAt` / a cycle's
+  `number` were all client-writable, which made create-blocking `issues` and `cycles` decorative.
+  Each collection now declares the fields a client may CHANGE and everything else is immutable **by
+  omission**; creates on the two client-created collections (projects, templates) are validated
+  outright (exact key set, `createdBy == request.auth.uid`, `createdAt == request.time`); every write
+  must carry `updatedAt == request.time`; enums come from the same vocabularies `src/types` exports;
+  and a template's `data` is validated against its own `type`, so §14's union is enforced server-side
+  rather than only in TypeScript. Two subtleties are load-bearing and tested: **`diff()` is a VALUE
+  diff** (so `templateService` may resend an unchanged, immutable `type`), and **`milestones` must be
+  on `projectMutable()`** because a dotted-path write reports the TOP-LEVEL key.
+  **The deliverable is really `test/firestore.rules.test.mjs` — 56 cases, `npm run test:rules`.**
+  Field rules fail closed, so the way to break this app is a rule that denies its own UI; the suite
+  asserts every write the app makes as well as every attack, on its own emulator (`firebase.test.json`,
+  port 8085) so `clearFirestore()` can never touch dev data. It **discharges §12's milestone risk with
+  evidence** (renaming one milestone leaves its siblings byte-identical, `deleteField()` removes
+  exactly one key, deleting the project takes them with it) and pins the fact that a denial stays a
+  catchable failure. *An "evaluation error" in the emulator log is NOT §14.1 returning — Firestore
+  evaluates each rule twice, once pre-read with `resource` undefined; see §10.18.*
+  **Composite indexes: deliberately none** — no `where()` exists in `src/` to serve (§8).
+  **`npm run lint` is now CLEAN (0 from 65)** — ours fixed, vendored (`ui/`, `reui/`) switched off per
+  §2 rather than edited, `icons.tsx`'s 30 findings identified as false positives.
 - **Installed & idle, ready to wire**: `zustand`, `immer`, `idb-keyval`, `framer-motion`,
   `msw`, `sonner` (`@dnd-kit/*` wired in step 9). Design tokens already in `src/index.css`.
 
@@ -678,10 +701,23 @@ project-root/
 │   ├── createIssue.ts        ✅ verify token → sequential LIN-xxx → add()
 │   └── createCycle.ts        ✅ verify token → sequential number → add()
 │
-├── firestore.rules          🚧 issues (7) + projects (11) + cycles (13) + templates (14);
-│                               field-level hardening still pending (step 18)
-├── firestore.indexes.json   (add issue-by-project / -cycle / -milestone composites)
+├── test/
+│   └── firestore.rules.test.mjs ★ 56 cases, node --test + @firebase/rules-unit-testing.
+│                               Asserts BOTH directions: every write the app makes still
+│                               succeeds, and every §14.2 hole is closed. Also the place
+│                               §12's map-field claims are finally proven (siblings
+│                               untouched by a dotted write). `npm run test:rules`.
+│
+├── firestore.rules          ✅ workspace gate (7/11/13/14) + FIELD-LEVEL validation (18):
+│                               per-collection mutable allow-lists, validated creates,
+│                               server-stamped timestamps, enums, template data↔type
+├── firestore.indexes.json   ✅ deliberately EMPTY — the app runs no compound query to
+│                               serve (§8, step 18); the file carries the reasoning
+├── firebase.test.json       ★ emulator config for `npm run test:rules` ONLY — port 8085,
+│                               so the suite's clearFirestore() can never wipe the dev
+│                               emulator you have running on 8080
 ├── firebase.json  .firebaserc  vercel.json  vite.config.ts  tsconfig*.json  .env.local
+├── eslint.config.js         ✅ clean as of 18 — vendored ui/ + reui/ exempted (§2), not edited
 ```
 
 ---
@@ -1092,26 +1128,48 @@ and run against the emulators through `vite/localApi.ts`, so mocking either one 
 the §14.1 failure where nothing was ever written to Firestore. The file is kept as the place a
 genuinely-not-yet-built endpoint would go.
 
-**Firestore rules** — replace the current permissive/expiring rules. Server-generated collections are
-create-blocked for clients; the rest are workspace-scoped client CRUD:
+**Firestore rules** — ✅ complete as of build order 18. **TWO layers**, and the second one is what
+step 18 added; the file itself is the reference, this is the shape:
 
 ```
 match /workspaces/{ws} {
-  allow read: if request.auth.token.workspaceId == ws;
+  allow read: if inWorkspace(ws);        // token.get('workspaceId','') == ws — see below
 
-  match /issues/{id}   { allow read,update,delete: if request.auth.token.workspaceId == ws;
-                         allow create: if false; }            // Vercel Fn (LIN-xxx)
-  match /cycles/{id}   { allow read,update,delete: if request.auth.token.workspaceId == ws;
-                         allow create: if false; }            // Vercel Fn (number)
-  match /projects/{id} { allow read,create,update,delete: if request.auth.token.workspaceId == ws; }
-                         // milestones need NO block — they're a map field on the project doc (§4),
-                         // so their writes ARE project updates. The old subcollection path stays
-                         // denied by default, which is now correct: nothing writes there.
-  match /templates/{id}{ allow read,create,update,delete: if request.auth.token.workspaceId == ws; }
+  // Server-minted ids ⇒ create-blocked for clients; update is allow-listed.
+  match /issues/{id}  { allow read, delete: if inWorkspace(ws);
+                        allow create: if false;                        // Vercel Fn (LIN-N)
+                        allow update: if inWorkspace(ws)
+                          && changedKeys().hasOnly(issueMutable())     // no identifier/createdBy/createdAt
+                          && touchedNow() && issueValid(request.resource.data); }
+  match /cycles/{id}  { …same shape; `number` off cycleMutable(); endDate > startDate }
+
+  // Client-created ⇒ create needs its own validation (hasAll+hasOnly an exact key
+  // set, createdBy == request.auth.uid, createdAt == request.time).
+  match /projects/{id}  { …; `milestones` IS on projectMutable() — see below }
+  match /templates/{id} { …; `type` is OFF templateMutable() ⇒ immutable;
+                             `data` validated against `type` }
 }
 ```
-Add composite indexes in `firestore.indexes.json` for issues filtered by `projectId`, `cycleId`,
-`milestoneId`. Deploy: `firebase deploy --only firestore:rules`.
+Three things about this that are easy to get wrong, and are tested:
+- **Immutability is by OMISSION.** Anything not on a collection's mutable list can't be added,
+  changed or removed — including keys that don't exist yet.
+- **`diff()` is a VALUE diff.** An unchanged resend is not an "affected key", which is why
+  `templateService.update` may keep sending `type` while `type` stays immutable.
+- **`milestones` must be on `projectMutable()`.** A dotted-path write reports the top-level key, so
+  omitting it would deny every §12 milestone write at once.
+
+Read the claim as `request.auth.token.get('workspaceId','')`, never `request.auth.token.workspaceId`:
+on a token without the claim the bare access is a hard evaluation error that kills the Write stream
+instead of denying one operation (§14.1).
+
+**No composite indexes — decided in step 18, superseding the original line here.** This app performs
+no compound queries: `useEntitySync` subscribes to whole collections and every by-project/-cycle/
+-milestone/-filter read is an array pass over the store. There is not one `where()` in `src/`, so
+there is nothing for an index to serve; `firestore.indexes.json` records that and the trigger to
+revisit it.
+
+Verify with `npm run test:rules` (56 cases, own emulator on 8085 — never the dev one on 8080, since
+it clears data between tests). Deploy: `firebase deploy --only firestore:rules`.
 
 ---
 
@@ -1526,8 +1584,86 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
     **Known gaps:** filters do not persist across navigation (they live in the URL, by §3's rule, and
     a fresh visit starts clean); the strip is still hidden entirely on a workspace with zero issues,
     so there is nothing to filter before the first one exists.
-18. ★ **Rules hardening + indexes** — final `firestore.rules` (§8) + composite indexes
-19. **Vercel deploy** — Admin SDK env vars, strip MSW from prod, deploy functions
+18. ✅ **Rules hardening + indexes (2026-08-19)** — `firestore.rules` grew a SECOND layer under
+    the workspace gate: **field-level validation**. The hole it closes is §14.2's — every service
+    spreads an arbitrary client patch into `updateDoc` (`{ ...patch, updatedAt: serverTimestamp() }`
+    in all four), so any signed-in user could rewrite `identifier`, `createdBy`, `createdAt` or a
+    cycle's `number`. Those are exactly the values create-blocking `issues`/`cycles` exists to
+    protect, and **blocking create while leaving update open protected nothing**.
+    **Protection by OMISSION, not by enumeration.** Each collection declares the fields a client may
+    CHANGE (`issueMutable()` / `projectMutable()` / `cycleMutable()` / `templateMutable()`) and the
+    rule is `changedKeys().hasOnly(…)`. Server-minted fields aren't listed, so they're immutable; a
+    key that doesn't exist yet is denied too, which means a new field is a **deliberate** decision in
+    this file rather than something that leaks in. The lists mirror `src/types/*.ts` — add a field
+    there without adding it here and the write is denied at runtime.
+    **`diff()` is a VALUE diff, and that is load-bearing.** A key rewritten with an identical value
+    is not "affected". `templateService.update` resends the whole `CreateTemplateInput` including
+    `type` on every save, yet `type` is deliberately OFF `templateMutable()` — so an unchanged resend
+    passes and an actual type change is denied, which is what keeps §14's discriminated union honest
+    (a template whose `type` no longer matches its `data` is unreadable by every narrowing call site).
+    Both halves are tested; getting this backwards would have made the template form uneditable.
+    **`milestones` MUST stay on `projectMutable()`.** A dotted-path write (`milestones.<id>.name`,
+    `deleteField()` at `milestones.<id>`) reports the TOP-LEVEL key `milestones` in `affectedKeys()`,
+    not the dotted path — so an allow-list that forgot it would have failed every §12 write at once.
+    Rules can't iterate a map, so per-milestone shape is not validated: the trade the map-field design
+    (§4) already accepted.
+    **Creates are validated for the two client-created collections** (projects, templates — issues and
+    cycles stay `create: if false`): `hasAll` + `hasOnly` an exact key set (rules have no set-equality
+    operator), `createdBy == request.auth.uid`, and `createdAt == request.time`. A client can no
+    longer file a document as someone else or backdate it.
+    **Every write must stamp `updatedAt == request.time`**, which is what `serverTimestamp()` resolves
+    to — a forged or stale stamp is denied, and so is a write that skips it. Plus enum checks against
+    the same vocabularies `src/types` exports (an issue can't reach a project status), `endDate >
+    startDate` on cycles (the invariant `api/createCycle` and the modal both enforce, now enforced
+    where it can't be bypassed), and `data` validated **against its own `type`** so the union holds
+    server-side, not just in TypeScript.
+    **The step's real deliverable is `test/firestore.rules.test.mjs` — 56 cases, `npm run test:rules`.**
+    Field-level rules fail closed, so the realistic way to break this app is a rule that denies its own
+    UI; a create-project modal that silently rolls back is worse than the hole the step set out to fix.
+    So the suite asserts BOTH directions and the payloads are copied from the services rather than
+    invented: every write the app performs, and every attack §14.2 named. It runs on **its own
+    emulator** (`firebase.test.json`, port 8085) because it calls `clearFirestore()` between tests and
+    must never be pointed at the dev emulator on 8080 — `firebase emulators:start` can stay up while
+    it runs. `@firebase/rules-unit-testing` is the one new devDep; the runner is node's built-in
+    `node --test`, no vitest.
+    **§12's outstanding risk is DISCHARGED here, not just rule-checked.** Three assertions read the
+    document back with rules disabled and prove the map-field design does what §4 claims: renaming one
+    milestone leaves `m1.sortOrder` and the whole of `m2` byte-identical and bumps the project's
+    `updatedAt`; `deleteField()` leaves exactly `['m2']`; deleting the project takes its milestones
+    with it. That is the "milestone map writes ⚠️" bullet in §13, closed with evidence.
+    **Read this before debugging a denial: "evaluation error at L…" in the emulator log is NOT §14.1
+    returning.** Firestore evaluates each rule TWICE — once in a pre-read pass where `resource` is
+    undefined (so `changedKeys()`'s `diff(resource.data)` genuinely errors) and again with the
+    document loaded, which is the pass that decides. Confirmed against the emulator's `ruleCoverage`
+    report: every expression shows one evaluation with `resource` undefined and one with it defined.
+    The `leaves the connection usable after a denial` test is what pins the difference — a denial stays
+    a catchable per-operation failure and the next write on the same connection succeeds, which is the
+    property the stores' rollback paths are built on.
+    **Also already done, contrary to §14.2:** the `request.auth.token.get('workspaceId','')` form
+    landed with the step-7 rules, not here. Only the field-validation item was outstanding.
+    **Composite indexes: deliberately NONE, superseding §8.** That line assumed the app queries
+    Firestore per project/cycle/milestone. It does not, by design — `useEntitySync` subscribes to each
+    whole collection and every scoped read is an array pass over the store. **There is not one
+    `where()` / `query()` / `orderBy()` call in `src/`.** Composite indexes serve compound QUERIES;
+    with no query there is nothing to serve, and Firestore maintains single-field indexes on its own.
+    Adding them now would be config that can only rot. `firestore.indexes.json` carries the decision
+    and the trigger to revisit it (the day `useEntitySync` grows a `where()`, in the same change — a
+    missing index fails loudly with a console link, never silently).
+    **Lint is now CLEAN — 0 errors, 0 warnings, down from 65.** ~45 were ours and are fixed: the `{}`
+    props type + empty destructure in four components, four useless regex escapes in `validation.ts`,
+    `catch (err: any)` in Login/SignUp, and the leftover `console.log`s in `Guards.tsx` §13 flagged.
+    The other ~18 were in **vendored** source (`components/ui/**`, `components/reui/**`) and are
+    switched off there in `eslint.config.js` rather than "fixed": per §2 those files are configured
+    from the call site and patched at documented points, so editing upstream's lines to satisfy a lint
+    rule is what turns a small delta into a fork. `icons.tsx`'s 30 findings were false positives —
+    every export IS a component, just built by a local `createIcon()` factory the rule can't see
+    through. `public/` (MSW's generated worker) is ignored outright.
+    **Still NOT runtime-verified ⚠️** — this step verified the RULES, not the app's paths through
+    them. `/api/createCycle` + the status stamps (§13), the two-tab broadcast receive path (§16) and
+    the filter UI (§17) are all still unexercised; see §13.
+19. **Vercel deploy** — Admin SDK env vars, strip MSW from prod, deploy functions.
+    Carries the rest of §14.2: the `LIN-N` race (`count()+1` needs a transactional counter doc), the
+    unrecoverable half-failed signup, and `MOCK_ISSUES` (already gone — §15 deleted it).
 20. **Landing page** — last
 
 ---
@@ -1537,11 +1673,17 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
 ```bash
 # Dev
 firebase emulators:start          # Auth 9099 + Firestore 8080 (+ UI 4000)
-npm run dev                        # Vite; MSW intercepts /api/* — api/ folder idle locally
+npm run dev                        # Vite; /api/* hits the real Fns via vite/localApi.ts (§15)
+
+# Check
+npm run build                      # tsc -b + vite — must stay green
+npm run lint                       # zero errors as of build order 18 — keep it there
+npm run test:rules                 # firestore.rules vs a THROWAWAY emulator on 8085;
+                                   # safe to run with the dev emulator up (§8)
 
 # Deploy
 git push origin main               # frontend + Vercel Functions (git integration)
-firebase deploy --only firestore:rules   # when rules change
+firebase deploy --only firestore:rules   # when rules change — run test:rules first
 ```
 Vercel dashboard env vars (Prod+Preview+Dev): all `VITE_FIREBASE_*` + `FIREBASE_PROJECT_ID` /
 `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY`.
@@ -1593,13 +1735,15 @@ and it draws real history from the day the fields shipped. What is left when som
   all three progress bars reflect done/total; each detail view's filtered issue list is correct.
 - **Progress scope**: cancel one issue in a project → it leaves BOTH sides of the ratio (the count
   drops and the percentage rises), and a project whose remaining issues are all done reads 100%.
-- **Milestone map writes ⚠️ (not yet run)**: the §12 design rests on Firestore applying DOTTED FIELD
-  PATHS into the project doc's `milestones` map. Create a milestone → rename it → set a target date →
-  delete it, and inspect the project document in the emulator UI: each write must touch only
-  `milestones.<id>[.field]` (siblings untouched, `deleteField()` removing exactly one key) and bump
-  the project's `updatedAt`. Also confirm a milestone created in the create-project modal lands in the
-  same `setDoc` as the project, and that deleting a project takes its milestones with it (they're
-  fields, so no orphan cleanup exists — or is needed).
+- **Milestone map writes ✅ (verified 2026-08-19, build order 18)**: the §12 design rests on Firestore
+  applying DOTTED FIELD PATHS into the project doc's `milestones` map, and that is now proven by
+  `test/firestore.rules.test.mjs` rather than left to an eyeball in the emulator UI — renaming one
+  milestone leaves its own `sortOrder` and the whole of its sibling byte-identical and bumps the
+  project's `updatedAt`; `deleteField()` at `milestones.<id>` leaves exactly the other key; deleting
+  the project takes its milestones with it (they're fields, so no orphan cleanup exists — or is
+  needed); and a create carrying milestone drafts lands in the same write. `npm run test:rules`.
+  *Still worth doing once by hand through the UI, since the suite exercises the write SHAPES the
+  services produce, not the components that call them.*
 - **Milestone glyph**: a milestone at 0/25/50/75/100% shows 0/1/2/3/4 filled quarters in both the
   detail rows and the `MilestonePicker` options (99% must still read three).
 - **Cycle status**: cycles with past/current/future ranges sort into Completed/Active/Upcoming. A
@@ -1653,17 +1797,30 @@ and it draws real history from the day the fields shipped. What is left when som
   - **Default swap**: promote a template in tab A → tab B must never render two defaults of one type
     (the swap crosses as two ordered UPDATEs), and the other type's default stays put.
   - **Deliberate non-sync**: toggle list⇄board in tab A → tab B must NOT move (§16).
-- **Rules**: emulator confirms client `addDoc` to `issues`/`cycles` denied (server-only) while
-  `projects`/`templates` client writes succeed; cross-workspace reads denied. Milestone writes are
-  covered by the `projects` case — they're `updateDoc`s on the project document (§4).
+- **Rules ✅ (automated as of build order 18)**: `npm run test:rules` — 56 cases against a throwaway
+  emulator on port **8085** (`firebase.test.json`), so it never touches the dev emulator on 8080; it
+  calls `clearFirestore()` between tests and would wipe it. The suite covers both directions: client
+  `addDoc` to `issues`/`cycles` denied while `projects`/`templates` creates succeed, cross-workspace
+  and unclaimed-token access denied, every server-minted field (`identifier`, `createdBy`, `createdAt`,
+  cycle `number`, template `type`) rejected on update, AND every write the app actually performs still
+  allowed — the kanban drop's `{status, sortOrder}`, the status stamps, the pickers, the milestone
+  dotted paths, the two-document default swap batch. **Run it after touching `firestore.rules` or any
+  service's write shape**; a field added to `src/types` without being added to the rules' allow-list
+  fails here rather than in the browser.
+  *If you are reading emulator logs by hand: a denial prints "evaluation error at L…" beside its
+  verdict and that is expected — rules are evaluated twice, once pre-read with `resource` undefined.
+  Not §14.1. The `leaves the connection usable after a denial` case is what distinguishes them.*
 - `npm run build` (tsc + vite) **passes as of §16** — it was red before it, on two unused imports
   (`useParams` in `WorkspaceLayout`, `BoxIcon` in `CreateProjectModal`) failing `noUnusedLocals`;
   both removed there. Keep it green: `tsc -b` is the gate the stores' typed deltas rely on.
-- `npm run lint` is **NOT clean ⚠️** — ~49 pre-existing errors, concentrated in
-  `routes/workspace/templates/TemplatesPage.tsx` (`no-empty-object-type`, `no-empty-pattern`) and
-  others untouched since. Also still pending: the leftover `console.log` in `routes/Guards.tsx`.
-  Not a §16 regression — every file that step touched lints clean — but the suite gives no signal
-  until this is cleared, so it belongs to the step-18 cleanup pass at the latest.
+- `npm run lint` is **CLEAN as of build order 18** — 0 errors, 0 warnings, down from 65. Ours were
+  fixed (`{}` props + empty destructure in four components, four useless regex escapes in
+  `validation.ts`, `catch (err: any)` in Login/SignUp, the leftover `console.log`s in `Guards.tsx`);
+  the ~18 in **vendored** `components/ui/**` and `components/reui/**` are switched off in
+  `eslint.config.js` instead, because per §2 the discipline there is to configure from the call site
+  and re-apply a documented patch list — editing upstream's lines to satisfy a lint rule is what makes
+  a fork. `icons.tsx`'s 30 were false positives (every export IS a component, built by a local
+  factory the rule can't see through). Keep it at zero: the suite is only useful while it is silent.
 
 ---
 
@@ -1699,23 +1856,29 @@ is minted, the doc is written, `updateDoc` succeeds. Fix is about making **dev f
 
 ### 14.2 These DO ship to production — fix before step 19
 
-- **`MOCK_ISSUES` is imported unconditionally** (`IssueDetailView.tsx:7,21`) so it lands in the prod
-  bundle, and the fallback makes a genuine "issue not found" silently render seed data instead.
-  Already tracked in step 10.5; also delete the copy in `IssuesPage`.
+- ~~**`MOCK_ISSUES` is imported unconditionally** (`IssueDetailView.tsx:7,21`) so it lands in the prod
+  bundle, and the fallback makes a genuine "issue not found" silently render seed data instead.~~
+  ✅ **FIXED in build order 15** — `__mockIssues.ts` and both fallbacks are deleted; the Issues page
+  gained the real empty state the fallback was hiding. (Verified 2026-08-19: no `MOCK_ISSUES`
+  reference remains in `src/`.)
 - **`LIN-N` is not race-free** (`api/createIssue.ts:48`). `count() + 1` is exactly the race the
   server hop exists to prevent — concurrent creates collide, and deleting an issue makes the next
   create reuse a retired identifier. Needs a counter doc incremented in a transaction.
-- **`updateIssue` spreads an arbitrary client patch** (`issueService.ts:27`) and rules don't validate
-  fields, so a client can overwrite `identifier` / `createdBy` / `createdAt`. Fold into the step 18
-  rules-hardening pass (field-level `request.resource.data` diff check).
+- ~~**`updateIssue` spreads an arbitrary client patch** (`issueService.ts:27`) and rules don't
+  validate fields, so a client can overwrite `identifier` / `createdBy` / `createdAt`.~~ ✅ **FIXED in
+  build order 18.** The service still spreads the patch — deliberately; the fix belongs in the rules,
+  which is the only place a client can't route around it. `issueMutable()` omits all three, and the
+  same treatment covers projects, cycles (`number`) and templates (`type`). Tested in
+  `test/firestore.rules.test.mjs`.
 - **A half-failed signup is unrecoverable.** `authService.signUp:26` throws if
   `/api/setWorkspaceClaims` fails, but the auth user already exists — no claim, no workspace doc, and
   `logIn` never retries. Make `logIn` call the endpoint when the claim is absent, and make the Fn
   idempotent (`setWorkspaceClaims.ts:29` uses `.set()`, which would reset `createdAt` — needs
   `{merge:true}` or an existence check).
-- **Rules throw instead of denying cleanly** on a missing claim. Evaluation errors *do* deny, so it's
-  not a security hole, but `request.auth.token.get('workspaceId','') == ws` is the correct form
-  (also handles `request.auth == null`). Fold into step 18.
+- ~~**Rules throw instead of denying cleanly** on a missing claim.~~ ✅ **Already fixed** — the
+  `request.auth.token.get('workspaceId','') == ws` form landed with the step-7 rules, not step 18;
+  this bullet was stale. Step 18 added the regression test (`denies a signed-in user whose token
+  carries no workspaceId claim`).
 
 ---
 

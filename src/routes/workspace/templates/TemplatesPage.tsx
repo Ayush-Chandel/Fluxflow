@@ -2,9 +2,7 @@ import TemplateManager from '@/components/templates/TemplateManager';
 import { TEMPLATE_TYPE_BY_SLUG, isTemplateTypeSlug } from '@/types/template';
 import { Navigate, useParams } from 'react-router';
 
-type Props = {}
-
-function TemplatesPage({}: Props) {
+function TemplatesPage() {
 
   const { type: slug } = useParams();
 

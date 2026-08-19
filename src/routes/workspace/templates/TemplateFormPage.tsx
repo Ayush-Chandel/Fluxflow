@@ -9,9 +9,7 @@ import { TEMPLATE_TYPE_BY_SLUG, isTemplateTypeSlug } from '@/types/template';
 
 const HYDRATION_GRACE_MS = 1200
 
-type Props = {}
-
-function TemplateFormPage({}: Props) {
+function TemplateFormPage() {
 
   const { type: slug, id } = useParams();
 
