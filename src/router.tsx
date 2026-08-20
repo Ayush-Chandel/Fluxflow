@@ -1,13 +1,19 @@
 // src/router.ts
 import { createBrowserRouter,Navigate } from 'react-router'
 import Landing from '@/Landing'
-import { AuthRoute, ProtectedRoute } from '@/routes/Guards'
+import { AuthRoute, LandingRoute, ProtectedRoute } from '@/routes/Guards'
 import { sidebarHandle } from './types/layout'
 
 export const router = createBrowserRouter([
   {
-    path: '/',
-    Component: Landing,
+    // Landing guard wrapper — in prod, redirects / to /login (or /app/issues)
+    Component: LandingRoute,
+    children: [
+      {
+        path: '/',
+        Component: Landing,
+      },
+    ],
   },
   {
     // Auth guard wrapper — redirects to /app/issues if already logged in

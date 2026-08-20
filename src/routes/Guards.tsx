@@ -10,6 +10,20 @@ function AppSplash() {
   )
 }
 
+// The landing page is still a placeholder, so it only shows in local dev.
+// Set VITE_SHOW_LANDING=true to opt back in once it's real (in any env).
+const showLanding =
+  import.meta.env.DEV || import.meta.env.VITE_SHOW_LANDING === 'true'
+
+// Wraps / — in prod, sends visitors straight to the app instead of the placeholder
+export function LandingRoute() {
+  const { user, loading } = useAuthStore()
+
+  if (showLanding) return <Outlet />
+  if (loading) return <AppSplash />  // avoids a /login flash for signed-in users
+  return <Navigate to={user ? '/app/issues' : '/login'} replace />
+}
+
 // Wraps /signup and /login — boots logged-in users away
 export function AuthRoute() {
   const { user, loading } = useAuthStore()
