@@ -16,7 +16,7 @@ import AutoGrowTextarea from '@/components/common/AutoGrowTextarea'
 import DatePillPicker from '@/components/common/DatePillPicker'
 import ProjectIconPicker from '@/components/common/ProjectIconPicker'
 import IssueCommandBox from '@/components/issues/IssueCommandBox'
-import { AssigneeIcon } from '@/components/icons'
+// import { AssigneeIcon } from '@/components/icons'
 import { PRIORITY_MAP, PROJECT_MAP } from '@/components/common/constants/constants'
 
 
@@ -120,13 +120,12 @@ function ProjectDetailHeader({ project }: { project: Project }) {
             triggerClassName={PROPERTY_PILL}
           />
 
-          {/* Lead — inert until a member entity exists to resolve `leadId`, the
-              same gap the table row and the board card carry. Rendered as text
-              rather than a button so it doesn't offer a click that does nothing. */}
-          <span className='flex h-6 items-center gap-1.5 rounded-md px-1.5 text-lsm text-muted'>
+          {/* Lead — hidden until a member entity exists to resolve `leadId`, the
+              same gap the table row and the board card carry. */}
+          {/* <span className='flex h-6 items-center gap-1.5 rounded-md px-1.5 text-lsm text-muted'>
             <AssigneeIcon size={14} color='currentColor' />
             Lead
-          </span>
+          </span> */}
 
           <DatePillPicker
             label='Start'

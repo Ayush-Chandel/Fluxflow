@@ -4,9 +4,10 @@ import { XIcon } from 'lucide-react'
 import { NoteIcon, MaximizeIcon } from '../icons'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import {
-  CREATE_ISSUE_CONTENT_FADE,
   CREATE_ISSUE_LAYOUT_ID,
+  CREATE_ISSUE_MORPH_CONTENT_DELAY,
   CREATE_ISSUE_PILL_LAYOUT_TRANSITION,
+  createIssueContentFade,
 } from './sharedLayout'
 
 const BTN =
@@ -29,7 +30,7 @@ function CreateIssueMinimizedBar() {
       className='fixed bottom-4 right-4 z-50 flex w-[340px] max-w-[calc(100%-2rem)] items-center gap-2 rounded-2xl border border-edge bg-surface py-2 pl-3 pr-2 shadow-xl'
     >
       <motion.div
-        {...CREATE_ISSUE_CONTENT_FADE}
+        {...createIssueContentFade(CREATE_ISSUE_MORPH_CONTENT_DELAY)}
         className='flex min-w-0 flex-1 items-center gap-2'
       >
         <button

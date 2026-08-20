@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { XIcon } from 'lucide-react'
 import {
-  AssigneeIcon,
-  MoreIcon,
+  // AssigneeIcon,
+  // MoreIcon,
   MinimizeIcon,
   MaximizeIcon,
   ChevronDownIcon,
 } from '../icons'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import OptionPill from '../common/OptionPill'
+// import OptionPill from '../common/OptionPill'
 import AutoGrowTextarea from '../common/AutoGrowTextarea'
 import { Switch } from '@/components/ui/switch'
 import IssueCommandBox from '../issues/IssueCommandBox'
@@ -167,7 +167,9 @@ function CreateIssueModal({
           label={PRIORITY_MAP[priority].label}
           triggerClassName={PILL_TRIGGER}
         />
-        <OptionPill icon={<AssigneeIcon size={15} />} label='Assignee' />
+        {/* Assignee — hidden until there's a member entity to pick from; the pill
+            was a button that did nothing. */}
+        {/* <OptionPill icon={<AssigneeIcon size={15} />} label='Assignee' /> */}
         <ProjectPicker
           value={projectId}
           onChange={(next) =>
@@ -191,12 +193,13 @@ function CreateIssueModal({
           onChange={(next) => patchDraft({ cycleId: next })}
           triggerClassName={PILL_TRIGGER}
         />
-        <button
+        {/* Overflow menu — hidden until there are extra fields to put behind it. */}
+        {/* <button
           type='button'
           className='flex h-7 w-7 items-center justify-center rounded-full border border-edge text-muted transition-colors hover:bg-elevated'
         >
           <MoreIcon size={15} />
-        </button>
+        </button> */}
       </div>
 
       {/* Footer */}

@@ -3,7 +3,7 @@ import { memo } from 'react'
 import { ISSUE_MAP, PRIORITY_MAP } from '../../common/constants/constants';
 import IssueCommandBox from '../IssueCommandBox';
 import { Badge } from '../../ui/badge';
-import { AssigneeIcon } from '../../icons';
+// import { AssigneeIcon } from '../../icons';
 import { formatRelativeTime } from '@/lib/date';
 import { useIssueStore } from '@/store/issueStore';
 import { useSortable } from '@dnd-kit/sortable';
@@ -50,7 +50,8 @@ const IssueRowContent = memo(function IssueRowContent({issue}: {issue: Issue}) {
                 <span className='rounded-full bg-[oklch(0.72_0.17_302)] h-2 w-2'></span>
                 Outline
             </Badge>
-            <AssigneeIcon color='currentColor' className='text-muted'/>
+            {/* Assignee — hidden until there's a member entity to resolve `assigneeId`. */}
+            {/* <AssigneeIcon color='currentColor' className='text-muted'/> */}
             <span className='text-muted hidden sm:inline'>{formatRelativeTime(issue?.updatedAt)}</span>
         </div>
     </>

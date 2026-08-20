@@ -8,7 +8,7 @@ import type { ProjectRow } from '@/lib/projectSorting';
 import { PROJECT_PRIORITIES, PROJECT_STATUSES, type Project } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import IssueCommandBox from '../../issues/IssueCommandBox';
-import { AssigneeIcon } from '../../icons';
+// import { AssigneeIcon } from '../../icons';
 import { PRIORITY_MAP, PROJECT_MAP } from '../../common/constants/constants';
 import {
     DEFAULT_PROJECT_COLOR,
@@ -77,8 +77,8 @@ const ProjectCardContent = memo(function ProjectCardContent({row}: {row: Project
                         contentAlign='end'
                         triggerClassName='!px-0 !py-0 !h-6'
                     />
-                    {/* Lead — placeholder until a member entity exists to resolve `leadId`. */}
-                    <AssigneeIcon size={15} color='currentColor' className='shrink-0' />
+                    {/* Lead — hidden until a member entity exists to resolve `leadId`. */}
+                    {/* <AssigneeIcon size={15} color='currentColor' className='shrink-0' /> */}
                 </div>
             </div>
 

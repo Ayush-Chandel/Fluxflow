@@ -22,13 +22,16 @@ export const CREATE_ISSUE_MODAL_LAYOUT_TRANSITION = {
    },
 } as const
 
-export const CREATE_ISSUE_CONTENT_FADE = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.15, ease: 'easeOut', delay: 0.3 } },
-  // Near-instant on purpose. The exiting surface keeps its `layoutId`, so it is
-  // projected onto the same interpolating box as the incoming one — i.e. it is
-  // still being scaled while it fades. At 90ms the pill's box is already ~4x
-  // taller than it started, which smears any text still painted. The shell
-  // fades over 150ms and covers the gap.
-  exit: { opacity: 0, transition: { duration: 0.06, ease: 'easeIn' } },
-} as const
+export const CREATE_ISSUE_MORPH_CONTENT_DELAY = 0.3
+
+export const createIssueContentFade = (delay: number) =>
+  ({
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.15, ease: 'easeOut', delay } },
+    // Near-instant on purpose. The exiting surface keeps its `layoutId`, so it is
+    // projected onto the same interpolating box as the incoming one — i.e. it is
+    // still being scaled while it fades. At 90ms the pill's box is already ~4x
+    // taller than it started, which smears any text still painted. The shell
+    // fades over 150ms and covers the gap.
+    exit: { opacity: 0, transition: { duration: 0.06, ease: 'easeIn' } },
+  }) as const

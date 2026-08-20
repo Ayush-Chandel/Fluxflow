@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Dialog as DialogPrimitive, VisuallyHidden } from 'radix-ui'
 import CreateIssueModal from './CreateIssueModal'
@@ -5,9 +6,10 @@ import CreateIssueMinimizedBar from './CreateIssueMinimizedBar'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
 import { cn } from '@/lib/utils'
 import {
-  CREATE_ISSUE_CONTENT_FADE,
   CREATE_ISSUE_LAYOUT_ID,
   CREATE_ISSUE_MODAL_LAYOUT_TRANSITION,
+  CREATE_ISSUE_MORPH_CONTENT_DELAY,
+  createIssueContentFade,
 } from './sharedLayout'
 
 function CreateIssueDialog() {
@@ -21,6 +23,14 @@ function CreateIssueDialog() {
   const close = useCreateIssueDialog((s) => s.close)
 
   const showDialog = open && !minimized
+
+  const wasMinimized = useRef(minimized)
+  const contentFade = createIssueContentFade(
+    wasMinimized.current ? CREATE_ISSUE_MORPH_CONTENT_DELAY : 0,
+  )
+  useEffect(() => {
+    wasMinimized.current = minimized
+  })
 
   return (
     <>
@@ -58,7 +68,7 @@ function CreateIssueDialog() {
                     <VisuallyHidden.Root>
                       <DialogPrimitive.Title>Create issue</DialogPrimitive.Title>
                     </VisuallyHidden.Root>
-                    <motion.div {...CREATE_ISSUE_CONTENT_FADE}>
+                    <motion.div {...contentFade}>
                       <CreateIssueModal
                         prefill={prefill ?? undefined}
                         onClose={close}

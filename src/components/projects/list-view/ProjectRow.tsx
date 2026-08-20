@@ -16,7 +16,7 @@ import {
   resolveProjectIcon,
 } from '../../common/constants/projectIcons'
 import IssueCommandBox from '../../issues/IssueCommandBox'
-import { AssigneeIcon } from '../../icons'
+// import { AssigneeIcon } from '../../icons'
 
 type Props = {
   project: Project
@@ -86,10 +86,11 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
         />
       </div>
 
-      {/* Lead — placeholder until a member entity exists to resolve `leadId`. */}
-      <div role='cell' className={cn(cellClass('lead'), 'text-muted')}>
+      {/* Lead — hidden until a member entity exists to resolve `leadId`. Dropped
+          from PROJECT_COLUMNS too, so the header loses its cell in step. */}
+      {/* <div role='cell' className={cn(cellClass('lead'), 'text-muted')}>
         <AssigneeIcon size={15} color='currentColor' />
-      </div>
+      </div> */}
 
       {/* Target date — icon + date once set, and a hover-only add affordance when
           not. Either way the trigger is the same, so adding and editing are one click.

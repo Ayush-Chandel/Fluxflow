@@ -7,13 +7,14 @@
 // column hiding, so this is a CSS grid carrying ARIA table roles instead.
 import type { OrderBy } from '@/store/viewPreferenceStore'
 
-// Narrow screens drop the two least information-dense columns. Their cells are
-// `hidden lg:flex`, and display:none keeps them out of the grid's track order —
+// Narrow screens drop the least information-dense column (Target date). Its cell
+// is `hidden lg:flex`, and display:none keeps it out of the grid's track order —
 // so the four remaining cells land in the four base tracks in DOM order.
+// The lg template lost its second 80px track along with the Lead column below.
 export const PROJECT_GRID =
   'grid items-center gap-3 px-3 ' +
   'grid-cols-[minmax(0,1fr)_80px_70px_96px] ' +
-  'lg:grid-cols-[minmax(0,1fr)_80px_80px_110px_70px_96px]'
+  'lg:grid-cols-[minmax(0,1fr)_80px_110px_70px_96px]'
 
 /** Cell basics WITHOUT a display class — each column supplies `flex`/`hidden lg:flex`
  *  itself, since Tailwind resolves competing display utilities by stylesheet order,
@@ -34,7 +35,10 @@ export interface ProjectColumn {
 export const PROJECT_COLUMNS: ProjectColumn[] = [
   { id: 'name', label: 'Name', sortKey: 'name', className: 'flex gap-3' },
   { id: 'priority', label: 'Priority', sortKey: 'priority', className: 'flex pl-2' },
-  { id: 'lead', label: 'Lead', sortKey: 'lead', className: 'hidden lg:flex pl-2' },
+  // Lead — hidden until a member entity exists to resolve `leadId`; the column
+  // held nothing but a placeholder glyph. Restoring it also needs the second
+  // 80px track back in PROJECT_GRID's lg template.
+  // { id: 'lead', label: 'Lead', sortKey: 'lead', className: 'hidden lg:flex pl-2' },
   { id: 'target', label: 'Target date', sortKey: 'target', className: 'hidden lg:flex' },
   { id: 'issues', label: 'Issues', sortKey: 'issues', className: 'flex justify-end' },
   // Sorts by the status enum (what the glyph shows); the % beside it is progress.

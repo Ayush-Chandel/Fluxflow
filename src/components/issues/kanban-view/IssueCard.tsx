@@ -3,7 +3,7 @@ import { ISSUE_PRIORITIES, ISSUE_STATUSES, type Issue } from '@/types/issue'
 import { memo } from 'react'
 import IssueCommandBox from '../IssueCommandBox';
 import { ISSUE_MAP, PRIORITY_MAP } from '../../common/constants/constants';
-import { AssigneeIcon } from '../../icons';
+// import { AssigneeIcon } from '../../icons';
 import { formatRelativeTime } from '@/lib/date';
 import { Badge } from '../../ui/badge';
 import { useSortable } from '@dnd-kit/sortable';
@@ -26,7 +26,8 @@ const IssueCardContent = memo(function IssueCardContent({issue}: {issue: Issue})
     <>
         <div className='flex items-center gap-2 justify-between'>
             <span >{issue?.identifier}</span>
-            <AssigneeIcon color='currentColor' className='text-muted'/>
+            {/* Assignee — hidden until there's a member entity to resolve `assigneeId`. */}
+            {/* <AssigneeIcon color='currentColor' className='text-muted'/> */}
         </div>
         <div className='flex items-center gap-2'>
             <IssueCommandBox

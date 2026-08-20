@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { PlusIcon } from 'lucide-react';
-import { MoreIcon } from '../../icons';
+// import { MoreIcon } from '../../icons';
 import { PROJECT_MAP } from '../../common/constants/constants';
 import type { ProjectRow } from '@/lib/projectSorting';
 import type { Project, ProjectStatus } from '@/types/project';
@@ -34,7 +34,8 @@ function ProjectKanbanColumn({status, group, onOpenCard}: ProjectKanbanColumnPro
                     <span>{group.length}</span>
                 </div>
                 <div className='flex items-center gap-x-2 text-muted'>
-                    <MoreIcon size={14}/>
+                    {/* Column menu — hidden until it has actions to offer. */}
+                    {/* <MoreIcon size={14}/> */}
                     <button
                         type='button'
                         onClick={createHere}

@@ -1,4 +1,4 @@
-import { MoreIcon } from '../../icons';
+// import { MoreIcon } from '../../icons';
 import { ISSUE_MAP } from '../../common/constants/constants';
 import IssueCard from './IssueCard';
 import { PlusIcon } from 'lucide-react';
@@ -39,7 +39,8 @@ function KanbanColumn({status, group, onOpenCard, createPrefill}: KanbanColumnPr
                     <span>{group.length}</span>
                 </div>
                 <div className='flex items-center gap-x-2 text-muted'>
-                    <MoreIcon size={14}/>
+                    {/* Column menu — hidden until it has actions to offer. */}
+                    {/* <MoreIcon size={14}/> */}
                     <button
                         type='button'
                         onClick={createHere}
