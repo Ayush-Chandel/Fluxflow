@@ -25,3 +25,6 @@ dist-ssr
 
 # env files (can opt-in for committing if needed)
 .env*
+
+# Vercel CLI local project link (org/project ids)
+.vercel
