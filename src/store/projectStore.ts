@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/authStore'
 import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { appendOrder } from '@/lib/ordering'
 import { cacheKey, idb } from '@/lib/idb'
+import { reconcileInto, rollbackPatch, withoutOptimistic } from '@/lib/optimistic'
 
 interface ProjectState {
 
@@ -40,8 +41,10 @@ interface ProjectState {
 }
 
 
+// Projects mint their own id, so they have no placeholders to strip — the filter
+// is here for uniformity with the other stores and costs one pass.
 function persist(ws: string, projects: Project[]) {
-  return idb.set(cacheKey.projects(ws), projects)
+  return idb.set(cacheKey.projects(ws), withoutOptimistic(projects))
 }
 
 /** Create-project drafts → the keyed map the document stores, in typed order. */
@@ -64,8 +67,7 @@ export const useProjectStore = create<ProjectState>()(
 
     setAll: (docs) =>
       set((s) => {
-        s.projects = {}
-        for (const doc of docs) s.projects[doc.id] = doc
+        reconcileInto(s.projects, docs)
       }),
 
     applyDelta: ({ type, doc }) =>
@@ -168,8 +170,17 @@ export const useProjectStore = create<ProjectState>()(
       const previous = get().projects[id]
       if (!previous) return
 
+      // Local `updatedAt` for the store only — the service writes serverTimestamp(),
+      // which reads back null until acknowledged. Without this the projects table
+      // sorted by "updated" drops the row it just edited to the bottom (a null
+      // sort value sorts last) and then snaps it back on the server ack.
+      const optimistic: Partial<Project> = { ...patch, updatedAt: Timestamp.now() }
+      // Undo only the touched keys, never the whole document.
+      const undo = rollbackPatch(previous, optimistic)
+
       set((s) => {
-        Object.assign(s.projects[id], patch)
+        const target = s.projects[id]
+        if (target) Object.assign(target, optimistic)
       })
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
@@ -177,14 +188,15 @@ export const useProjectStore = create<ProjectState>()(
         workspaceId: user.workspaceId,
         type: 'UPDATE',
         id,
-        payload: patch,
+        payload: optimistic,
       })
 
       try {
         await projectService.update(user.workspaceId, id, patch)
       } catch {
         set((s) => {
-          s.projects[id] = previous
+          const target = s.projects[id]
+          if (target) Object.assign(target, undo)
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -192,7 +204,7 @@ export const useProjectStore = create<ProjectState>()(
           workspaceId: user.workspaceId,
           type: 'UPDATE',
           id,
-          payload: previous,
+          payload: undo,
         })
         notify.error('Failed to update project')
       }

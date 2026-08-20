@@ -9,6 +9,14 @@ import { cycleService } from '@/services/cycleService'
 import { useAuthStore } from '@/store/authStore'
 import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { cacheKey, idb } from '@/lib/idb'
+import {
+  beginOptimistic,
+  endOptimistic,
+  placeholderIdFor,
+  reconcileInto,
+  rollbackPatch,
+  withoutOptimistic,
+} from '@/lib/optimistic'
 
 interface CycleState {
   cycles: Record<string, Cycle>
@@ -27,8 +35,9 @@ interface CycleState {
   deleteCycle: (id: string) => Promise<void>
 }
 
+// Placeholders are stripped before the cache is written — see issueStore.persist.
 function persist(ws: string, cycles: Cycle[]) {
-  return idb.set(cacheKey.cycles(ws), cycles)
+  return idb.set(cacheKey.cycles(ws), withoutOptimistic(cycles))
 }
 
 export const useCycleStore = create<CycleState>()(
@@ -37,14 +46,21 @@ export const useCycleStore = create<CycleState>()(
 
     setAll: (docs) =>
       set((s) => {
-        s.cycles = {}
-        for (const doc of docs) s.cycles[doc.id] = doc
+        reconcileInto(s.cycles, docs)
       }),
 
     applyDelta: ({ type, doc }) =>
       set((s) => {
-        if (type === 'removed') delete s.cycles[doc.id]
-        else s.cycles[doc.id] = doc
+        if (type === 'removed') {
+          delete s.cycles[doc.id]
+          return
+        }
+        // Retire the placeholder this document came back for, in the same commit
+        // — see issueStore.applyDelta.
+        const placeholder = placeholderIdFor(doc)
+        if (placeholder) delete s.cycles[placeholder]
+
+        s.cycles[doc.id] = doc
       }),
 
     selectAll: () => Object.values(get().cycles),
@@ -68,12 +84,13 @@ export const useCycleStore = create<CycleState>()(
       const { user } = useAuthStore.getState()
       if (!user) return
 
-      const tempId = `optimistic-${Date.now()}`
+      const { tempId, clientRequestId } = beginOptimistic()
       const now = Timestamp.now()
       const optimistic: Cycle = {
         ...data,
         id: tempId,
         number: 0,
+        clientRequestId,
         createdAt: now,
         updatedAt: now,
         createdBy: user.uid,
@@ -92,11 +109,13 @@ export const useCycleStore = create<CycleState>()(
       })
 
       try {
-        const { id, number } = await cycleService.create(user.workspaceId, data)
+        const { id, number } = await cycleService.create(user.workspaceId, data, clientRequestId)
         const created: Cycle = { ...optimistic, id, number }
+        endOptimistic(tempId)
         set((s) => {
           delete s.cycles[tempId]
-          s.cycles[id] = created
+          // The snapshot may have landed the real document first; leave it be.
+          if (!s.cycles[id]) s.cycles[id] = created
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -114,6 +133,7 @@ export const useCycleStore = create<CycleState>()(
         })
         return id
       } catch {
+        endOptimistic(tempId)
         set((s) => {
           delete s.cycles[tempId]
         })
@@ -137,8 +157,14 @@ export const useCycleStore = create<CycleState>()(
       const previous = get().cycles[id]
       if (!previous) return
 
+      // Local `updatedAt` for the store only; the service writes serverTimestamp()
+      // — see issueStore.updateIssue for why both are needed.
+      const optimistic: Partial<Cycle> = { ...patch, updatedAt: Timestamp.now() }
+      const undo = rollbackPatch(previous, optimistic)
+
       set((s) => {
-        Object.assign(s.cycles[id], patch)
+        const target = s.cycles[id]
+        if (target) Object.assign(target, optimistic)
       })
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
@@ -146,14 +172,15 @@ export const useCycleStore = create<CycleState>()(
         workspaceId: user.workspaceId,
         type: 'UPDATE',
         id,
-        payload: patch,
+        payload: optimistic,
       })
 
       try {
         await cycleService.update(user.workspaceId, id, patch)
       } catch {
         set((s) => {
-          s.cycles[id] = previous
+          const target = s.cycles[id]
+          if (target) Object.assign(target, undo)
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -161,7 +188,7 @@ export const useCycleStore = create<CycleState>()(
           workspaceId: user.workspaceId,
           type: 'UPDATE',
           id,
-          payload: previous,
+          payload: undo,
         })
         notify.error('Failed to update cycle')
       }

@@ -13,6 +13,7 @@ import { templateService } from '@/services/templateService'
 import { useAuthStore } from '@/store/authStore'
 import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { cacheKey, idb } from '@/lib/idb'
+import { reconcileInto, rollbackPatch, withoutOptimistic } from '@/lib/optimistic'
 
 interface TemplateState {
 
@@ -31,8 +32,10 @@ interface TemplateState {
 }
 
 
+// Templates mint their own id, so there are no placeholders to strip — the filter
+// is here for uniformity with the other stores (see issueStore.persist).
 function persist(ws: string, templates: Template[]) {
-  return idb.set(cacheKey.templates(ws), templates)
+  return idb.set(cacheKey.templates(ws), withoutOptimistic(templates))
 }
 
 
@@ -64,8 +67,7 @@ export const useTemplateStore = create<TemplateState>()(
 
     setAll: (docs) =>
       set((s) => {
-        s.templates = {}
-        for (const doc of docs) s.templates[doc.id] = doc
+        reconcileInto(s.templates, docs)
       }),
 
     applyDelta: ({ type, doc }) =>
@@ -105,10 +107,14 @@ export const useTemplateStore = create<TemplateState>()(
       // A new template submitted as default demotes the incumbent, in one batch.
       const demotedId = input.isDefault ? currentDefaultId(get().templates, input.type) : null
       const demoted = demotedId ? get().templates[demotedId] : undefined
+      // The demotion is a real write with its own serverTimestamp(); stamp the
+      // store copy so the incumbent's "updated" reading doesn't blank out.
+      const demotion: Partial<Template> = { isDefault: false, updatedAt: now }
+      const undoDemotion = demoted ? rollbackPatch(demoted, demotion) : null
 
       set((s) => {
         s.templates[id] = optimistic
-        if (demoted) s.templates[demoted.id].isDefault = false
+        if (demoted) Object.assign(s.templates[demoted.id], demotion)
       })
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
@@ -134,7 +140,8 @@ export const useTemplateStore = create<TemplateState>()(
       } catch {
         set((s) => {
           delete s.templates[id]
-          if (demoted) s.templates[demoted.id] = demoted
+          const incumbent = demoted && s.templates[demoted.id]
+          if (incumbent && undoDemotion) Object.assign(incumbent, undoDemotion)
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -143,13 +150,13 @@ export const useTemplateStore = create<TemplateState>()(
           type: 'DELETE',
           id,
         })
-        if (demoted) {
+        if (demoted && undoDemotion) {
           broadcastDelta({
             entity: 'templates',
             workspaceId: user.workspaceId,
             type: 'UPDATE',
             id: demoted.id,
-            payload: { isDefault: true },
+            payload: undoDemotion,
           })
         }
         notify.error('Failed to create template', {
@@ -171,9 +178,17 @@ export const useTemplateStore = create<TemplateState>()(
         : null
       const demoted = demotedId ? get().templates[demotedId] : undefined
 
+      const now = Timestamp.now()
+      // Local `updatedAt` for the store only; the service writes serverTimestamp().
+      const optimistic: Partial<Template> = { ...input, updatedAt: now }
+      const demotion: Partial<Template> = { isDefault: false, updatedAt: now }
+      // Undo only the touched keys on each affected row, never the whole document.
+      const undo = rollbackPatch(previous, optimistic)
+      const undoDemotion = demoted ? rollbackPatch(demoted, demotion) : null
+
       set((s) => {
-        Object.assign(s.templates[id], input)
-        if (demoted) s.templates[demoted.id].isDefault = false
+        Object.assign(s.templates[id], optimistic)
+        if (demoted) Object.assign(s.templates[demoted.id], demotion)
       })
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
@@ -181,7 +196,7 @@ export const useTemplateStore = create<TemplateState>()(
         workspaceId: user.workspaceId,
         type: 'UPDATE',
         id,
-        payload: input,
+        payload: optimistic,
       })
       if (demoted) {
         broadcastDelta({
@@ -189,17 +204,20 @@ export const useTemplateStore = create<TemplateState>()(
           workspaceId: user.workspaceId,
           type: 'UPDATE',
           id: demoted.id,
-          payload: { isDefault: false },
+          payload: demotion,
         })
       }
 
       try {
+        // `input`, not `optimistic` — the local timestamp must not reach the wire.
         await templateService.update(user.workspaceId, id, input, demoted?.id)
       } catch {
         // Both affected rows go back, not just the edited one.
         set((s) => {
-          s.templates[id] = previous
-          if (demoted) s.templates[demoted.id] = demoted
+          const target = s.templates[id]
+          if (target) Object.assign(target, undo)
+          const incumbent = demoted && s.templates[demoted.id]
+          if (incumbent && undoDemotion) Object.assign(incumbent, undoDemotion)
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -207,15 +225,15 @@ export const useTemplateStore = create<TemplateState>()(
           workspaceId: user.workspaceId,
           type: 'UPDATE',
           id,
-          payload: previous,
+          payload: undo,
         })
-        if (demoted) {
+        if (demoted && undoDemotion) {
           broadcastDelta({
             entity: 'templates',
             workspaceId: user.workspaceId,
             type: 'UPDATE',
             id: demoted.id,
-            payload: { isDefault: true },
+            payload: undoDemotion,
           })
         }
         notify.error('Failed to update template')
@@ -268,9 +286,16 @@ export const useTemplateStore = create<TemplateState>()(
       const demotedId = isDefault ? currentDefaultId(get().templates, target.type, id) : null
       const demoted = demotedId ? get().templates[demotedId] : undefined
 
+      const now = Timestamp.now()
+      // Local `updatedAt` for the store only; the service writes serverTimestamp().
+      const promotion: Partial<Template> = { isDefault, updatedAt: now }
+      const demotion: Partial<Template> = { isDefault: false, updatedAt: now }
+      const undo = rollbackPatch(target, promotion)
+      const undoDemotion = demoted ? rollbackPatch(demoted, demotion) : null
+
       set((s) => {
-        s.templates[id].isDefault = isDefault
-        if (demoted) s.templates[demoted.id].isDefault = false
+        Object.assign(s.templates[id], promotion)
+        if (demoted) Object.assign(s.templates[demoted.id], demotion)
       })
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
@@ -278,7 +303,7 @@ export const useTemplateStore = create<TemplateState>()(
         workspaceId: user.workspaceId,
         type: 'UPDATE',
         id,
-        payload: { isDefault },
+        payload: promotion,
       })
       if (demoted) {
         broadcastDelta({
@@ -286,7 +311,7 @@ export const useTemplateStore = create<TemplateState>()(
           workspaceId: user.workspaceId,
           type: 'UPDATE',
           id: demoted.id,
-          payload: { isDefault: false },
+          payload: demotion,
         })
       }
 
@@ -299,8 +324,10 @@ export const useTemplateStore = create<TemplateState>()(
         )
       } catch {
         set((s) => {
-          s.templates[id].isDefault = target.isDefault
-          if (demoted) s.templates[demoted.id].isDefault = true
+          const promoted = s.templates[id]
+          if (promoted) Object.assign(promoted, undo)
+          const incumbent = demoted && s.templates[demoted.id]
+          if (incumbent && undoDemotion) Object.assign(incumbent, undoDemotion)
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -308,15 +335,15 @@ export const useTemplateStore = create<TemplateState>()(
           workspaceId: user.workspaceId,
           type: 'UPDATE',
           id,
-          payload: { isDefault: target.isDefault },
+          payload: undo,
         })
-        if (demoted) {
+        if (demoted && undoDemotion) {
           broadcastDelta({
             entity: 'templates',
             workspaceId: user.workspaceId,
             type: 'UPDATE',
             id: demoted.id,
-            payload: { isDefault: true },
+            payload: undoDemotion,
           })
         }
         notify.error('Failed to update default template')

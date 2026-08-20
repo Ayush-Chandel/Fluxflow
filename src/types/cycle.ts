@@ -22,6 +22,10 @@ export interface Cycle {
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
+  // Idempotency key minted by the client and stored by api/createCycle, so the
+  // snapshot delivering this cycle can retire the local placeholder without both
+  // rendering. Server-written and immutable, like `number` — see types/issue.ts.
+  clientRequestId?: string | null
 }
 
 export type CreateCycleInput = Pick<Cycle, 'name' | 'goal' | 'startDate' | 'endDate'>

@@ -55,6 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     goal: typeof input.goal === 'string' && input.goal.trim() ? input.goal.trim() : null,
     startDate: Timestamp.fromMillis(startMs),
     endDate: Timestamp.fromMillis(endMs),
+    // The client's idempotency key, stored verbatim — see api/createIssue.
+    clientRequestId:
+      typeof input.clientRequestId === 'string' ? input.clientRequestId : null,
     createdBy: decoded.uid,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),

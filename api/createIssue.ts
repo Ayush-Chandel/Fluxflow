@@ -61,6 +61,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     milestoneId: input.milestoneId ?? null,
     cycleId: input.cycleId ?? null,
     identifier: `LIN-${n}`,
+    // The client's idempotency key, stored verbatim so the snapshot that
+    // delivers this document identifies itself to the tab whose optimistic
+    // placeholder is standing in for it (src/lib/optimistic.ts). Null rather
+    // than undefined — Firestore rejects undefined field values.
+    clientRequestId:
+      typeof input.clientRequestId === 'string' ? input.clientRequestId : null,
     createdBy: decoded.uid,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),

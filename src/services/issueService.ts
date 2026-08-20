@@ -10,12 +10,18 @@ const issueDoc = (ws: string, id: string) => doc(db, `workspaces/${ws}/issues/${
 
 export const issueService = {
   // Server-sequential create: returns the real id + identifier the Fn assigned.
-  async create(ws: string, data: CreateIssueInput): Promise<{ id: string; identifier: string }> {
+  // `clientRequestId` is stored on the document so the snapshot that delivers it
+  // can be matched back to the local placeholder (lib/optimistic).
+  async create(
+    ws: string,
+    data: CreateIssueInput,
+    clientRequestId: string,
+  ): Promise<{ id: string; identifier: string }> {
     const token = await auth.currentUser?.getIdToken()
     const res = await fetch('/api/createIssue', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ workspaceId: ws, ...data }),
+      body: JSON.stringify({ workspaceId: ws, clientRequestId, ...data }),
     })
     if (!res.ok) throw new Error('Failed to create issue')
     return res.json()

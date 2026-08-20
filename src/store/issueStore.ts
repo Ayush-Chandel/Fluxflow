@@ -13,6 +13,14 @@ import { issueService } from '@/services/issueService'
 import { useAuthStore } from '@/store/authStore'
 import { broadcastDelta, type EntityBroadcast } from '@/lib/broadcastChannel'
 import { cacheKey, idb } from '@/lib/idb'
+import {
+  beginOptimistic,
+  endOptimistic,
+  placeholderIdFor,
+  reconcileInto,
+  rollbackPatch,
+  withoutOptimistic,
+} from '@/lib/optimistic'
 import { initialStatusStamps, statusStamps } from '@/lib/statusStamps'
 
 interface IssueState {
@@ -35,8 +43,10 @@ interface IssueState {
 
 // Persist the current map to IndexedDB in the SAME shape the engine writes back
 // (an array via selectAll), so the next boot's setAll(cached) hydrates correctly.
+// Placeholders are stripped: nothing that has no server document may enter the
+// cache, or a tab closed mid-create leaves a row no snapshot can remove (§6).
 function persist(ws: string, issues: Issue[]) {
-  return idb.set(cacheKey.issues(ws), issues)
+  return idb.set(cacheKey.issues(ws), withoutOptimistic(issues))
 }
 
 export const useIssueStore = create<IssueState>()(
@@ -45,14 +55,24 @@ export const useIssueStore = create<IssueState>()(
 
     setAll: (docs) =>
       set((s) => {
-        s.issues = {}
-        for (const doc of docs) s.issues[doc.id] = doc
+        reconcileInto(s.issues, docs)
       }),
 
     applyDelta: ({ type, doc }) =>
       set((s) => {
-        if (type === 'removed') delete s.issues[doc.id]
-        else s.issues[doc.id] = doc // 'added' | 'modified' both upsert
+        if (type === 'removed') {
+          delete s.issues[doc.id]
+          return
+        }
+        // The arriving document may be the one a placeholder is standing in for.
+        // Dropping it in the SAME commit is what stops the 'LIN-…' row and the
+        // real row from rendering side by side when the snapshot beats the POST
+        // response back — a race the create can't win, since the id is minted
+        // server-side and only the response knows it.
+        const placeholder = placeholderIdFor(doc)
+        if (placeholder) delete s.issues[placeholder]
+
+        s.issues[doc.id] = doc // 'added' | 'modified' both upsert
       }),
 
     selectAll: () => Object.values(get().issues),
@@ -78,7 +98,10 @@ export const useIssueStore = create<IssueState>()(
       const { user } = useAuthStore.getState()
       if (!user) return
 
-      const tempId = `optimistic-${Date.now()}`
+      // `clientRequestId` rides along to the Fn and comes back on the created
+      // document, so applyDelta can retire this placeholder the instant the real
+      // one lands — whichever way the race goes.
+      const { tempId, clientRequestId } = beginOptimistic()
       const now = Timestamp.now()
       const status = data.status ?? 'backlog'
       const optimistic: Issue = {
@@ -87,6 +110,7 @@ export const useIssueStore = create<IssueState>()(
         ...data,
         status,
         ...initialStatusStamps(status),
+        clientRequestId,
         createdAt: now,
         updatedAt: now,
         createdBy: user.uid,
@@ -116,11 +140,14 @@ export const useIssueStore = create<IssueState>()(
       })
 
       try {
-        const { id, identifier } = await issueService.create(user.workspaceId, data)
+        const { id, identifier } = await issueService.create(user.workspaceId, data, clientRequestId)
         const created: Issue = { ...optimistic, id, identifier }
+        endOptimistic(tempId)
         set((s) => {
           delete s.issues[tempId]
-          s.issues[id] = created
+          // The snapshot may have delivered the real document already (and its
+          // server timestamps beat our local estimates), so don't overwrite it.
+          if (!s.issues[id]) s.issues[id] = created
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -142,6 +169,7 @@ export const useIssueStore = create<IssueState>()(
             description: `${identifier} – ${created.title}`,
           })
       } catch {
+        endOptimistic(tempId)
         set((s) => {
           delete s.issues[tempId]
         })
@@ -174,8 +202,18 @@ export const useIssueStore = create<IssueState>()(
           ? { ...patch, ...statusStamps(previous, patch.status) }
           : patch
 
+      // `updatedAt` is stamped locally for the STORE only. The service writes
+      // serverTimestamp() (firestore.rules requires updatedAt == request.time),
+      // which reads back as null until the server acknowledges — so without a
+      // local value the row's "2h ago" would blank out on every edit.
+      const optimistic: Partial<Issue> = { ...full, updatedAt: Timestamp.now() }
+      // Undo only the keys this write touches, so a failure can't also revert an
+      // unrelated field a snapshot landed in between.
+      const undo = rollbackPatch(previous, optimistic)
+
       set((s) => {
-        Object.assign(s.issues[id], full)
+        const target = s.issues[id]
+        if (target) Object.assign(target, optimistic)
       })
       await persist(user.workspaceId, get().selectAll())
       broadcastDelta({
@@ -183,14 +221,16 @@ export const useIssueStore = create<IssueState>()(
         workspaceId: user.workspaceId,
         type: 'UPDATE',
         id,
-        payload: full,
+        payload: optimistic,
       })
 
       try {
+        // `full`, not `optimistic` — the local timestamp must not reach the wire.
         await issueService.updateIssue(user.workspaceId, id, full)
       } catch {
         set((s) => {
-          s.issues[id] = previous
+          const target = s.issues[id]
+          if (target) Object.assign(target, undo)
         })
         await persist(user.workspaceId, get().selectAll())
         broadcastDelta({
@@ -198,7 +238,7 @@ export const useIssueStore = create<IssueState>()(
           workspaceId: user.workspaceId,
           type: 'UPDATE',
           id,
-          payload: previous,
+          payload: undo,
         })
         notify.error('Failed to update issue')
       }

@@ -34,6 +34,14 @@ export interface Issue {
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
+  // Idempotency key: the client mints it, api/createIssue stores it verbatim, and
+  // issueStore.applyDelta uses it to recognise an incoming document as the one a
+  // local placeholder is standing in for (lib/optimistic). Server-written and
+  // immutable afterwards, exactly like `identifier` — firestore.rules keeps it
+  // off issueMutable(), so a client can never change it. Optional: every issue
+  // written before it existed lacks it, and it is null for anything the UI
+  // didn't create optimistically.
+  clientRequestId?: string | null
 }
 
 // Fields a client supplies when creating an issue. `identifier`, `id`, timestamps
