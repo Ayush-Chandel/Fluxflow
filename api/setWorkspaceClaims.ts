@@ -25,10 +25,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const db = getFirestore()
 
-  // 1. Create the workspace document in Firestore
-  await db.collection('workspaces').doc(workspaceId).set({
-    ownerId: decoded.uid,
-    createdAt: FieldValue.serverTimestamp(),
+  const wsRef = db.collection('workspaces').doc(workspaceId)
+  await db.runTransaction(async (tx) => {
+    if ((await tx.get(wsRef)).exists) return
+    tx.create(wsRef, {
+      ownerId: decoded.uid,
+      createdAt: FieldValue.serverTimestamp(),
+    })
   })
 
   // 2. Burn workspaceId into every future JWT for this user as a custom claim

@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react'
 import { CheckIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ColorPicker } from '../ui/color-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import ProjectIcon from './ProjectIcon'
 import {
@@ -108,26 +109,27 @@ function ProjectIconPicker({
 
           <span className='mx-0.5 h-5 w-px shrink-0 bg-edge' />
 
-          {/* Custom colour: a native colour input, visually replaced by the
-              conic-gradient wheel from the design. */}
-          <label
-            className='relative flex h-6 w-6 cursor-pointer items-center justify-center rounded-full transition-transform hover:scale-110'
-            style={{
-              background:
-                'conic-gradient(#e5484d, #ee8b3b, #e5c019, #3fa66b, #02b8cc, #5e6ad2, #d148d1, #e5484d)',
-            }}
-            aria-label='Custom color'
+          {/* Custom colour: the conic-gradient wheel from the design opens a
+              nested picker popover. Nesting is safe here — Radix tracks
+              dismissable layers through the React tree, so a click inside the
+              inner content is not "outside" this one. */}
+          <ColorPicker
+            value={color}
+            onChange={(hex) => onChange({ icon: icon as ProjectIconKey, color: hex })}
+            align='end'
           >
-            <input
-              type='color'
-              value={color}
-              onChange={(event) =>
-                onChange({ icon: icon as ProjectIconKey, color: event.target.value })
-              }
-              className='absolute inset-0 h-full w-full cursor-pointer opacity-0'
-            />
-            {!isPreset && <CheckIcon className='h-3.5 w-3.5 text-white' />}
-          </label>
+            <button
+              type='button'
+              aria-label='Custom color'
+              className='flex h-6 w-6 cursor-pointer items-center justify-center rounded-full transition-transform hover:scale-110'
+              style={{
+                background:
+                  'conic-gradient(#e5484d, #ee8b3b, #e5c019, #3fa66b, #02b8cc, #5e6ad2, #d148d1, #e5484d)',
+              }}
+            >
+              {!isPreset && <CheckIcon className='h-3.5 w-3.5 text-white' />}
+            </button>
+          </ColorPicker>
         </div>
 
         {/* Icon grid. The wrapper's `color` cascades into every ProjectIcon that

@@ -3,8 +3,9 @@
 // so clients are create-blocked in firestore.rules and route through here.
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import './_firebase' // shared Admin SDK init (side-effect import)
+import { createWithSequence } from './_sequence'
 import { getAuth } from 'firebase-admin/auth'
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore'
+import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -45,15 +46,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'endDate must be after startDate' })
   }
 
-  const db = getFirestore()
-  const ref = db.collection(`workspaces/${workspaceId}/cycles`)
-
-  // Sequential number: count existing cycles + 1. Same known race as
-  // api/createIssue's LIN-N — both want a transactional counter doc (Plan §14.2).
-  const number = (await ref.count().get()).data().count + 1
-
-  const doc = {
-    number,
+  // Sequential number from the same transactional counter api/createIssue uses —
+  // "Cycle 5" is as user-facing as 'LIN-5', and count() had the same race and the
+  // same reuse-after-delete bug (§14.2, api/_sequence.ts).
+  const { id, number } = await createWithSequence(workspaceId, 'cycles', (n) => ({
+    number: n,
     name: typeof input.name === 'string' && input.name.trim() ? input.name.trim() : null,
     goal: typeof input.goal === 'string' && input.goal.trim() ? input.goal.trim() : null,
     startDate: Timestamp.fromMillis(startMs),
@@ -61,8 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     createdBy: decoded.uid,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
-  }
+  }))
 
-  const docRef = await ref.add(doc)
-  return res.status(200).json({ id: docRef.id, number })
+  return res.status(200).json({ id, number })
 }

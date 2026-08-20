@@ -2,11 +2,13 @@
 // Issues carry a sequential human-readable identifier ('LIN-1', 'LIN-2', …) that
 // can't be minted race-free from the client, so the client SDK is create-blocked
 // for issues (firestore.rules) and routes creates through this Vercel Fn instead.
-// In dev, MSW mocks this route (build order 6); this is the real thing (step 7).
+// In dev this runs for real too — MSW stopped mocking it in §15, and
+// vite/localApi.ts mounts this exact handler on the Vite dev server.
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import './_firebase' // shared Admin SDK init (side-effect import)
+import { createWithSequence } from './_sequence'
 import { getAuth } from 'firebase-admin/auth'
-import { getFirestore, FieldValue } from 'firebase-admin/firestore'
+import { FieldValue } from 'firebase-admin/firestore'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -41,18 +43,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'title is required' })
   }
 
-  const db = getFirestore()
-  const ref = db.collection(`workspaces/${workspaceId}/issues`)
-
-  // Sequential identifier: count existing issues + 1 → 'LIN-N'.
-  const identifier = `LIN-${(await ref.count().get()).data().count + 1}`
-
   // Only accept the user-supplied fields (CreateIssueInput); server stamps the
   // rest. Never trust a client-sent identifier / createdBy / timestamps.
   const status = (input.status as string | undefined) ?? 'backlog'
   const startedNow = status === 'in_progress' || status === 'done'
 
-  const doc = {
+  const { id, number } = await createWithSequence(workspaceId, 'issues', (n) => ({
     title: input.title,
     description: input.description ?? '',
     status,
@@ -64,12 +60,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     projectId: input.projectId ?? null,
     milestoneId: input.milestoneId ?? null,
     cycleId: input.cycleId ?? null,
-    identifier,
+    identifier: `LIN-${n}`,
     createdBy: decoded.uid,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
-  }
+  }))
 
-  const docRef = await ref.add(doc)
-  return res.status(200).json({ id: docRef.id, identifier })
+  return res.status(200).json({ id, identifier: `LIN-${number}` })
 }

@@ -696,10 +696,17 @@ project-root/
 │   │
 │   └── mocks/{browser,handlers}.ts  ✅ (extend handlers)
 │
-├── api/
-│   ├── setWorkspaceClaims.ts ✅
-│   ├── createIssue.ts        ✅ verify token → sequential LIN-xxx → add()
-│   └── createCycle.ts        ✅ verify token → sequential number → add()
+├── api/                     ✅ TYPECHECKED as of 19 — `api/**/*.ts` joined tsconfig.node.json's
+│   │                           include. Until then the four files that actually ship as
+│   │                           functions were in NO project, so `tsc -b` never compiled them
+│   │                           and a type error would have surfaced as a 500 in production.
+│   ├── _firebase.ts          ✅ shared Admin SDK init (emulator branch — §15)
+│   ├── _sequence.ts          ★ createWithSequence() — the transactional counter both
+│   │                           server-created entities allocate from (§14.2, step 19)
+│   ├── setWorkspaceClaims.ts ✅ idempotent as of 19 — creates the workspace doc only if
+│   │                           absent, since logIn re-calls this to repair a half-failed signup
+│   ├── createIssue.ts        ✅ verify token → sequential LIN-xxx → create in one transaction
+│   └── createCycle.ts        ✅ verify token → sequential number → create in one transaction
 │
 ├── test/
 │   └── firestore.rules.test.mjs ★ 56 cases, node --test + @firebase/rules-unit-testing.
@@ -1661,9 +1668,36 @@ swap that changes `projectId` clears `milestoneId` — a milestone belongs to ex
     **Still NOT runtime-verified ⚠️** — this step verified the RULES, not the app's paths through
     them. `/api/createCycle` + the status stamps (§13), the two-tab broadcast receive path (§16) and
     the filter UI (§17) are all still unexercised; see §13.
-19. **Vercel deploy** — Admin SDK env vars, strip MSW from prod, deploy functions.
-    Carries the rest of §14.2: the `LIN-N` race (`count()+1` needs a transactional counter doc), the
-    unrecoverable half-failed signup, and `MOCK_ISSUES` (already gone — §15 deleted it).
+19. 🚧 **Vercel deploy** — Admin SDK env vars, strip MSW from prod, deploy functions.
+    **The §14.2 carry-overs are DONE (2026-08-19); the deploy itself is not.**
+    - ✅ **`LIN-N` race → `api/_sequence.ts`** ★, shared by `createIssue` and `createCycle`: the
+      number is allocated from a transactional counter doc and the entity is created in the same
+      transaction. Verified against the emulator, including 12 parallel creates — the run is what
+      caught both the seeding rule (high-water mark, not `count()`) and the retry failure that
+      forced the seed read out of the transaction. Full detail in §14.2.
+    - ✅ **Half-failed signup** — `setWorkspaceClaims` creates the workspace doc only when absent
+      (transaction, not `{merge:true}` — merge still resets `createdAt`); the `logIn` retry half was
+      already there via `ensureWorkspaceClaim`. §14.2.
+    - ✅ **`MOCK_ISSUES`** — §15 deleted it.
+    - ✅ **`api/` is typechecked** — `api/**/*.ts` joined `tsconfig.node.json`, so `npm run build`
+      now compiles the functions that ship. It was in no project before, which is why none of the
+      above could have been caught by a build.
+    - ✅ **MSW is already stripped** — `main.tsx`'s dynamic import sits behind `import.meta.env.DEV`,
+      so no bundle in `dist/assets` references it (checked). The only residue is
+      `public/mockServiceWorker.js`, which Vite copies verbatim: a dead file nothing registers.
+    **What is actually left, all of it configuration:** link the repo to a Vercel project (never
+    done — §15 chose the `vite/localApi.ts` plugin precisely to avoid `vercel link`); set the
+    dashboard env vars per §11, and **do not set `FIRESTORE_EMULATOR_HOST` /
+    `FIREBASE_AUTH_EMULATOR_HOST` there** — `api/_firebase.ts` branches on the former's presence
+    and would point production at an emulator that isn't running; `firebase deploy --only
+    firestore:rules`, which ships on a different track from `git push` and has never run against
+    the real project.
+    **Two things to check on the first deploy, found while auditing:** `vercel.json` has NO SPA
+    fallback (its only rewrite, `/api/(.*)` → `/api/$1`, is a no-op — Vercel resolves functions
+    from the filesystem before rewrites), so a hard refresh on `/app/issues` may 404 and want
+    `{"source": "/(.*)", "destination": "/index.html"}` appended; and most runtime deps
+    (`firebase`, `zustand`, `react-router-dom`, `immer`, `idb-keyval`, `@dnd-kit/*`) sit in
+    **devDependencies**, which builds fine on Vercel today but is one `NODE_ENV` away from not.
 20. **Landing page** — last
 
 ---
@@ -1752,6 +1786,26 @@ and it draws real history from the day the fields shipped. What is left when som
 - **`/api/createCycle` ⚠️ (not yet run)**: create a cycle and confirm the Fn returns a real sequential
   `number` backed by an actual document (not the old MSW random one — that handler is gone), and that
   a client `addDoc` straight to `cycles` is denied by the new rules block.
+- **Sequential numbering ✅ (verified 2026-08-19, build order 19)**: `api/_sequence.ts` was exercised
+  against the throwaway emulator (`firebase.test.json`, port 8085) by compiling it to CJS and driving
+  the REAL helper — six cases, all passing: it seeds a pre-counter workspace from the highest number
+  ever issued (three issues with `LIN-1` deleted still yields `LIN-4`, no duplicate); a deleted
+  identifier is never reissued; **12 parallel creates produce a dense 1..12 with one document each**;
+  issues and cycles keep separate counters inside one workspace; counters are per workspace.
+  *That run is what found the two bugs recorded in §14.2 — the first draft seeded from `count()` and
+  read the seed inside the transaction, and the concurrency case is the only one that failed.*
+  **This is not wired as an `npm run` script**: the helper is TypeScript importing `./_firebase`
+  extensionless, so node can't load it directly and the check needs a `tsc` pass first
+  (`npx tsc api/_sequence.ts --ignoreConfig --ignoreDeprecations 6.0 --outDir
+  node_modules/.tmp/apicheck --module commonjs --target es2022 --moduleResolution node
+  --esModuleInterop --skipLibCheck`, plus a `{"type":"commonjs"}` package.json in that folder, then
+  `firebase emulators:exec --only firestore --config firebase.test.json --project
+  demo-fluxflow-rules "node --test <script>"`). Worth promoting to `test/` beside the rules suite if
+  the allocator is ever touched again.
+- **The counter's own migration ⚠️ (not run in the browser)**: the FIRST issue created after this
+  change in a workspace that predates it takes the seeding path once. Confirm the new issue continues
+  the existing numbering rather than restarting at `LIN-1`, and that
+  `workspaces/{ws}/counters/issues` appears in the emulator UI with the right count.
 - **Status stamps (§4)**: walk one issue `todo → in_progress → done` and confirm `startedAt` is set
   once at the first move and `completedAt` at the last. Then reopen it (`done → todo`): `completedAt`
   clears, `startedAt` **does not**. Move a second issue `todo → done` directly — it must get BOTH, so
@@ -1861,20 +1915,38 @@ is minted, the doc is written, `updateDoc` succeeds. Fix is about making **dev f
   ✅ **FIXED in build order 15** — `__mockIssues.ts` and both fallbacks are deleted; the Issues page
   gained the real empty state the fallback was hiding. (Verified 2026-08-19: no `MOCK_ISSUES`
   reference remains in `src/`.)
-- **`LIN-N` is not race-free** (`api/createIssue.ts:48`). `count() + 1` is exactly the race the
+- ~~**`LIN-N` is not race-free** (`api/createIssue.ts:48`). `count() + 1` is exactly the race the
   server hop exists to prevent — concurrent creates collide, and deleting an issue makes the next
-  create reuse a retired identifier. Needs a counter doc incremented in a transaction.
+  create reuse a retired identifier. Needs a counter doc incremented in a transaction.~~
+  ✅ **FIXED in build order 19** — `api/_sequence.ts` ★. A counter doc per collection
+  (`workspaces/{ws}/counters/{issues|cycles}`) is read, incremented and written in the SAME
+  transaction that creates the entity, so the number and the document carrying it commit together.
+  `createCycle` had the identical bug in its `number` and now shares the helper. The counter only
+  rises, so a deleted identifier stays retired. Two things the emulator run taught (§13):
+  (a) the seed for a pre-counter workspace must be the **highest number ever issued**, not
+  `count()` — three issues with one deleted counts 2, and seeding from 2 re-issues the live LIN-3;
+  (b) the seed read must happen **outside** the transaction. Inside, concurrent first-creates all
+  take the seeding branch, contend, and the retried attempt dies on `Transaction is invalid or
+  closed` — so `allocate()` returns null when unseeded and the caller seeds and re-runs.
 - ~~**`updateIssue` spreads an arbitrary client patch** (`issueService.ts:27`) and rules don't
   validate fields, so a client can overwrite `identifier` / `createdBy` / `createdAt`.~~ ✅ **FIXED in
   build order 18.** The service still spreads the patch — deliberately; the fix belongs in the rules,
   which is the only place a client can't route around it. `issueMutable()` omits all three, and the
   same treatment covers projects, cycles (`number`) and templates (`type`). Tested in
   `test/firestore.rules.test.mjs`.
-- **A half-failed signup is unrecoverable.** `authService.signUp:26` throws if
+- ~~**A half-failed signup is unrecoverable.** `authService.signUp:26` throws if
   `/api/setWorkspaceClaims` fails, but the auth user already exists — no claim, no workspace doc, and
   `logIn` never retries. Make `logIn` call the endpoint when the claim is absent, and make the Fn
   idempotent (`setWorkspaceClaims.ts:29` uses `.set()`, which would reset `createdAt` — needs
-  `{merge:true}` or an existence check).
+  `{merge:true}` or an existence check).~~ ✅ **FIXED in two halves.** The client half landed
+  earlier and undocumented: `authService` now routes BOTH entry points through
+  `ensureWorkspaceClaim`, which reads the claim off the token and only calls the endpoint when it is
+  missing — so a sign-in repairs a half-failed signup by itself. The server half landed in build
+  order 19: the workspace doc is created inside a transaction that returns early if it already
+  exists. Note `{merge:true}` alone would NOT have been enough — merge still overwrites
+  `createdAt` with the retry's `serverTimestamp()`; only skipping the write preserves it.
+  `setCustomUserClaims` is idempotent on its own, so the endpoint is now safe to call any number
+  of times.
 - ~~**Rules throw instead of denying cleanly** on a missing claim.~~ ✅ **Already fixed** — the
   `request.auth.token.get('workspaceId','') == ws` form landed with the step-7 rules, not step 18;
   this bullet was stale. Step 18 added the regression test (`denies a signed-in user whose token
