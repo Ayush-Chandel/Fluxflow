@@ -19,7 +19,7 @@
 // The counter lives at `workspaces/{ws}/counters/{collection}`. It is written by
 // the Admin SDK, which bypasses rules, and no client reads it — firestore.rules
 // has no match block for that path, so it is denied by default, which is correct.
-import './_firebase' // shared Admin SDK init (side-effect import)
+import './_firebase.js' // shared Admin SDK init (side-effect import)
 import {
   getFirestore,
   type CollectionReference,

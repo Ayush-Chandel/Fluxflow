@@ -1,6 +1,6 @@
 // api/setWorkspaceClaims.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import './_firebase' // shared Admin SDK init (side-effect import)
+import './_firebase.js' // shared Admin SDK init (side-effect import)
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 

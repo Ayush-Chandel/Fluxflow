@@ -5,8 +5,8 @@
 // In dev this runs for real too — MSW stopped mocking it in §15, and
 // vite/localApi.ts mounts this exact handler on the Vite dev server.
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import './_firebase' // shared Admin SDK init (side-effect import)
-import { createWithSequence } from './_sequence'
+import './_firebase.js' // shared Admin SDK init (side-effect import)
+import { createWithSequence } from './_sequence.js'
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue } from 'firebase-admin/firestore'
 

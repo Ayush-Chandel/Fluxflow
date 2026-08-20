@@ -2,8 +2,8 @@
 // api/createIssue. A cycle's `number` is sequential and human-facing ("Cycle 5"),
 // so clients are create-blocked in firestore.rules and route through here.
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import './_firebase' // shared Admin SDK init (side-effect import)
-import { createWithSequence } from './_sequence'
+import './_firebase.js' // shared Admin SDK init (side-effect import)
+import { createWithSequence } from './_sequence.js'
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 
