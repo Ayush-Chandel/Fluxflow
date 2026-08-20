@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth'
 import { router } from '@/router'
 import { useAuthStore } from '@/store/authStore'
+import { WorkspaceClaimError } from '@/lib/authErrors'
 
 
 async function ensureWorkspaceClaim(user: User): Promise<string> {
@@ -23,7 +24,7 @@ async function ensureWorkspaceClaim(user: User): Promise<string> {
     },
     body: JSON.stringify({ uid: user.uid }),
   })
-  if (!res.ok) throw new Error('Failed to set workspace claims')
+  if (!res.ok) throw new WorkspaceClaimError()
 
   const { workspaceId } = (await res.json()) as { workspaceId: string }
 

@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signUpSchema } from "@/lib/validation";
 import z from "zod";
 import { authService } from "@/services/authService";
+import { authErrorMessage } from "@/lib/authErrors";
 import BoxGradient from "@/components/common/BoxGradient";
 
 
@@ -35,8 +36,8 @@ type SignUpFormData = z.infer<typeof signUpSchema>; // replaces
         try {
          await authService.signUp(data?.email, data?.password)
          // ← no navigate() here — authService handles it
-       } catch {
-         toast.error('An error occured')
+       } catch (error) {
+         toast.error(authErrorMessage(error))
        }
   };
 
