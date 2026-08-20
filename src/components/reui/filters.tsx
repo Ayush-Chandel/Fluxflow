@@ -1160,9 +1160,17 @@ function SelectOptionsPopover<T = unknown>({
             ) : (
               <>
                 {selectedOptions.length > 0 && (
-                  <div className="flex items-center -space-x-1.5">
-                    {selectedOptions.slice(0, 3).map((option) => (
-                      <div key={String(option.value)}>{option.icon}</div>
+                  <div
+                    data-slot="filter-value-icons"
+                    className="flex items-center gap-1"
+                  >
+                    {selectedOptions.slice(0, 2).map((option) => (
+                      <div
+                        key={String(option.value)}
+                        className="flex shrink-0 items-center"
+                      >
+                        {option.icon}
+                      </div>
                     ))}
                   </div>
                 )}
