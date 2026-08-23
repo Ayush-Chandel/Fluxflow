@@ -14,9 +14,76 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fluxflow</title>
+    <style>
+      /* Boot loader — the CSS twin of <ShiftingBlocks/> at size=30. Raw token
+         values, because index.css has not loaded yet: the vars do not exist. */
+      #ff-boot { position: fixed; inset: 0; display: grid; place-items: center;
+                 background: oklch(0.10 0 264); }
+      [data-theme="light"] #ff-boot { background: oklch(0.97 0 264); }
+
+      /* Nothing shows for the first 200ms, so a warm boot never flashes. */
+      .ff-mark { position: relative; width: 133px; height: 111px;
+                 animation: ff-in .25s ease-out .2s both; }
+      @keyframes ff-in { from { opacity: 0 } to { opacity: 1 } }
+
+      /* The lattice is a plain integer grid; the container does the rotating.
+         --p is one lattice step (block edge + gap), --n its negative. */
+      .ff-ring { --p: 31.86px; --n: -31.86px;
+                 position: absolute; left: 66.27px; top: 66.27px;
+                 width: 0; height: 0; transform: rotate(45deg); }
+      .ff-blk { position: absolute; width: 30px; height: 30px;
+                left: -15px; top: -15px; border-radius: 3.3px;
+                background: oklch(0.55 0.18 264);
+                animation-duration: 1.3333s; animation-iteration-count: infinite;
+                animation-timing-function: cubic-bezier(.333, 0, .667, 1); }
+
+      .ff-blk:nth-child(1) { transform: translate(var(--p), 0);          animation-name: ff-b0 }
+      .ff-blk:nth-child(2) { transform: translate(var(--p), var(--n));   animation-name: ff-b1 }
+      .ff-blk:nth-child(3) { transform: translate(0, var(--n));          animation-name: ff-b2 }
+      .ff-blk:nth-child(4) { transform: translate(var(--n), var(--n));   animation-name: ff-b3 }
+      .ff-blk:nth-child(5) { transform: translate(var(--n), 0);          animation-name: ff-b4 }
+      .ff-blk:nth-child(6) { transform: translate(var(--n), var(--p));   animation-name: ff-b5 }
+      .ff-blk:nth-child(7) { transform: translate(0, var(--p));          animation-name: ff-b6 }
+
+      @keyframes ff-b0 { 0%        { transform: translate(var(--p), 0) }
+                         12.5%,
+                         87.5%     { transform: translate(0, 0) }
+                         100%      { transform: translate(0, var(--p)) } }
+      @keyframes ff-b1 { 0%, 12.5% { transform: translate(var(--p), var(--n)) }
+                         25%, 100% { transform: translate(var(--p), 0) } }
+      @keyframes ff-b2 { 0%, 25%   { transform: translate(0, var(--n)) }
+                         37.5%,
+                         100%      { transform: translate(var(--p), var(--n)) } }
+      @keyframes ff-b3 { 0%, 37.5% { transform: translate(var(--n), var(--n)) }
+                         50%, 100% { transform: translate(0, var(--n)) } }
+      @keyframes ff-b4 { 0%, 50%   { transform: translate(var(--n), 0) }
+                         62.5%,
+                         100%      { transform: translate(var(--n), var(--n)) } }
+      @keyframes ff-b5 { 0%, 62.5% { transform: translate(var(--n), var(--p)) }
+                         75%, 100% { transform: translate(var(--n), 0) } }
+      @keyframes ff-b6 { 0%, 75%   { transform: translate(0, var(--p)) }
+                         87.5%,
+                         100%      { transform: translate(var(--n), var(--p)) } }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ff-blk { animation-name: none }
+        .ff-ring { animation: ff-pulse 2s ease-in-out infinite }
+        @keyframes ff-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .45 } }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="ff-boot" role="status" aria-label="Loading">
+        <div class="ff-mark" aria-hidden="true">
+          <div class="ff-ring">
+            <i class="ff-blk"></i><i class="ff-blk"></i><i class="ff-blk"></i>
+            <i class="ff-blk"></i><i class="ff-blk"></i><i class="ff-blk"></i>
+            <i class="ff-blk"></i>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

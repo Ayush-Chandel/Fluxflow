@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import TemplateIssue from '@/components/templates/TemplateIssue';
 import TemplateProject from '@/components/templates/TemplateProject';
-import { Skeleton } from '@/components/ui/skeleton';
+import PageLoader from '@/components/common/PageLoader';
 import { useTemplate } from '@/hooks/useTemplateSelectors';
 import { useTemplateStore } from '@/store/templateStore';
 import { TEMPLATE_TYPE_BY_SLUG, isTemplateTypeSlug } from '@/types/template';
@@ -37,13 +37,7 @@ function TemplateFormPage() {
       if (hasTemplates || graceElapsed) {
         return <p className='px-3 text-lsm text-muted'>Template not found</p>
       }
-      return (
-        <div className='px-3'>
-          <Skeleton className='h-8 w-64' />
-          <Skeleton className='mt-3 h-4 w-80' />
-          <Skeleton className='mt-8 h-32 w-full rounded-xl' />
-        </div>
-      )
+      return <PageLoader delay={150} className='min-h-[50vh]' />
     }
 
     return template.type === 'issue'

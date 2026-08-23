@@ -1,13 +1,17 @@
 // src/router.ts
 import { createBrowserRouter,Navigate } from 'react-router'
 import Landing from '@/Landing'
+import PageLoader from '@/components/common/PageLoader'
 import { AuthRoute, LandingRoute, ProtectedRoute } from '@/routes/Guards'
 import { sidebarHandle } from './types/layout'
+
+const bootFallback = <PageLoader fullscreen />
 
 export const router = createBrowserRouter([
   {
     // Landing guard wrapper — in prod, redirects / to /login (or /app/issues)
     Component: LandingRoute,
+    hydrateFallbackElement: bootFallback,
     children: [
       {
         path: '/',
@@ -18,6 +22,7 @@ export const router = createBrowserRouter([
   {
     // Auth guard wrapper — redirects to /app/issues if already logged in
     Component: AuthRoute,
+    hydrateFallbackElement: bootFallback,
     children: [
       {
         path: '/signup',
@@ -32,6 +37,7 @@ export const router = createBrowserRouter([
   {
     // Protected guard wrapper — redirects to /login if not logged in
     Component: ProtectedRoute,
+    hydrateFallbackElement: bootFallback,
     children: [
       {
         path: '/app',
@@ -98,5 +104,6 @@ export const router = createBrowserRouter([
   {
     path: '*',
     lazy: () => import('@/routes/NotFound'),
+    hydrateFallbackElement: bootFallback,
   },
 ])

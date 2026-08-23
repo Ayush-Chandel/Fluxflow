@@ -5,7 +5,7 @@ import { useOpenIssue } from '@/hooks/useOpenIssue'
 import { useIssueFilters } from '@/hooks/useIssueFilters'
 import { filterIssues, type FilterField } from '@/lib/issueFilters'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
-import { Skeleton } from '@/components/ui/skeleton'
+import PageLoader from '@/components/common/PageLoader'
 import FilterBar from '@/components/common/FilterBar'
 import NoFilterMatches from '@/components/common/NoFilterMatches'
 import ViewBar from '@/components/common/ViewBar'
@@ -57,13 +57,8 @@ function CycleDetailView({ cycleId, viewId, missing }: Props) {
       )
     }
 
-    return (
-      <div className='px-4 py-4'>
-        <Skeleton className='h-4 w-20 rounded-md' />
-        <Skeleton className='mt-4 h-8 w-full rounded-md' />
-        <Skeleton className='mt-2 h-8 w-full rounded-md' />
-      </div>
-    )
+    // Short enough that a fade-in delay keeps a cache hit from flashing.
+    return <PageLoader delay={150} />
   }
 
   const status = cycleStatusFromDates(cycle.startDate, cycle.endDate)
