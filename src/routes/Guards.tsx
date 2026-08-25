@@ -1,5 +1,5 @@
 // src/routes/guards.tsx
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useNavigation } from 'react-router-dom'
 import PageLoader from '@/components/common/PageLoader'
 import { useAuthStore } from '@/store/authStore'
 
@@ -20,10 +20,15 @@ export function LandingRoute() {
 // Wraps /signup and /login — boots logged-in users away
 export function AuthRoute() {
   const { user, loading } = useAuthStore()
+  const navigation = useNavigation()
+  const isEnteringWorkspace =
+    navigation.state === 'loading' &&
+    navigation.location?.pathname.startsWith('/app')
 
   // Same mark the boot loader was already showing, so the wait is continuous
   // rather than a blank frame between the two.
   if (loading) return <PageLoader fullscreen />
+  if (isEnteringWorkspace) return <PageLoader fullscreen />
   if (user) return <Navigate to="/app/issues" replace />
   return <Outlet />
 }
@@ -32,7 +37,7 @@ export function AuthRoute() {
 export function ProtectedRoute() {
   const { user, loading } = useAuthStore();
 
-  if (loading) return <PageLoader delay={5000} fullscreen />  // prevents /login flash on hard refresh
+  if (loading) return <PageLoader fullscreen />
   if (!user) return <Navigate to="/login" replace />
   return <Outlet />
 }

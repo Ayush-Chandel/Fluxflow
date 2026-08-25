@@ -10,6 +10,16 @@ import { router } from '@/router'
 import { useAuthStore } from '@/store/authStore'
 import { WorkspaceClaimError } from '@/lib/authErrors'
 
+const AUTH_TRANSITION_LOADER_MS = 2_000
+
+async function waitForAuthTransition(startedAt: number) {
+  const remaining = AUTH_TRANSITION_LOADER_MS - (Date.now() - startedAt)
+  if (remaining <= 0) return
+
+  await new Promise<void>((resolve) => {
+    window.setTimeout(resolve, remaining)
+  })
+}
 
 async function ensureWorkspaceClaim(user: User): Promise<string> {
   const existing = (await user.getIdTokenResult()).claims['workspaceId'] as string | undefined
@@ -33,10 +43,11 @@ async function ensureWorkspaceClaim(user: User): Promise<string> {
 }
 
 // Both entry points land in the same state: claim minted, store patched, routed.
-async function completeSignIn(user: User) {
+async function completeSignIn(user: User, startedAt: number) {
   const workspaceId = await ensureWorkspaceClaim(user)
 
   useAuthStore.getState().setUser(Object.assign(user, { workspaceId }))
+  await waitForAuthTransition(startedAt)
   useAuthStore.getState().setLoading(false)
 
   router.navigate('/app/issues', { replace: true }) // ← no useNavigate needed
@@ -45,13 +56,29 @@ async function completeSignIn(user: User) {
 
 export const authService = {
   async signUp(email: string, password: string) {
-    const cred = await createUserWithEmailAndPassword(auth, email, password)
-    return completeSignIn(cred.user)
+    const startedAt = Date.now()
+    useAuthStore.getState().setLoading(true)
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password)
+      return await completeSignIn(cred.user, startedAt)
+    } catch (error) {
+      useAuthStore.getState().setLoading(false)
+      throw error
+    }
   },
 
   async logIn(email: string, password: string) {
-    const cred = await signInWithEmailAndPassword(auth, email, password)
-    return completeSignIn(cred.user)
+    const startedAt = Date.now()
+    useAuthStore.getState().setLoading(true)
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password)
+      return await completeSignIn(cred.user, startedAt)
+    } catch (error) {
+      useAuthStore.getState().setLoading(false)
+      throw error
+    }
   },
 
   async signOut() {

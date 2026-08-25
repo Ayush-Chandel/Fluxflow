@@ -19,6 +19,7 @@ import z from "zod";
 import { authService } from "@/services/authService";
 import { authErrorMessage } from "@/lib/authErrors";
 import BoxGradient from "@/components/common/BoxGradient";
+import { Link } from "react-router";
 
 
 type SignUpFormData = z.infer<typeof signUpSchema>; // replaces 
@@ -101,9 +102,9 @@ type SignUpFormData = z.infer<typeof signUpSchema>; // replaces
 
             <p className="text-sm text-muted text-center py-3">
             Already have an account?{" "}
-            <a href="/login" className="pl-1 text-foreground underline-offset-4 underline">
+            <Link to="/login" className="pl-1 text-foreground underline-offset-4 underline">
                 Log In
-            </a>
+            </Link>
             </p>
         </CardFooter>
         </Card>

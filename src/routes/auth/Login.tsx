@@ -19,6 +19,7 @@ import z from "zod";
 import { authService } from "@/services/authService";
 import { authErrorMessage } from "@/lib/authErrors";
 import BoxGradient from "@/components/common/BoxGradient";
+import { Link } from "react-router";
 
 
 type LogInFormData = z.infer<typeof logInSchema>; // replaces 
@@ -43,6 +44,14 @@ function LogIn() {
 
   return (
    <BoxGradient>
+        <aside
+          className="fixed left-25 top-118 xl:top-20 xl:left-40 z-20 max-w-xs rounded-xl border border-edge bg-surface/95 px-4 py-3 text-sm shadow-lg backdrop-blur"
+          aria-label="Demo login credentials"
+        >
+          <p className="font-semibold text-foreground">Demo credentials</p>
+          <p className="mt-1 break-all text-muted">Email: test123@gmail.com</p>
+          <p className="break-all text-muted">Password: Qwerty@123</p>
+        </aside>
         <Card className="w-full max-w-sm mx-auto gap-4 mt-[100px] bg-surface border-edge rounded-2xl pb-0 overflow-hidden ">
             <CardHeader >
             
@@ -101,9 +110,9 @@ function LogIn() {
 
             <p className="text-sm text-muted text-center py-3">
             Don't have an account?{" "}
-            <a href="/signup" className="pl-1 text-foreground underline-offset-4 underline ">
+            <Link to="/signup" className="pl-1 text-foreground underline-offset-4 underline ">
                 Sign up
-            </a>
+            </Link>
             </p>
         </CardFooter>
         </Card>
