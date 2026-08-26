@@ -3,9 +3,28 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button'
 import { authService } from '@/services/authService'
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore'
+import { useParams } from 'react-router'
+import { useCycleStore } from '@/store/cycleStore'
+import { useProjectStore } from '@/store/projectStore'
+import { useCycleQuickViewParam } from '@/hooks/useCycleQuickView'
+import { useQuickViewCycle } from '@/hooks/useCycleSelectors'
 
 function SideHeader() {
   const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
+  const { id } = useParams()
+  const quickView = useCycleQuickViewParam()
+  const quickViewCycle = useQuickViewCycle(quickView)
+  const cycle = useCycleStore((s) => (id ? s.cycles[id] : undefined)) ?? quickViewCycle
+  const project = useProjectStore((s) => (id ? s.projects[id] : undefined))
+
+  const createIssue = () => openCreateIssue(
+    project ? { projectId: project.id } : cycle ? { cycleId: cycle.id } : undefined,
+  )
+  const createLabel = project
+    ? 'Create issue in this project'
+    : cycle
+      ? 'Create issue in this cycle'
+      : 'Create issue'
 
   return (
     <div className='flex justify-between items-center'>
@@ -27,8 +46,8 @@ function SideHeader() {
         <div className='flex gap-1'>
           <button
             type='button'
-            aria-label='Create issue'
-            onClick={() => openCreateIssue()}
+            aria-label={createLabel}
+            onClick={createIssue}
             className='p-1.5 rounded-full bg-surface border-edge border'
           >
             <ExternalLinkIcon size={14} />
