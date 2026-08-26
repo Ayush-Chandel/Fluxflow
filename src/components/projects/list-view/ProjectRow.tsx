@@ -16,6 +16,7 @@ import {
   resolveProjectIcon,
 } from '../../common/constants/projectIcons'
 import IssueCommandBox from '../../issues/IssueCommandBox'
+import ProjectActionsMenu from '../ProjectActionsMenu'
 // import { AssigneeIcon } from '../../icons'
 
 type Props = {
@@ -151,6 +152,10 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
           contentAlign='end'
           triggerClassName='!px-1 !text-muted !text-xs'
         />
+      </div>
+
+      <div role='cell' className={cellClass('actions')}>
+        <ProjectActionsMenu project={project} issueCount={progress.total} />
       </div>
     </div>
   )

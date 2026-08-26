@@ -8,6 +8,7 @@ import { formatRelativeTime } from '@/lib/date';
 import { useIssueStore } from '@/store/issueStore';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import IssueActionsMenu from '../IssueActionsMenu';
 
 type IssueProps = {
     issue: Issue
@@ -18,7 +19,13 @@ type IssueProps = {
 // Row body, memoized. dnd-kit re-renders every sortable on each drag move; the
 // shell below is cheap, and since `issue` is reference-stable between store
 // writes, memo skips this whole subtree (pickers, badge, date) during drags.
-const IssueRowContent = memo(function IssueRowContent({issue}: {issue: Issue}) {
+const IssueRowContent = memo(function IssueRowContent({
+    issue,
+    isOverlay,
+}: {
+    issue: Issue
+    isOverlay?: boolean
+}) {
 
     const updateStatus = useIssueStore((s)=>s.updateStatus);
     const updateIssue = useIssueStore((s)=>s.updateIssue);
@@ -53,6 +60,7 @@ const IssueRowContent = memo(function IssueRowContent({issue}: {issue: Issue}) {
             {/* Assignee — hidden until there's a member entity to resolve `assigneeId`. */}
             {/* <AssigneeIcon color='currentColor' className='text-muted'/> */}
             <span className='text-muted hidden sm:inline'>{formatRelativeTime(issue?.updatedAt)}</span>
+            {!isOverlay && <IssueActionsMenu issue={issue} />}
         </div>
     </>
     )
@@ -82,10 +90,10 @@ function IssueRow({issue, isOverlay, onOpen}: IssueProps) {
         }}
         style={{transform: CSS.Transform.toString(transform), transition}}
         className={`w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle touch-none cursor-pointer
-                   flex items-center gap-1 justify-between hover:rounded-md text-foreground text-lsm
+                   group flex items-center gap-1 justify-between hover:rounded-md text-foreground text-lsm
                    ${isDragging ? 'opacity-40' : ''} ${isOverlay ? 'shadow-lg bg-surface' : ''}
                    ${isDropTarget ? 'shadow-[0_1px_0_0_var(--color-brand)]' : ''}`}>
-        <IssueRowContent issue={issue}/>
+        <IssueRowContent issue={issue} isOverlay={isOverlay}/>
     </div>
   )
 }

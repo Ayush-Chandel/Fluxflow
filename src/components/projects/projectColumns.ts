@@ -9,12 +9,12 @@ import type { OrderBy } from '@/store/viewPreferenceStore'
 
 // Narrow screens drop the least information-dense column (Target date). Its cell
 // is `hidden lg:flex`, and display:none keeps it out of the grid's track order —
-// so the four remaining cells land in the four base tracks in DOM order.
+// so the five remaining cells land in the five base tracks in DOM order.
 // The lg template lost its second 80px track along with the Lead column below.
 export const PROJECT_GRID =
   'grid items-center gap-3 px-3 ' +
-  'grid-cols-[minmax(0,1fr)_80px_70px_96px] ' +
-  'lg:grid-cols-[minmax(0,1fr)_80px_110px_70px_96px]'
+  'grid-cols-[minmax(0,1fr)_80px_70px_96px_32px] ' +
+  'lg:grid-cols-[minmax(0,1fr)_80px_110px_70px_96px_32px]'
 
 /** Cell basics WITHOUT a display class — each column supplies `flex`/`hidden lg:flex`
  *  itself, since Tailwind resolves competing display utilities by stylesheet order,
@@ -28,6 +28,8 @@ export interface ProjectColumn {
   sortKey: OrderBy | null
   /** Display + alignment, applied identically to the header cell and the row cell. */
   className: string
+  /** Keep an accessible header without taking visual space from a compact action column. */
+  visuallyHidden?: boolean
 }
 
 // No Health column: Linear derives health from project updates, which §4 does not
@@ -43,4 +45,5 @@ export const PROJECT_COLUMNS: ProjectColumn[] = [
   { id: 'issues', label: 'Issues', sortKey: 'issues', className: 'flex justify-end' },
   // Sorts by the status enum (what the glyph shows); the % beside it is progress.
   { id: 'status', label: 'Status', sortKey: 'status', className: 'flex' },
+  { id: 'actions', label: 'Actions', sortKey: null, className: 'flex justify-end', visuallyHidden: true },
 ]

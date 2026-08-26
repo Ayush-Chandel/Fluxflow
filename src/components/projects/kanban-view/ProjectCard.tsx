@@ -14,6 +14,7 @@ import {
     DEFAULT_PROJECT_COLOR,
     resolveProjectIcon,
 } from '../../common/constants/projectIcons';
+import ProjectActionsMenu from '../ProjectActionsMenu';
 
 type ProjectCardProps = {
     row: ProjectRow
@@ -32,7 +33,13 @@ const isOverdue = (project: Project, target: Date | null) => {
 
 // Memoized like IssueCardContent: dnd re-renders the whole column on every
 // pointer move, and only the dragged card's transform actually changes.
-const ProjectCardContent = memo(function ProjectCardContent({row}: {row: ProjectRow}) {
+const ProjectCardContent = memo(function ProjectCardContent({
+    row,
+    isOverlay,
+}: {
+    row: ProjectRow
+    isOverlay?: boolean
+}) {
 
     const {project, progress} = row;
 
@@ -77,6 +84,7 @@ const ProjectCardContent = memo(function ProjectCardContent({row}: {row: Project
                         contentAlign='end'
                         triggerClassName='!px-0 !py-0 !h-6'
                     />
+                    {!isOverlay && <ProjectActionsMenu project={project} issueCount={progress.total} />}
                     {/* Lead — hidden until a member entity exists to resolve `leadId`. */}
                     {/* <AssigneeIcon size={15} color='currentColor' className='shrink-0' /> */}
                 </div>
@@ -130,11 +138,11 @@ function ProjectCard({row, isOverlay, onOpen}: ProjectCardProps) {
         }}
         style={{transform: CSS.Transform.toString(transform), transition}}
         className={cn(
-            'bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer',
+            'group bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer',
             isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '',
             isOverlay ? 'shadow-lg cursor-grabbing' : '',
         )}>
-        <ProjectCardContent row={row} />
+        <ProjectCardContent row={row} isOverlay={isOverlay} />
     </div>
   )
 }

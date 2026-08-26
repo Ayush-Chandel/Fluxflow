@@ -9,6 +9,7 @@ import { Badge } from '../../ui/badge';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import IssueActionsMenu from '../IssueActionsMenu';
 
 type IssueCardProps = {
     issue: Issue
@@ -17,7 +18,13 @@ type IssueCardProps = {
 }
 
 
-const IssueCardContent = memo(function IssueCardContent({issue}: {issue: Issue}) {
+const IssueCardContent = memo(function IssueCardContent({
+    issue,
+    isOverlay,
+}: {
+    issue: Issue
+    isOverlay?: boolean
+}) {
 
     const updateStatus = useIssueStore((s)=>s.updateStatus);
     const updateIssue = useIssueStore((s)=>s.updateIssue);
@@ -25,9 +32,10 @@ const IssueCardContent = memo(function IssueCardContent({issue}: {issue: Issue})
     return (
     <>
         <div className='flex items-center gap-2 justify-between'>
-            <span >{issue?.identifier}</span>
+            <span className='min-w-0 flex-1 truncate'>{issue?.identifier}</span>
             {/* Assignee — hidden until there's a member entity to resolve `assigneeId`. */}
             {/* <AssigneeIcon color='currentColor' className='text-muted'/> */}
+            {!isOverlay && <IssueActionsMenu issue={issue} />}
         </div>
         <div className='flex items-center gap-2'>
             <IssueCommandBox
@@ -85,8 +93,8 @@ function IssueCard({issue, isOverlay, onOpen}: IssueCardProps) {
             onOpen?.();
         }}
         style={{transform: CSS.Transform.toString(transform), transition}}
-        className={cn(`bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer`,isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '', isOverlay ? 'shadow-lg cursor-grabbing' : '')}>
-        <IssueCardContent issue={issue}/>
+        className={cn(`group bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer`,isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '', isOverlay ? 'shadow-lg cursor-grabbing' : '')}>
+        <IssueCardContent issue={issue} isOverlay={isOverlay}/>
     </div>
   )
 }

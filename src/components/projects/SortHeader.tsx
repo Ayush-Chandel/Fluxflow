@@ -26,7 +26,7 @@ function SortHeader({ column, viewId, orderBy, sortDir }: Props) {
         role='columnheader'
         className={cn(PROJECT_CELL, column.className, 'text-muted pl-0 text-xs')}
       >
-        <span className='truncate'>{column.label}</span>
+        <span className={cn('truncate', column.visuallyHidden && 'sr-only')}>{column.label}</span>
       </div>
     )
   }
