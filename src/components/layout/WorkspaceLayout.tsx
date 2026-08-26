@@ -2,7 +2,7 @@ import { Outlet, useMatch } from 'react-router-dom'
 import Sidebar from './sidebar/Sidebar'
 import { SidebarProvider } from '../ui/sidebar'
 import { useSidebarPin } from '@/hooks/useSidebarPin'
-import type { NavLabel, SidebarKey } from '@/types/layout'
+import type { NavLabel, SidebarControls, SidebarKey } from '@/types/layout'
 import { useSidebarKey } from '@/lib/utils'
 import { useIssues } from '@/hooks/useIssues'
 import { useProjects } from '@/hooks/useProjects'
@@ -70,7 +70,7 @@ import { useBroadcastSync } from '@/hooks/useBroadcastSync'
               <Topbar activeKey={activeKey} isPinned={isPinned} pin={pin} unpin={unpin}topLabel={labelGroup?.label} path={labelGroup?.path}/>
             }
           <div className='flex-1 min-h-0 relative flex flex-col'>
-            <Outlet />
+            <Outlet context={{ isPinned, pin, unpin } satisfies SidebarControls} />
           </div>
         </main>
         <CreateIssueDialog />

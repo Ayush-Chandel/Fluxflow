@@ -10,6 +10,7 @@ type Props = {
     label: string;
     navItems: NavItem[],
     activeKey?: SidebarKey;
+    onNavigate: () => void;
 }
 
 type NavLeafProps = {
@@ -17,16 +18,18 @@ type NavLeafProps = {
     label: string;
     icon?: ReactNode;
     isActive: boolean;
+    onNavigate: () => void;
 }
 
 
 const isPathActive = (pathname: string, path: string) =>
     pathname === path || pathname.startsWith(path + '/')
 
-function NavLeaf({ to, label, icon, isActive }: NavLeafProps) {
+function NavLeaf({ to, label, icon, isActive, onNavigate }: NavLeafProps) {
     return (
         <Link
             to={to}
+            onClick={onNavigate}
             className={cn(
                 'flex items-center gap-2 rounded-md px-2 py-0.5 text-[13px] font-medium text-muted',
                 isActive ? 'bg-selected' : 'hover:bg-hover',
@@ -41,7 +44,8 @@ function NavLeaf({ to, label, icon, isActive }: NavLeafProps) {
 function StaggerAccordion({
     label,
     navItems,
-    activeKey
+    activeKey,
+    onNavigate,
 }: Props) {
 
     const isNavRoute = navItems.some((nav)=>(activeKey===nav.key));
@@ -113,6 +117,7 @@ function StaggerAccordion({
                                             to={nav.path}
                                             label={nav.label}
                                             icon={nav.icon}
+                                            onNavigate={onNavigate}
                                             isActive={
                                                 activeKey === nav.key &&
                                                 !nav.children.some((child) => isPathActive(pathname, child.path))
@@ -138,6 +143,7 @@ function StaggerAccordion({
                                                     to={child.path}
                                                     label={child.label}
                                                     icon={child.icon}
+                                                    onNavigate={onNavigate}
                                                     isActive={isPathActive(pathname, child.path)}
                                                 />
                                             </motion.li>
@@ -149,6 +155,7 @@ function StaggerAccordion({
                                     to={nav.path}
                                     label={nav.label}
                                     icon={nav.icon}
+                                    onNavigate={onNavigate}
                                     isActive={activeKey === nav.key}
                                 />
                             )}

@@ -27,13 +27,22 @@ function Sidebar({ isPinned }: Props) {
     if (!isMobile && !isPinned) setOpen(false)
   }
 
+  const handleNavigation = () => {
+    if (isMobile) setOpen(false)
+  }
+
   return (
     <>
       {/* Spacer — only when docked, pushes <main> to the right */}
       {isDocked && <div className="shrink-0 w-[200px]" />}
 
       {/* Single sidebar — always fixed, slides in/out */}
-      <SidebarContent handleMouseLeave={handleMouseLeave} isHoverReveal={isOverlay} open={open} />
+      <SidebarContent
+        handleMouseLeave={handleMouseLeave}
+        isHoverReveal={isOverlay}
+        onNavigate={handleNavigation}
+        open={open}
+      />
 
       {/* Backdrop — shown whenever the panel is floating (hover reveal or mobile drawer) */}
       <AnimatePresence>

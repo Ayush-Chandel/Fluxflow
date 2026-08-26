@@ -3,7 +3,7 @@ import { BoxIcon, CopyIcon, NoteIcon, PlayCircleIcon } from '@/components/icons'
 import { useSidebarKey } from '@/lib/utils';
 import type { NavItem, SidebarKey } from '@/types/layout';
 
-function SideContent() {
+function SideContent({ onNavigate }: { onNavigate: () => void }) {
 
     const activeKey:SidebarKey = useSidebarKey()?.sidebarKey;
 
@@ -36,7 +36,7 @@ function SideContent() {
   return (
     <div className='mt-10'>
         <StaggerAccordion label='Workspace'  navItems={navItems}
-        activeKey={activeKey}
+        activeKey={activeKey} onNavigate={onNavigate}
         />
     </div>
   )

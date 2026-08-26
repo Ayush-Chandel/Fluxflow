@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router';
+import { Link, Navigate, useOutletContext, useParams } from 'react-router';
 import TemplateIssue from '@/components/templates/TemplateIssue';
 import TemplateProject from '@/components/templates/TemplateProject';
 import PageLoader from '@/components/common/PageLoader';
+import { CustomTrigger } from '@/components/layout/sidebar/CustomTrigger';
 import { useTemplate } from '@/hooks/useTemplateSelectors';
 import { useTemplateStore } from '@/store/templateStore';
+import type { SidebarControls } from '@/types/layout';
 import { TEMPLATE_TYPE_BY_SLUG, isTemplateTypeSlug } from '@/types/template';
 
 const HYDRATION_GRACE_MS = 1200
@@ -12,6 +14,7 @@ const HYDRATION_GRACE_MS = 1200
 function TemplateFormPage() {
 
   const { type: slug, id } = useParams();
+  const { isPinned, pin, unpin } = useOutletContext<SidebarControls>();
 
   // Undefined on /new, and while an edit's document is still on its way in.
   const template = useTemplate(id);
@@ -47,10 +50,13 @@ function TemplateFormPage() {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col px-2 py-2'>
+      <div className='flex shrink-0 items-center gap-2'>
+        <CustomTrigger isPinned={isPinned} onPin={pin} onUnpin={unpin} />
       <Link to={`/app/templates/${slug}`} className='flex gap-x-1 items-center px-2 py-0.5 hover:bg-hover text-muted hover:text-foreground rounded-full w-fit transition-colors duration-150'>
          <span className=' text-md'>‹</span>
          <span className=' text-xs'>{type} templates</span>
       </Link>
+      </div>
       <div className='min-h-0 flex-1 overflow-y-auto'>
         <div className='mx-auto pt-12 pb-4 space-y-7 w-full max-w-[640px]'>
           {renderForm()}

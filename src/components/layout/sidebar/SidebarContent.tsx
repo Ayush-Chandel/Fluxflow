@@ -7,9 +7,10 @@ type SideBarContentProps = {
     open:boolean;
     isHoverReveal:boolean;
     handleMouseLeave:()=>void;
+    onNavigate:()=>void;
 }
 
-function SidebarContent({open, isHoverReveal,handleMouseLeave}: SideBarContentProps) {
+function SidebarContent({open, isHoverReveal,handleMouseLeave,onNavigate}: SideBarContentProps) {
   return (
 
       <motion.div
@@ -22,7 +23,7 @@ function SidebarContent({open, isHoverReveal,handleMouseLeave}: SideBarContentPr
         onMouseLeave={handleMouseLeave}
       >
         <SideHeader />
-        <SideContent />
+        <SideContent onNavigate={onNavigate} />
       </motion.div>
   )
 }

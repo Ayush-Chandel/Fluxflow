@@ -3,6 +3,12 @@ import React from "react";
 
 export type SidebarKey = 'projects' | 'issues' | 'cycles' | 'templates' | undefined;
 
+export type SidebarControls = {
+    isPinned: boolean;
+    pin: () => void;
+    unpin: () => void;
+}
+
 
 export type NavLabel = {
     label: string;
