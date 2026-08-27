@@ -38,6 +38,7 @@ const IssueRowContent = memo(function IssueRowContent({
                 onValueChange={(value)=>{updateIssue(issue.id,{priority:value})}}
                 options={ISSUE_PRIORITIES}
                 map={PRIORITY_MAP}
+                pulseOnValueChange
                 placeholder="Change Priority to..."
                 triggerClassName='!px-2'
             />

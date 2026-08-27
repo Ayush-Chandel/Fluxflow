@@ -162,6 +162,7 @@ function TemplateIssue({ template }: Props) {
                       onValueChange={setPriority}
                       options={ISSUE_PRIORITIES}
                       map={PRIORITY_MAP}
+                      pulseOnValueChange
                       placeholder='Set priority to...'
                       label={PRIORITY_MAP[priority].label}
                       triggerClassName={PILL_TRIGGER}

@@ -7,7 +7,7 @@ import DatePillPicker from '../../common/DatePillPicker'
 import MilestoneProgressIcon from '../../common/MilestoneProgressIcon'
 import type { Progress } from '@/lib/progress'
 import type { MilestoneRow } from '@/lib/milestones'
-import { PROJECT_PRIORITIES, PROJECT_STATUSES, type Project } from '@/types/project'
+import { PROJECT_PRIORITIES, PROJECT_STATUSES, type Project, type ProjectStatus } from '@/types/project'
 import { useProjectStore } from '@/store/projectStore'
 import { PROJECT_MAP, PRIORITY_MAP } from '../../common/constants/constants'
 import { PROJECT_CELL, PROJECT_COLUMNS, PROJECT_GRID } from '../projectColumns'
@@ -17,6 +17,8 @@ import {
 } from '../../common/constants/projectIcons'
 import IssueCommandBox from '../../issues/IssueCommandBox'
 import ProjectActionsMenu from '../ProjectActionsMenu'
+import { useState } from 'react'
+import { motion } from 'motion/react'
 // import { AssigneeIcon } from '../../icons'
 
 type Props = {
@@ -32,6 +34,13 @@ const cellClass = (id: string) =>
 
 function ProjectRow({ project, progress, milestone, onOpen }: Props) {
   const updateProject = useProjectStore((s) => s.updateProject)
+
+  const [statusAnimation, setStatusAnimation] = useState(0)
+
+  const changeStatus = (status: ProjectStatus) => {
+    updateProject(project.id, { status })
+    setStatusAnimation((value) => value + 1)
+  }
 
   // Falls back to the default glyph when the key is unknown (older doc, renamed key).
   const { icon: ProjectIcon } = resolveProjectIcon(project.icon)
@@ -82,6 +91,7 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
           onValueChange={(priority) => updateProject(project.id, { priority })}
           options={PROJECT_PRIORITIES}
           map={PRIORITY_MAP}
+          pulseOnValueChange
           placeholder='Change priority to...'
           triggerClassName='!px-1'
         />
@@ -141,7 +151,7 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
 
       {/* Status glyph + progress %, and the picker for the status itself. */}
       <div role='cell' className={cellClass('status')}>
-        <IssueCommandBox
+        {/* <IssueCommandBox
           value={project.status}
           onValueChange={(status) => updateProject(project.id, { status })}
           options={PROJECT_STATUSES}
@@ -151,7 +161,23 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
           // Trailing column — open the panel leftwards so it doesn't run off-screen.
           contentAlign='end'
           triggerClassName='!px-1 !text-muted !text-xs'
-        />
+        /> */}
+        <motion.div
+            key={statusAnimation}
+            initial={{ scale: 0.85, opacity: 0.55 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 550, damping: 26 }}
+          >
+            <IssueCommandBox
+              value={project.status}
+              onValueChange={changeStatus}
+              options={PROJECT_STATUSES}
+              map={PROJECT_MAP}
+              placeholder='Change status to...'
+              contentAlign='end'
+              triggerClassName='!px-0 !py-0 !h-6'
+            />
+          </motion.div>
       </div>
 
       <div role='cell' className={cellClass('actions')}>

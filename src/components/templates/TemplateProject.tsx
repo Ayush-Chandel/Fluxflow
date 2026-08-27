@@ -192,6 +192,7 @@ function TemplateProject({ template }: Props) {
                       onValueChange={setPriority}
                       options={PROJECT_PRIORITIES}
                       map={PRIORITY_MAP}
+                      pulseOnValueChange
                       placeholder='Set priority to...'
                       label={PRIORITY_MAP[priority].label}
                       triggerClassName={PILL_TRIGGER}

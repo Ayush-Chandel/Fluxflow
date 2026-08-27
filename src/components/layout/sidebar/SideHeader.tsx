@@ -8,6 +8,8 @@ import { useCycleStore } from '@/store/cycleStore'
 import { useProjectStore } from '@/store/projectStore'
 import { useCycleQuickViewParam } from '@/hooks/useCycleQuickView'
 import { useQuickViewCycle } from '@/hooks/useCycleSelectors'
+import { useState } from 'react'
+import {motion} from 'motion/react'
 
 function SideHeader() {
   const openCreateIssue = useCreateIssueDialog((s) => s.openWith)
@@ -16,6 +18,7 @@ function SideHeader() {
   const quickViewCycle = useQuickViewCycle(quickView)
   const cycle = useCycleStore((s) => (id ? s.cycles[id] : undefined)) ?? quickViewCycle
   const project = useProjectStore((s) => (id ? s.projects[id] : undefined))
+  const [open, setOpen] = useState(false)
 
   const createIssue = () => openCreateIssue(
     project ? { projectId: project.id } : cycle ? { cycleId: cycle.id } : undefined,
@@ -28,14 +31,19 @@ function SideHeader() {
 
   return (
     <div className='flex justify-between items-center'>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" onClick={()=>{}} className='flex gap-2 bg-background hover:bg-[oklch(0.94_0.00_264)] px-2 py-1 rounded-xl transition-colors duration-100 border-none shadow-none'>
             <div className='bg-blue-400 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white text-[12px]'>P</div>
             <span className='text-[14px] font-medium'>
                 Project
             </span>
-            <ChevronDownIcon size={12}/>
+            <motion.span
+              animate={{ rotate: open ? -90 : 0 }}
+              transition={{ duration: 0.08 }}
+            >
+              <ChevronDownIcon size={12} />
+            </motion.span>
         </Button>
         </PopoverTrigger>
         <PopoverContent className='w-[150px] bg-surface text-lsm rounded-xl p-2' align="start" side="bottom" sideOffset={6}>

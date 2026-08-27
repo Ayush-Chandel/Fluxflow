@@ -106,6 +106,7 @@ function ProjectDetailHeader({ project }: { project: Project }) {
             options={PROJECT_STATUSES}
             map={PROJECT_MAP}
             label={PROJECT_MAP[project.status].label}
+            pulseOnValueChange
             placeholder='Change status to...'
             triggerClassName={PROPERTY_PILL}
           />
@@ -116,6 +117,7 @@ function ProjectDetailHeader({ project }: { project: Project }) {
             options={PROJECT_PRIORITIES}
             map={PRIORITY_MAP}
             label={PRIORITY_MAP[project.priority].label}
+            pulseOnValueChange
             placeholder='Change priority to...'
             triggerClassName={PROPERTY_PILL}
           />

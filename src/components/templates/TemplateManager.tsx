@@ -68,7 +68,7 @@ function TemplateManager({type}: TemplateManagerProps) {
                                         Default
                                     </span>
                                 )}
-                                <div className='relative z-10 shrink-0'>
+                                <div className='relative z-10 shrink-0 translate-x-1 opacity-0 transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100'>
                                     <TemplateActionsMenu template={template} />
                                 </div>
                             </div>

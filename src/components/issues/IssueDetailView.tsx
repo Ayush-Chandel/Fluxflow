@@ -88,6 +88,7 @@ function IssueDetail({ issue }: { issue: Issue }) {
                 onValueChange={(value)=>{updateIssue(issue.id,{priority:value})}}
                 options={ISSUE_PRIORITIES}
                 map={PRIORITY_MAP}
+                pulseOnValueChange
                 placeholder="Change Priority to..."
                 triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
                 label={issue.priority}
@@ -97,6 +98,7 @@ function IssueDetail({ issue }: { issue: Issue }) {
                     onValueChange={(value)=>{updateStatus(issue.id,value)}}
                     options={ISSUE_STATUSES}
                     map={ISSUE_MAP}
+                    pulseOnValueChange
                     placeholder="Change Status to..."
                     triggerClassName='!px-2 hover:bg-hover !py-1 !h-6 rounded-full text-lsm !text-muted'
                     label={issue.status}

@@ -1,7 +1,8 @@
 import React from 'react';
+import { motion, useAnimationControls } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Button } from '../ui/button';
+import { buttonVariants } from '../ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 
 type OptionMeta = { label: string; icon: React.ReactNode };
@@ -15,6 +16,8 @@ type Props<T extends string> = {
     triggerClassName?: string;
     label?:string;
     contentAlign?: 'start' | 'center' | 'end';
+    /** Gives the trigger a short confirmation pulse after a different option is chosen. */
+    pulseOnValueChange?: boolean;
 };
 
 function IssueCommandBox<T extends string>({
@@ -26,9 +29,24 @@ function IssueCommandBox<T extends string>({
     triggerClassName = '!px-2',
     label,
     contentAlign = 'start',
+    pulseOnValueChange = false,
 }: Props<T>) {
     const [open, setOpen] = React.useState(false);
     const [highlighted, setHighlighted] = React.useState('');
+    const pulseControls = useAnimationControls();
+
+    const selectOption = (option: T) => {
+        if (pulseOnValueChange && option !== value) {
+            void pulseControls.start({
+                scale: [0.85, 1.16, 1],
+                opacity: [0.70, 1, 1],
+                transition: { duration: 0.28, times: [0, 0.5, 1], ease: 'easeOut' },
+            });
+        }
+
+        onValueChange(option);
+        setOpen(false);
+    };
 
     return (
         <Popover
@@ -38,15 +56,24 @@ function IssueCommandBox<T extends string>({
                 if (next) setHighlighted(map[value]?.label ?? '');
             }}
         >
-            <PopoverTrigger asChild className={triggerClassName}>
-                <Button variant="default" onClick={(e) => e.stopPropagation()}>
+            <PopoverTrigger asChild>
+                <motion.button
+                    type='button'
+                    data-slot='button'
+                    data-variant='default'
+                    data-size='default'
+                    className={cn(buttonVariants({ variant: 'default' }), triggerClassName)}
+                    onClick={(e) => e.stopPropagation()}
+                    initial={false}
+                    animate={pulseControls}
+                >
                     {map[value].icon}
                     {label &&
                     <span>
                         {label}
                     </span>
                     }
-                </Button>
+                </motion.button>
             </PopoverTrigger>
             <PopoverContent side='bottom' align={contentAlign} className="w-60 bg-surface p-0 border-0">
                 <Command
@@ -66,10 +93,7 @@ function IssueCommandBox<T extends string>({
                                         'flex justify-between items-center',
                                         option === value && '!bg-brand/10',
                                     )}
-                                    onSelect={() => {
-                                        onValueChange(option);
-                                        setOpen(false);
-                                    }}>
+                                    onSelect={() => selectOption(option)}>
                                     <div className='flex gap-2 items-center text-lsm text-foreground'>
                                         {map[option].icon}
                                         <span>{map[option].label}</span>

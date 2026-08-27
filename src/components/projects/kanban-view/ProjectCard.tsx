@@ -15,6 +15,7 @@ import {
     resolveProjectIcon,
 } from '../../common/constants/projectIcons';
 import ProjectActionsMenu from '../ProjectActionsMenu';
+import { motion } from 'motion/react'
 
 type ProjectCardProps = {
     row: ProjectRow
@@ -80,6 +81,7 @@ const ProjectCardContent = memo(function ProjectCardContent({
                         onValueChange={(priority) => updateProject(project.id, { priority })}
                         options={PROJECT_PRIORITIES}
                         map={PRIORITY_MAP}
+                        pulseOnValueChange
                         placeholder='Change priority to...'
                         contentAlign='end'
                         triggerClassName='!px-0 !py-0 !h-6'
@@ -141,9 +143,18 @@ function ProjectCard({row, isOverlay, onOpen}: ProjectCardProps) {
             'group bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer',
             isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '',
             isOverlay ? 'shadow-lg cursor-grabbing' : '',
-        )}>
-        <ProjectCardContent row={row} isOverlay={isOverlay} />
-    </div>
+        )}
+        >
+        <motion.div
+            animate={isOverlay
+            ? { scale: 1.015, y: -2, boxShadow: '0 14px 28px rgb(0 0 0 / 0.16)' }
+            : { scale: 1, y: 0, boxShadow: '0 0 0 rgb(0 0 0 / 0)' }
+            }
+            transition={{ type: 'spring', stiffness: 480, damping: 32 }}
+        >
+            <ProjectCardContent row={row} isOverlay={isOverlay} />
+        </motion.div>
+        </div>
   )
 }
 
