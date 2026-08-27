@@ -14,6 +14,7 @@ import {
     type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
+import { AnimatePresence } from 'motion/react';
 
 const keepRowsInPlace: SortingStrategy = () => null;
 
@@ -100,17 +101,19 @@ function IssueListView({issues, onOpenIssue, sortable = true}: IssueListProps) {
                            <GroupHeader status={status} count={group.length}/>
                         <AccordionContent className='pb-0'>
                             <SortableContext items={group.map((issue)=>issue.id)} strategy={keepRowsInPlace}>
-                                {group.map((issue)=>(
-                                    <IssueRow
-                                        key={issue.id}
-                                        issue={issue}
-                                        onOpen={() => {
-                                            // Skip the post-drop stray click and the picker-close fall-through.
-                                            if (justDragged.current || !pointerDownStartedOnCardSurface()) return;
-                                            onOpenIssue?.(issue);
-                                        }}
-                                    />
-                                ))}
+                                <AnimatePresence initial={false}>
+                                    {group.map((issue)=>(
+                                        <IssueRow
+                                            key={issue.id}
+                                            issue={issue}
+                                            onOpen={() => {
+                                                // Skip the post-drop stray click and the picker-close fall-through.
+                                                if (justDragged.current || !pointerDownStartedOnCardSurface()) return;
+                                                onOpenIssue?.(issue);
+                                            }}
+                                        />
+                                    ))}
+                                </AnimatePresence>
                             </SortableContext>
                         </AccordionContent>
                     </AccordionItem>

@@ -5,6 +5,7 @@ import { PlusIcon } from 'lucide-react';
 import { useDroppable,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { AnimatePresence } from 'motion/react';
 import { useCreateIssueDialog } from '@/store/createIssueDialogStore';
 import type { CreateIssueInput, Issue, IssueStatus } from '@/types/issue';
 
@@ -54,13 +55,15 @@ function KanbanColumn({status, group, onOpenCard, createPrefill}: KanbanColumnPr
             <div className='overflow-auto flex-1 min-h-0 pb-4'>
                 <div className='space-y-2 px-2 '>
                     <SortableContext items={group.map((issue)=>issue.id)} strategy={verticalListSortingStrategy}>
-                        {group.map((issue)=>(
-                            <IssueCard
-                                key={issue.id}
-                                issue={issue}
-                                onOpen={() => onOpenCard?.(issue)}
-                            />
-                        ))}
+                        <AnimatePresence initial={false}>
+                            {group.map((issue)=>(
+                                <IssueCard
+                                    key={issue.id}
+                                    issue={issue}
+                                    onOpen={() => onOpenCard?.(issue)}
+                                />
+                            ))}
+                        </AnimatePresence>
                     </SortableContext>
                 </div>
                 {/* Inset by the same px-2 as the cards above, so the ghost lines up

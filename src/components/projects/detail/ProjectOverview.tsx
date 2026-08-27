@@ -3,12 +3,11 @@ import { useCommitOnExit } from '@/hooks/useCommitOnExit'
 import { useProjectProgress } from '@/hooks/useProjectSelectors'
 import { useProjectMilestones } from '@/hooks/useProjectMilestones'
 import { useProjectStore } from '@/store/projectStore'
-import type { Project, ProjectStatus } from '@/types/project'
+import type { Project } from '@/types/project'
 import AutoGrowTextarea from '@/components/common/AutoGrowTextarea'
 import ProgressBar from '@/components/common/ProgressBar'
 import ProjectDetailHeader from './ProjectDetailHeader'
 import ProjectMilestoneList from './ProjectMilestoneList'
-import { useState } from 'react'
 
 function ProjectOverview({ project }: { project: Project }) {
   const updateProject = useProjectStore((s) => s.updateProject)

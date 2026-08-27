@@ -9,6 +9,8 @@ import { useIssueStore } from '@/store/issueStore';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import IssueActionsMenu from '../IssueActionsMenu';
+import { motion } from 'motion/react';
+import { isOptimisticId } from '@/lib/optimistic';
 
 type IssueProps = {
     issue: Issue
@@ -78,24 +80,33 @@ function IssueRow({issue, isOverlay, onOpen}: IssueProps) {
     // A drag is hovering this row (and it isn't the dragged row itself).
     const isDropTarget = !isOverlay && active != null
         && over?.id === issue.id && active.id !== issue.id;
+    const isOptimistic = isOptimisticId(issue.id);
 
     return (
-    <div
-        ref={setNodeRef}
-        {...listeners}
-        {...attributes}
-        data-card-surface
-        onClick={isOverlay ? undefined : (e) => {
-            if ((e.target as HTMLElement).closest('button')) return;
-            onOpen?.();
-        }}
-        style={{transform: CSS.Transform.toString(transform), transition}}
-        className={`w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle touch-none cursor-pointer
-                   group flex items-center gap-1 justify-between hover:rounded-md text-foreground text-lsm
-                   ${isDragging ? 'opacity-40' : ''} ${isOverlay ? 'shadow-lg bg-surface' : ''}
-                   ${isDropTarget ? 'shadow-[0_1px_0_0_var(--color-brand)]' : ''}`}>
-        <IssueRowContent issue={issue} isOverlay={isOverlay}/>
-    </div>
+    <motion.div
+        initial={!isOverlay && isOptimistic ? { opacity: 0, x: -24 } : false}
+        animate={{ opacity: 1, x: 0, height: 'auto' }}
+        exit={isOptimistic ? undefined : { opacity: 0, scale: 0.96, height: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className='overflow-hidden'
+    >
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            data-card-surface
+            onClick={isOverlay ? undefined : (e) => {
+                if ((e.target as HTMLElement).closest('button')) return;
+                onOpen?.();
+            }}
+            style={{transform: CSS.Transform.toString(transform), transition}}
+            className={`w-full h-fit px-5 my-1 py-1 hover:bg-hover-subtle touch-none cursor-pointer
+                       group flex items-center gap-1 justify-between hover:rounded-md text-foreground text-lsm
+                       ${isDragging ? 'opacity-40' : ''} ${isOverlay ? 'shadow-lg bg-surface' : ''}
+                       ${isDropTarget ? 'shadow-[0_1px_0_0_var(--color-brand)]' : ''}`}>
+            <IssueRowContent issue={issue} isOverlay={isOverlay}/>
+        </div>
+    </motion.div>
   )
 }
 

@@ -10,6 +10,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import IssueActionsMenu from '../IssueActionsMenu';
+import { motion } from 'motion/react';
+import { isOptimisticId } from '@/lib/optimistic';
 
 type IssueCardProps = {
     issue: Issue
@@ -82,21 +84,30 @@ function IssueCard({issue, isOverlay, onOpen}: IssueCardProps) {
     },
 
     });
+    const isOptimistic = isOptimisticId(issue.id);
 
   return (
-    <div
-        ref={setNodeRef}
-        {...listeners}
-        {...attributes}
-        data-card-surface
-        onClick={isOverlay ? undefined : (e) => {
-            if ((e.target as HTMLElement).closest('button')) return;
-            onOpen?.();
-        }}
-        style={{transform: CSS.Transform.toString(transform), transition}}
-        className={cn(`group bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer`,isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '', isOverlay ? 'shadow-lg cursor-grabbing' : '')}>
-        <IssueCardContent issue={issue} isOverlay={isOverlay}/>
-    </div>
+    <motion.div
+        initial={!isOverlay && isOptimistic ? { opacity: 0, x: -24 } : false}
+        animate={{ opacity: 1, x: 0, height: 'auto' }}
+        exit={isOptimistic ? undefined : { opacity: 0, scale: 0.94, height: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className='overflow-hidden'
+    >
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            data-card-surface
+            onClick={isOverlay ? undefined : (e) => {
+                if ((e.target as HTMLElement).closest('button')) return;
+                onOpen?.();
+            }}
+            style={{transform: CSS.Transform.toString(transform), transition}}
+            className={cn(`group bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer`,isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '', isOverlay ? 'shadow-lg cursor-grabbing' : '')}>
+            <IssueCardContent issue={issue} isOverlay={isOverlay}/>
+        </div>
+    </motion.div>
   )
 }
 
