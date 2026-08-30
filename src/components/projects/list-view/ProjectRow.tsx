@@ -25,6 +25,8 @@ type Props = {
   project: Project
   progress: Progress
   milestone: MilestoneRow | null
+  index?: number
+  isInitialViewLoad?: boolean
   onOpen?: () => void
 }
 
@@ -32,9 +34,12 @@ type Props = {
 const cellClass = (id: string) =>
   cn(PROJECT_CELL, PROJECT_COLUMNS.find((column) => column.id === id)?.className)
 
-function ProjectRow({ project, progress, milestone, onOpen }: Props) {
+function ProjectRow({ project, progress, milestone, index = 0, isInitialViewLoad = false, onOpen }: Props) {
   const updateProject = useProjectStore((s) => s.updateProject)
   const [statusAnimation, setStatusAnimation] = useState(0)
+
+  const staggerDelay = index * 0.05
+  const shouldUseInitialStagger = isInitialViewLoad
 
   const changeStatus = (status: ProjectStatus) => {
     updateProject(project.id, { status })
@@ -48,10 +53,24 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -24 }}
-      animate={{ opacity: 1, x: 0, height: 'auto' }}
+      initial={
+        shouldUseInitialStagger
+          ? { opacity: 0, y: -10 }
+          : { opacity: 0, x: -24 }
+      }
+      animate={{ opacity: 1, y: 0, x: 0, height: 'auto' }}
       exit={{ opacity: 0, scale: 0.96, height: 0 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
+      transition={
+        shouldUseInitialStagger
+          ? {
+              type: 'spring',
+              stiffness: 260,
+              damping: 18,
+              mass: 0.8,
+              delay: staggerDelay,
+            }
+          : { duration: 0.2, ease: 'easeOut' }
+      }
       className='overflow-hidden'
     >
       <div

@@ -15,6 +15,8 @@ import { isOptimisticId } from '@/lib/optimistic';
 type IssueProps = {
     issue: Issue
     isOverlay?: boolean
+    index?: number
+    isInitialViewLoad?: boolean
     onOpen?: () => void
 }
 
@@ -69,7 +71,7 @@ const IssueRowContent = memo(function IssueRowContent({
     )
 });
 
-function IssueRow({issue, isOverlay, onOpen}: IssueProps) {
+function IssueRow({issue, isOverlay, index = 0, isInitialViewLoad = false, onOpen}: IssueProps) {
 
     const {setNodeRef, listeners, attributes, isDragging, over, active, transform, transition} = useSortable({
         id: issue.id,
@@ -81,13 +83,36 @@ function IssueRow({issue, isOverlay, onOpen}: IssueProps) {
     const isDropTarget = !isOverlay && active != null
         && over?.id === issue.id && active.id !== issue.id;
     const isOptimistic = isOptimisticId(issue.id);
+    const staggerDelay = index * 0.05;
+    const shouldUseInitialStagger = !isOverlay && isInitialViewLoad && !isOptimistic;
+    const shouldUseOptimisticSlideIn = !isOverlay && isOptimistic && !isInitialViewLoad;
 
     return (
     <motion.div
-        initial={!isOverlay && isOptimistic ? { opacity: 0, x: -24 } : false}
-        animate={{ opacity: 1, x: 0, height: 'auto' }}
+        initial={
+            !isOverlay
+                ? shouldUseInitialStagger
+                    ? { opacity: 0, y: -10 }
+                    : shouldUseOptimisticSlideIn
+                        ? { opacity: 0, x: -24 }
+                        : false
+                : false
+        }
+        animate={{ opacity: 1, y: 0, x: 0, height: 'auto' }}
         exit={isOptimistic ? undefined : { opacity: 0, scale: 0.96, height: 0 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
+        transition={
+            shouldUseInitialStagger
+                ? {
+                    type: 'spring',
+                    stiffness: 260,
+                    damping: 18,
+                    mass: 0.8,
+                    delay: staggerDelay,
+                }
+                : shouldUseOptimisticSlideIn
+                    ? { duration: 0.2, ease: 'easeOut' }
+                    : { duration: 0.2, ease: 'easeOut' }
+        }
         className='overflow-hidden'
     >
         <div

@@ -2,6 +2,7 @@
 import { PlusIcon } from 'lucide-react'
 import { CYCLE_MAP } from '@/components/common/constants/constants'
 import type { CycleRow } from '@/hooks/useCycleSelectors'
+import { placeholderIdFor } from '@/lib/optimistic'
 import type { Cycle, CycleStatus } from '@/types/cycle'
 import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
 import CycleCard from './CycleCard'
@@ -37,9 +38,13 @@ function CycleBoardColumn({ status, group, onOpenCard }: Props) {
       <div className='min-h-0 flex-1 overflow-auto pb-4'>
         <div className='space-y-2 px-2'>
           <AnimatePresence initial={false}>
-            {group.map((row) => (
-              <CycleCard key={row.cycle.id} row={row} onOpen={onOpenCard} />
-            ))}
+            {group.map((row) => {
+              const stableKey = row.cycle.clientRequestId
+                ? placeholderIdFor(row.cycle) ?? row.cycle.id
+                : row.cycle.id
+
+              return <CycleCard key={stableKey} row={row} onOpen={onOpenCard} />
+            })}
           </AnimatePresence>
         </div>
       </div>

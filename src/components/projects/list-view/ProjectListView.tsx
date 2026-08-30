@@ -1,5 +1,6 @@
 
 import { cn } from '@/lib/utils'
+import { useEffect, useRef } from 'react'
 import type { Project } from '@/types/project'
 import { PROJECTS_VIEW_ID, useProjectRows } from '@/hooks/useProjectSelectors'
 import { DEFAULT_PREFERENCE, useViewPreferenceStore } from '@/store/viewPreferenceStore'
@@ -25,6 +26,11 @@ function ProjectListView({ viewId = PROJECTS_VIEW_ID, onOpenProject }: Props) {
   const sortDir = useViewPreferenceStore(
     (s) => (s.preferences[viewId] ?? DEFAULT_PREFERENCE).sortDir ?? DEFAULT_PREFERENCE.sortDir,
   )
+  const isInitialViewLoad = useRef(true)
+
+  useEffect(() => {
+    isInitialViewLoad.current = false
+  }, [])
 
   return (
     <div role='table' aria-label='Projects' className='pl-8 pr-4 pb-6 pt-2'>
@@ -48,13 +54,15 @@ function ProjectListView({ viewId = PROJECTS_VIEW_ID, onOpenProject }: Props) {
       </div>
 
       <div className='mt-1'>
-        <AnimatePresence initial={false}>
-          {rows.map(({ project, progress, milestone }) => (
+        <AnimatePresence initial={true}>
+          {rows.map(({ project, progress, milestone }, rowIndex) => (
             <ProjectRow
               key={project.id}
               project={project}
               progress={progress}
               milestone={milestone}
+              index={rowIndex}
+              isInitialViewLoad={isInitialViewLoad.current}
               onOpen={onOpenProject ? () => onOpenProject(project) : undefined}
             />
           ))}

@@ -1,6 +1,6 @@
 
 import { ISSUE_STATUSES, type Issue, type IssueStatus } from '@/types/issue'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion';
 import { CollapseArrowIcon } from '../../icons';
 import { ISSUE_MAP } from '../../common/constants/constants';
@@ -49,6 +49,11 @@ function IssueListView({issues, onOpenIssue, sortable = true}: IssueListProps) {
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
 
   const justDragged = useRef(false);
+  const isInitialViewLoad = useRef(true);
+
+  useEffect(() => {
+    isInitialViewLoad.current = false;
+  }, []);
 
   // Require 5px of movement before a drag starts, so plain clicks still reach
   // the pickers inside the row.
@@ -101,11 +106,13 @@ function IssueListView({issues, onOpenIssue, sortable = true}: IssueListProps) {
                            <GroupHeader status={status} count={group.length}/>
                         <AccordionContent className='pb-0'>
                             <SortableContext items={group.map((issue)=>issue.id)} strategy={keepRowsInPlace}>
-                                <AnimatePresence initial={false}>
-                                    {group.map((issue)=>(
+                                <AnimatePresence initial={true}>
+                                    {group.map((issue, rowIndex)=>(
                                         <IssueRow
                                             key={issue.id}
                                             issue={issue}
+                                            index={rowIndex}
+                                            isInitialViewLoad={isInitialViewLoad.current}
                                             onOpen={() => {
                                                 // Skip the post-drop stray click and the picker-close fall-through.
                                                 if (justDragged.current || !pointerDownStartedOnCardSurface()) return;
