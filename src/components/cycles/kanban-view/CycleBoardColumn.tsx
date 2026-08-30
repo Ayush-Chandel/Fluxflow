@@ -5,6 +5,7 @@ import type { CycleRow } from '@/hooks/useCycleSelectors'
 import type { Cycle, CycleStatus } from '@/types/cycle'
 import { useCreateCycleDialog } from '@/store/createCycleDialogStore'
 import CycleCard from './CycleCard'
+import { AnimatePresence } from 'motion/react'
 
 type Props = {
   status: CycleStatus
@@ -35,9 +36,11 @@ function CycleBoardColumn({ status, group, onOpenCard }: Props) {
 
       <div className='min-h-0 flex-1 overflow-auto pb-4'>
         <div className='space-y-2 px-2'>
-          {group.map((row) => (
-            <CycleCard key={row.cycle.id} row={row} onOpen={onOpenCard} />
-          ))}
+          <AnimatePresence initial={false}>
+            {group.map((row) => (
+              <CycleCard key={row.cycle.id} row={row} onOpen={onOpenCard} />
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </div>

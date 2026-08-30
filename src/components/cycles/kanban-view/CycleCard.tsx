@@ -8,7 +8,9 @@ import type { CycleRow } from '@/hooks/useCycleSelectors'
 import ProgressBar from '@/components/common/ProgressBar'
 import { PlayCircleIcon } from '@/components/icons'
 import { pointerDownStartedOnCardSurface } from '@/lib/openGuard'
+import { isOptimisticId } from '@/lib/optimistic'
 import CycleActionsMenu from '../CycleActionsMenu'
+import { motion } from 'motion/react'
 
 type Props = {
   row: CycleRow
@@ -18,19 +20,26 @@ type Props = {
 
 const CycleCard = memo(function CycleCard({ row, onOpen }: Props) {
   const { cycle, status, progress } = row
-
+  const isOptimistic = isOptimisticId(cycle.id)
   const start = toDate(cycle.startDate)
   const end = toDate(cycle.endDate)
 
   return (
-    <div
-      data-card-surface
-      onClick={() => {
-        if (!pointerDownStartedOnCardSurface()) return
-        onOpen?.(cycle)
-      }}
-      className='group cursor-pointer space-y-2 rounded-xl border border-edge-subtle bg-raised-high px-2.5 pb-3 pt-2 text-xs text-muted transition-colors duration-100 hover:bg-hover-subtle'
+    <motion.div
+      initial={isOptimistic ? { opacity: 0, x: -24 } : false}
+      animate={{ opacity: 1, x: 0, height: 'auto' }}
+      exit={isOptimistic ? undefined : { opacity: 0, scale: 0.94, height: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className='overflow-hidden'
     >
+      <div
+        data-card-surface
+        onClick={() => {
+          if (!pointerDownStartedOnCardSurface()) return
+          onOpen?.(cycle)
+        }}
+        className='group cursor-pointer space-y-2 rounded-xl border border-edge-subtle bg-raised-high px-2.5 pb-3 pt-2 text-xs text-muted transition-colors duration-100 hover:bg-hover-subtle'
+      >
       <div className='flex items-center gap-2'>
         <PlayCircleIcon
           size={14}
@@ -62,7 +71,8 @@ const CycleCard = memo(function CycleCard({ row, onOpen }: Props) {
         </span>
         <span>{progress.pct}%</span>
       </div>
-    </div>
+      </div>
+    </motion.div>
   )
 })
 

@@ -34,7 +34,6 @@ const cellClass = (id: string) =>
 
 function ProjectRow({ project, progress, milestone, onOpen }: Props) {
   const updateProject = useProjectStore((s) => s.updateProject)
-
   const [statusAnimation, setStatusAnimation] = useState(0)
 
   const changeStatus = (status: ProjectStatus) => {
@@ -48,19 +47,26 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
   const milestoneTarget = toDate(milestone?.milestone.targetDate)
 
   return (
-    <div
-      role='row'
-      onClick={(e) => {
-        // A click on a picker inside the row must not also open the project.
-        if ((e.target as HTMLElement).closest('button')) return
-        onOpen?.()
-      }}
-      className={cn(
-        PROJECT_GRID,
-        // `group` drives the hover-revealed add-target affordance below.
-        'group h-11 cursor-pointer rounded-md text-lsm text-foreground hover:bg-hover-subtle',
-      )}
+    <motion.div
+      initial={{ opacity: 0, x: -24 }}
+      animate={{ opacity: 1, x: 0, height: 'auto' }}
+      exit={{ opacity: 0, scale: 0.96, height: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className='overflow-hidden'
     >
+      <div
+        role='row'
+        onClick={(e) => {
+          // A click on a picker inside the row must not also open the project.
+          if ((e.target as HTMLElement).closest('button')) return
+          onOpen?.()
+        }}
+        className={cn(
+          PROJECT_GRID,
+          // `group` drives the hover-revealed add-target affordance below.
+          'group h-11 cursor-pointer rounded-md text-lsm text-foreground hover:bg-hover-subtle',
+        )}
+      >
       {/* Name — the project's own icon/color, NOT the status glyph. `icon` stores
           a registry KEY ('box', 'layers'), so it has to be resolved to a component. */}
       <div role='cell' className={cellClass('name')}>
@@ -183,7 +189,8 @@ function ProjectRow({ project, progress, milestone, onOpen }: Props) {
       <div role='cell' className={cellClass('actions')}>
         <ProjectActionsMenu project={project} issueCount={progress.total} />
       </div>
-    </div>
+      </div>
+    </motion.div>
   )
 }
 

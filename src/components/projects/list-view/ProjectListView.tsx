@@ -6,6 +6,7 @@ import { DEFAULT_PREFERENCE, useViewPreferenceStore } from '@/store/viewPreferen
 import ProjectRow from './ProjectRow'
 import SortHeader from '../SortHeader'
 import { PROJECT_COLUMNS, PROJECT_GRID } from '../projectColumns'
+import { AnimatePresence } from 'motion/react'
 
 type Props = {
   viewId?: string
@@ -47,15 +48,17 @@ function ProjectListView({ viewId = PROJECTS_VIEW_ID, onOpenProject }: Props) {
       </div>
 
       <div className='mt-1'>
-        {rows.map(({ project, progress, milestone }) => (
-          <ProjectRow
-            key={project.id}
-            project={project}
-            progress={progress}
-            milestone={milestone}
-            onOpen={onOpenProject ? () => onOpenProject(project) : undefined}
-          />
-        ))}
+        <AnimatePresence initial={false}>
+          {rows.map(({ project, progress, milestone }) => (
+            <ProjectRow
+              key={project.id}
+              project={project}
+              progress={progress}
+              milestone={milestone}
+              onOpen={onOpenProject ? () => onOpenProject(project) : undefined}
+            />
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   )

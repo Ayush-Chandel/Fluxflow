@@ -7,6 +7,7 @@ import type { ProjectRow } from '@/lib/projectSorting';
 import type { Project, ProjectStatus } from '@/types/project';
 import { useCreateProjectDialog } from '@/store/createProjectDialogStore';
 import ProjectCard from './ProjectCard';
+import { AnimatePresence } from 'motion/react';
 
 type ProjectKanbanColumnProps = {
     status: ProjectStatus;
@@ -49,13 +50,15 @@ function ProjectKanbanColumn({status, group, onOpenCard}: ProjectKanbanColumnPro
             <div className='overflow-auto flex-1 min-h-0 pb-4'>
                 <div className='space-y-2 px-2 '>
                     <SortableContext items={group.map((row)=>row.project.id)} strategy={verticalListSortingStrategy}>
-                        {group.map((row)=>(
-                            <ProjectCard
-                                key={row.project.id}
-                                row={row}
-                                onOpen={() => onOpenCard?.(row.project)}
-                            />
-                        ))}
+                        <AnimatePresence initial={false}>
+                            {group.map((row)=>(
+                                <ProjectCard
+                                    key={row.project.id}
+                                    row={row}
+                                    onOpen={() => onOpenCard?.(row.project)}
+                                />
+                            ))}
+                        </AnimatePresence>
                     </SortableContext>
                 </div>
                 {/* Inset by the same px-2 as the cards above, so the ghost lines up

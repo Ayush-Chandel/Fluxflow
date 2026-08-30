@@ -117,7 +117,6 @@ const ProjectCardContent = memo(function ProjectCardContent({
 function ProjectCard({row, isOverlay, onOpen}: ProjectCardProps) {
 
     const {project} = row;
-
     const {setNodeRef, listeners, attributes, isDragging, transform, transition} = useSortable({
         id: project.id,
         disabled: isOverlay,
@@ -129,22 +128,29 @@ function ProjectCard({row, isOverlay, onOpen}: ProjectCardProps) {
     });
 
   return (
-    <div
-        ref={setNodeRef}
-        {...listeners}
-        {...attributes}
-        data-card-surface
-        onClick={isOverlay ? undefined : (e) => {
-            if ((e.target as HTMLElement).closest('button')) return;
-            onOpen?.();
-        }}
-        style={{transform: CSS.Transform.toString(transform), transition}}
-        className={cn(
-            'group bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer',
-            isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '',
-            isOverlay ? 'shadow-lg cursor-grabbing' : '',
-        )}
-        >
+    <motion.div
+        initial={!isOverlay ? { opacity: 0, x: -24 } : false}
+        animate={{ opacity: 1, x: 0, height: 'auto' }}
+        exit={{ opacity: 0, scale: 0.94, height: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className='overflow-hidden'
+    >
+      <div
+          ref={setNodeRef}
+          {...listeners}
+          {...attributes}
+          data-card-surface
+          onClick={isOverlay ? undefined : (e) => {
+              if ((e.target as HTMLElement).closest('button')) return;
+              onOpen?.();
+          }}
+          style={{transform: CSS.Transform.toString(transform), transition}}
+          className={cn(
+              'group bg-raised-high hover:bg-hover-subtle transition-colors duration-100 px-2.5 pt-2 pb-3 rounded-xl border-edge-subtle border text-xs text-muted space-y-1 touch-none cursor-pointer',
+              isDragging ? 'border-edge bg-hover-subtle [&>*]:invisible' : '',
+              isOverlay ? 'shadow-lg cursor-grabbing' : '',
+          )}
+          >
         <motion.div
             animate={isOverlay
             ? { scale: 1.015, y: -2, boxShadow: '0 14px 28px rgb(0 0 0 / 0.16)' }
@@ -154,7 +160,8 @@ function ProjectCard({row, isOverlay, onOpen}: ProjectCardProps) {
         >
             <ProjectCardContent row={row} isOverlay={isOverlay} />
         </motion.div>
-        </div>
+            </div>
+        </motion.div>
   )
 }
 
