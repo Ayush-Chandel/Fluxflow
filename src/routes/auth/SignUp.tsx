@@ -20,6 +20,7 @@ import { authService } from "@/services/authService";
 import { authErrorMessage } from "@/lib/authErrors";
 import BoxGradient from "@/components/common/BoxGradient";
 import { Link } from "react-router";
+import logo from "@/assets/logoBG.svg";
 
 
 type SignUpFormData = z.infer<typeof signUpSchema>; // replaces 
@@ -47,9 +48,9 @@ type SignUpFormData = z.infer<typeof signUpSchema>; // replaces
         <Card className="w-full max-w-sm mx-auto gap-4 mt-[100px] bg-surface border-edge rounded-2xl pb-0 overflow-hidden ">
             <CardHeader >
             
-                <CardDescription className="flex gap-2 mx-auto">
+                <CardDescription className="flex gap-3 mx-auto items-center">
                 <span>Sign Up to Fluxflow </span>
-                <img src='/assets/logo.jpg' alt='logo' className="w-7 h-6  rounded-full"  />
+                <img src={logo} alt='logo' className="w-7 h-7 rounded-md"  />
                 </CardDescription>
             </CardHeader>
         <CardContent className="px-8 ">
