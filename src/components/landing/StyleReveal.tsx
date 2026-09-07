@@ -5,6 +5,7 @@ import glosslogo from "@/assets/glosslogotransparent.png";
 type Props = {}
 
 function StyleReveal({}: Props) {
+    //check
   return (
     <div className="flex items-center justify-center py-20">
         <motion.div
