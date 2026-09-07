@@ -7,7 +7,7 @@ type Props = {}
 function StyleReveal({}: Props) {
     //check
   return (
-    <div className="flex items-center justify-center py-20">
+    <div className="flex items-center justify-center pt-20 pb-10">
         <motion.div
           initial={{
             opacity: 0,
@@ -22,7 +22,7 @@ function StyleReveal({}: Props) {
             filter: "contrast(100%) blur(0px)",
           }}
           transition={{
-            duration: 1.8,
+            duration: 1.5,
             ease: "easeOut",
           }}
           className="relative h-86 w-86"
