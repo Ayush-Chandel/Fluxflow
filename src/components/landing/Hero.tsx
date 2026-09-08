@@ -7,7 +7,7 @@ function Hero({}: Props) {
   return (
       <section>
         <StyleReveal/>
-        <div className="mx-auto max-w-3xl px-6 pb-24 text-center">
+        <div className="mx-auto max-w-3xl px-6 pb-12 text-center">
             <h1 className="text-5xl font-medium tracking-tight bg-[linear-gradient(103.97deg,rgb(255,255,255)_2.99%,rgba(255,255,255,0.38)_91.33%)] bg-clip-text text-transparent sm:text-7xl">
             Built for scale
             </h1> 

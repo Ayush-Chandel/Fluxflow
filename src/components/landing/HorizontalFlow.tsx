@@ -115,7 +115,7 @@ export default function HorizontalFlow() {
       {/* ------------------------------------------------
           INTRO
       ------------------------------------------------ */}
-      <div className="mx-auto max-w-7xl px-6 pb-20 pt-28 sm:px-10 sm:pt-36">
+      <div className="mx-auto max-w-7xl px-6 pt-12 sm:px-10 sm:pt-24">
         <div className="max-w-2xl">
           <p className="mb-5 text-sm font-medium uppercase tracking-[0.2em] text-cyan-300/70">
             One connected workflow

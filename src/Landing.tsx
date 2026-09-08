@@ -2,6 +2,7 @@
 import Header from "./components/common/Header";
 import Hero from "./components/landing/Hero";
 import HorizontalFlow from "./components/landing/HorizontalFlow";
+import { UnlikeAnyTool } from "./components/landing/UnlikeAnyTool";
 
 export default function Landing() {
   return (
@@ -9,6 +10,7 @@ export default function Landing() {
       <Header />
       <Hero />
       <HorizontalFlow />
+      <UnlikeAnyTool/>
     </div>
   );
 }
