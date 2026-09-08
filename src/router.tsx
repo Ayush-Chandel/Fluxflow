@@ -2,7 +2,7 @@
 import { createBrowserRouter,Navigate } from 'react-router'
 import Landing from '@/Landing'
 import PageLoader from '@/components/common/PageLoader'
-import { AuthRoute, LandingRoute, ProtectedRoute } from '@/routes/Guards'
+import { AuthRoute, PublicRoute, ProtectedRoute } from '@/routes/Guards'
 import { sidebarHandle } from './types/layout'
 
 const bootFallback = <PageLoader fullscreen />
@@ -10,7 +10,7 @@ const bootFallback = <PageLoader fullscreen />
 export const router = createBrowserRouter([
   {
     // Landing guard wrapper — in prod, redirects / to /login (or /app/issues)
-    Component: LandingRoute,
+    Component: PublicRoute,
     hydrateFallbackElement: bootFallback,
     children: [
       {

@@ -9,11 +9,11 @@ const showLanding =
   import.meta.env.DEV || import.meta.env.VITE_SHOW_LANDING === 'true'
 
 // Wraps / — in prod, sends visitors straight to the app instead of the placeholder
-export function LandingRoute() {
+export function PublicRoute() {
   const { user, loading } = useAuthStore()
 
+  if (loading) return <PageLoader fullscreen /> // avoids a header-state flash during auth boot
   if (showLanding) return <Outlet />
-  if (loading) return <PageLoader fullscreen />  // avoids a /login flash for signed-in users
   return <Navigate to={user ? '/app/issues' : '/login'} replace />
 }
 
