@@ -1,12 +1,14 @@
 
 import Header from "./components/common/Header";
 import Hero from "./components/landing/Hero";
+import HorizontalFlow from "./components/landing/HorizontalFlow";
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-[#010213] text-foreground">
       <Header />
-      <Hero/>
+      <Hero />
+      <HorizontalFlow />
     </div>
   );
 }

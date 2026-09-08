@@ -117,3 +117,46 @@ export const CHIP_STYLE = cn(
 
 export const CYCLE_RANK = { active: 0, upcoming: 1, completed: 2 } as const
 
+
+export const flowCards = [
+  {
+    number: "01",
+    eyebrow: "Shape the work",
+    title: "Planning",
+    description:
+      "Turn loose ideas into milestones, cycles, and a shared direction before the work begins.",
+    accent: "bg-cyan-400",
+  },
+  {
+    number: "02",
+    eyebrow: "Move with clarity",
+    title: "Execution",
+    description:
+      "Keep issues, ownership, and progress visible as the team moves from next up to done.",
+    accent: "bg-emerald-400",
+  },
+  {
+    number: "03",
+    eyebrow: "Remove repetition",
+    title: "Automations",
+    description:
+      "Chain together the busywork so updates, handoffs, and recurring actions run in the background.",
+    accent: "bg-amber-300",
+  },
+  {
+    number: "04",
+    eyebrow: "See what matters",
+    title: "Intelligence",
+    description:
+      "Give people and AI agents the context they need to make the next decision with confidence.",
+    accent: "bg-violet-400",
+  },
+  {
+    number: "05",
+    eyebrow: "Learn from the flow",
+    title: "Reports",
+    description:
+      "Spot momentum, bottlenecks, and trends with summaries that stay close to the real work.",
+    accent: "bg-rose-400",
+  },
+] as const;
