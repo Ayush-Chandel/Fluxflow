@@ -1,7 +1,6 @@
 import { Button, Highlight } from '../common/Button'
 import { CommandMenu } from '../common/CommandMenu';
 import { Container } from '../common/Container';
-import { LogoLightIllustration } from './illustrations/LogoLight';
 import { Zap } from "./illustrations/Zap";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import glosslogo from "@/assets/finallogo.svg";
