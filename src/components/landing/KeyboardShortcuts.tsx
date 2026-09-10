@@ -78,14 +78,14 @@ export const KeyboardShortcuts = () => {
     <>
       <div
         ref={illustrationWrapperRef}
-        className="mask-keyboard absolute top-0 -left-12 h-full max-h-[30rem] w-[200%] md:relative md:left-auto md:w-full"
+        className="mask-keyboard absolute top-0 -left-12 h-full max-h-[300px] w-[200%] md:relative md:left-auto md:w-full"
       >
         <KeyboardIllustration />
       </div>
-      <div className="my-7 hidden h-[4rem] min-h-[4rem] w-full overflow-hidden md:block">
+      <div className="my-7 hidden h-[40px] min-h-[40px] w-full overflow-hidden md:block">
         <div
           ref={wrapperRef}
-          className="mask-shortcutkeys flex h-[6rem] max-w-full snap-x snap-mandatory gap-2 overflow-auto pb-8"
+          className="mask-shortcutkeys flex h-[90px] max-w-full snap-x snap-mandatory gap-2 overflow-auto pb-8"
         >
           {shortcuts.map((shortcut, index) => (
             <Button

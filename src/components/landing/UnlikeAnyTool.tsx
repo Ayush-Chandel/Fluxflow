@@ -4,6 +4,7 @@ import { Container } from '../common/Container';
 import { LogoLightIllustration } from './illustrations/LogoLight';
 import { Zap } from "./illustrations/Zap";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
+import glosslogo from "@/assets/finallogo.svg";
 
 export const UnlikeAnyTool = () => (
   <div className="text-white">
@@ -13,15 +14,15 @@ export const UnlikeAnyTool = () => (
           Unlike any tool
           <br className="hidden md:inline-block" /> you've used before
         </h2>
-        <p className="mx-auto mb-12 max-w-[68rem] text-lg text-primary-text md:mb-7 md:text-xl">
+        <p className="mx-auto mb-12 max-w-[680px] text-lg text-primary-text md:mb-7 md:text-xl">
           Designed to the last pixel and engineered with unforgiving precision,
           Linear combines UI elegance with world-class performance.
         </p>
       </div>
     </Container>
-    <div className="h-[48rem] overflow-hidden md:h-auto md:overflow-auto">
+    <div className="h-[480px] overflow-hidden md:h-auto md:overflow-auto">
       <div className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-8 pb-12 md:flex-wrap md:overflow-hidden">
-        <div className="relative flex min-h-[48rem] w-full shrink-0 snap-center flex-col items-center justify-end overflow-hidden rounded-[4.8rem] border border-transparent-white bg-glass-gradient p-8 text-center md:max-w-[calc(66.66%-12px)] md:basis-[calc(66.66%-12px)] md:p-14">
+        <div className="relative flex min-h-[480px] w-full shrink-0 snap-center flex-col items-center justify-end overflow-hidden rounded-[48px] border border-transparent-white bg-glass-gradient p-8 text-center md:max-w-[calc(66.66%-12px)] md:basis-[calc(66.66%-12px)] md:p-14">
           <KeyboardShortcuts />
           <p className="mb-4 text-3xl">Built for your keyboard</p>
           <p className="text-md text-primary-text">
@@ -29,8 +30,8 @@ export const UnlikeAnyTool = () => (
             everything. Literally everything.
           </p>
         </div>
-        <div className="relative flex min-h-[48rem] w-full shrink-0 snap-center flex-col items-center justify-end overflow-hidden rounded-[4.8rem] border border-transparent-white bg-glass-gradient p-8 text-center md:basis-[calc(33.33%-12px)] md:p-14">
-          <div className="mask-linear-faded absolute top-[-9.2rem]">
+        <div className="relative flex min-h-[480px] w-full shrink-0 snap-center flex-col items-center justify-end overflow-hidden rounded-[48px] border border-transparent-white bg-glass-gradient p-8 text-center md:basis-[calc(33.33%-12px)] md:p-14">
+          <div className="mask-linear-faded absolute top-[-92px]">
             <Zap />
           </div>
           <p className="mb-4 text-3xl">Breathtakingly fast</p>
@@ -38,21 +39,26 @@ export const UnlikeAnyTool = () => (
             Built for speed with 50ms interactions and real-time sync.
           </p>
         </div>
-        <div className="group relative flex min-h-[48rem] w-full shrink-0 snap-center flex-col items-center justify-end overflow-hidden rounded-[4.8rem] border border-transparent-white bg-glass-gradient p-8 text-center md:basis-[calc(33.33%-12px)] md:p-14">
-          <div className="pointer-events-none absolute top-[-8rem] w-[130%]">
-            <LogoLightIllustration />
+        <div className="group relative flex min-h-[480px] w-full shrink-0 snap-center flex-col items-center justify-end overflow-hidden rounded-[48px] border border-transparent-white bg-glass-gradient p-8 text-center md:basis-[calc(33.33%-12px)] md:p-14">
+          <div className="pointer-events-none absolute left-[20px] top-[30px] w-[65%]">
+            {/* <LogoLightIllustration /> */}
+            <img
+            src={glosslogo}
+            alt="Gloss logo"
+            className="w-full object-contain [mask-image:linear-gradient(to_bottom,black,rgba(0,0,0,0.07)_60%,transparent_80%)] [-webkit-mask-image:linear-gradient(to_bottom,black,rgba(0,0,0,0.07)_60%,transparent_80%)]"
+          />
           </div>
           <p className="mb-4 text-3xl">Designed for modern software teams</p>
           <p className="text-md text-primary-text">
             Comes with built-in workflows that create focus and routine.
           </p>
           <Button
-            className="absolute bottom-[20rem] translate-y-[30%] scale-[0.8] opacity-0 transition-[transform,opacity] group-hover:transform-none group-hover:opacity-100 [&_.highlight]:text-[1.1rem]"
+            className="absolute bottom-[200px] translate-y-[30%] scale-[0.8] opacity-0 transition-[transform,opacity] group-hover:transform-none group-hover:opacity-100 [&_.highlight]:text-[11px]"
             variant="secondary"
             size="small"
             href="/"
           >
-            <Highlight>Linear Method</Highlight>
+            <Highlight>Fluxflow Method</Highlight>
             Product principles
             <svg
               className="ml-1"
@@ -65,7 +71,7 @@ export const UnlikeAnyTool = () => (
             </svg>
           </Button>
         </div>
-        <div className="relative flex min-h-[48rem] w-full shrink-0 snap-center flex-col items-center justify-start overflow-hidden rounded-[4.8rem] border border-transparent-white bg-glass-gradient p-8 text-center md:max-w-[calc(66.66%-12px)] md:basis-[calc(66.66%-12px)] md:p-14">
+        <div className="relative flex min-h-[480px] w-full shrink-0 snap-center flex-col items-center justify-start overflow-hidden rounded-[48px] border border-transparent-white bg-glass-gradient p-8 text-center md:max-w-[calc(66.66%-12px)] md:basis-[calc(66.66%-12px)] md:p-14">
           <CommandMenu />
           <div className="transition-opacity md:[.opened+&]:opacity-0">
             <p className="mb-4 text-3xl">Meet your command line</p>

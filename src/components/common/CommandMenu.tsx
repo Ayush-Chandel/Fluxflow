@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "motion/react";
 import {
   AssignToIcon,
   BacklogIcon,
@@ -23,9 +24,9 @@ const commandOptions = [
     label: "Assign to..",
     icon: AssignToIcon,
     subOptions: [
-      { label: "Jori", icon: PersonIcon },
-      { label: "Karri", icon: PersonIcon },
-      { label: "Tuomas", icon: PersonIcon },
+      { label: "Dean", icon: PersonIcon },
+      { label: "Sean", icon: PersonIcon },
+      { label: "John", icon: PersonIcon },
     ],
   },
   {
@@ -101,21 +102,22 @@ export const CommandMenu = () => {
     );
   }, [selectedOption, searchValue]);
 
-  useEffect(() => {
-    if (!commandMenuRef.current) return;
-    commandMenuRef.current.classList.remove("animate-bounce");
-    commandMenuRef.current.clientWidth;
-    commandMenuRef.current.classList.add("animate-bounce");
-  }, [selectedOption]);
-
   return (
     <div className={cn(opened && "opened")} ref={commandMenuRef}>
-      <div
+      <motion.div
         className={cn(
-          "absolute left-[calc(50%+7.5rem)] flex w-[90vw] max-w-[64rem] -translate-x-1/2 flex-col items-start rounded-xl border border-transparent-white bg-transparent-white shadow-[rgb(0_0_0_/_35%)_0px_7px_32px] transition-[transform,opacity] md:left-1/2",
-          opened && "translate-y-[12.8rem] opacity-100 md:translate-y-[2.4rem]",
-          !opened && "translate-y-[12.8rem] opacity-60"
+            "absolute left-[calc(50%+75px)] flex w-[90vw] max-w-[640px] -translate-x-1/2 flex-col items-start rounded-xl border border-transparent-white bg-transparent-white shadow-[rgb(0_0_0_/_35%)_0px_7px_32px] transition-[transform,opacity] md:left-1/2",
+            opened && "translate-y-[128px] opacity-100 md:translate-y-[24px]",
+            !opened && "translate-y-[128px] opacity-60"
         )}
+        animate={{
+          opacity: opened ? 1 : 0.6,
+          scale: selectedOption === null ? 1 : [1, 0.98, 1],
+        }}
+        transition={{
+          opacity: { duration: 0.2 },
+          scale: { duration: 0.24, ease: "easeOut" },
+        }}
       >
         <span className="ml-4 mt-2 bg-white/[0.05] px-2 text-xs leading-10 text-white/50">
           LIN-111 Walkway lightning
@@ -144,14 +146,14 @@ export const CommandMenu = () => {
                   ev.stopPropagation();
                 }
               }}
-              className="command-menu-button flex h-[4.6rem] w-full items-center gap-3 px-5 first:bg-white/[0.15] hover:bg-white/[0.05]"
+              className="command-menu-button flex h-[46px] w-full items-center gap-3 px-5 first:bg-white/[0.15] hover:bg-white/[0.05]"
             >
               <Icon />
               {label}
             </button>
           ))}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

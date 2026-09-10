@@ -11,7 +11,7 @@ const typeClasses = {
 export const LabelIcon = ({ type }: { type: LabelType }) => (
   <div
     className={cn(
-      "flex h-[0.9rem] w-[0.9rem] items-center justify-center rounded-full",
+      "flex h-[9px] w-[9px] items-center justify-center rounded-full",
       typeClasses[type]
     )}
   />
