@@ -1,6 +1,6 @@
-
 import Header from "./components/common/Header";
 import Hero from "./components/landing/Hero";
+import HighlightTimeline from "./components/landing/HighlightTimeline";
 import HorizontalFlow from "./components/landing/HorizontalFlow";
 import { UnlikeAnyTool } from "./components/landing/UnlikeAnyTool";
 
@@ -10,7 +10,8 @@ export default function Landing() {
       <Header />
       <Hero />
       <HorizontalFlow />
-      <UnlikeAnyTool/>
+      <UnlikeAnyTool />
+      <HighlightTimeline />
     </div>
   );
 }
