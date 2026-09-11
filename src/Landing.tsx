@@ -1,6 +1,5 @@
 import Header from "./components/common/Header";
 import Capability from "./components/landing/Capability/Capability";
-import CapabilityPanels from "./components/landing/Capability/CapabilityPanels";
 import Hero from "./components/landing/Hero";
 import HighlightTimeline from "./components/landing/HighlightTimeline";
 import HorizontalFlow from "./components/landing/HorizontalFlow";
