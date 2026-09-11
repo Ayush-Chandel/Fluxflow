@@ -7,3 +7,11 @@ export type FlowCardProps = {
   progress: ReturnType<typeof useScroll>["scrollYProgress"];
   reducedMotion: boolean;
 };
+
+
+export type Capability = {
+  number: string;
+  title: string;
+  description: string;
+  visual: "planning" | "automation" | "ai";
+};

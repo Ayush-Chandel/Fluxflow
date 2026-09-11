@@ -21,6 +21,7 @@ import type { CycleStatus } from "@/types/cycle";
 import { cn } from "@/lib/utils";
 import type { FilterOperator } from "@/components/reui/filters";
 import { PINNED_OPERATOR } from "@/hooks/useIssueFilters";
+import type { Capability } from "@/types/landing";
 
 
 export const ISSUE_MAP: Record<IssueStatus, { label: string; icon: React.ReactNode }> = {
@@ -160,3 +161,28 @@ export const flowCards = [
     accent: "bg-rose-400",
   },
 ] as const;
+
+
+export  const capabilities: Capability[] = [
+  {
+    number: "01",
+    title: "Planning",
+    description:
+      "Turn ideas into structured plans. FluxFlow helps you capture goals, break them down into actionable steps, and keep everyone aligned from start to finish.",
+    visual: "planning",
+  },
+  {
+    number: "02",
+    title: "Automations",
+    description:
+      "Automate repetitive work and connect your tools. Let AI agents and workflows handle the busywork, so your team can focus on what matters.",
+    visual: "automation",
+  },
+  {
+    number: "03",
+    title: "AI",
+    description:
+      "Work with AI, not around it. Bring your ideas, data and tools together in one place and let AI help you move faster, think clearer, and achieve more.",
+    visual: "ai",
+  },
+];

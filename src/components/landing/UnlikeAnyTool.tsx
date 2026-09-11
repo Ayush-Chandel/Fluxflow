@@ -9,13 +9,13 @@ export const UnlikeAnyTool = () => (
   <div className="text-white">
     <Container>
       <div className="text-center">
-        <h2 className="mb-4 text-4xl md:mb-7 md:text-7xl">
+        <h2 className="mb-4 text-4xl md:mb-7 md:text-6xl">
           Unlike any tool
           <br className="hidden md:inline-block" /> you've used before
         </h2>
-        <p className="mx-auto mb-12 max-w-[680px] text-lg text-primary-text md:mb-7 md:text-xl">
+        <p className="mx-auto mb-12 max-w-[680px] text-md text-primary-text md:mb-7 md:text-lg">
           Designed to the last pixel and engineered with unforgiving precision,
-          Linear combines UI elegance with world-class performance.
+          Fluxflow combines UI elegance with world-class performance.
         </p>
       </div>
     </Container>
