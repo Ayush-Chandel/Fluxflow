@@ -261,8 +261,8 @@ export default function GlobalCursor() {
     return null;
   }
 
-  const isDefault =
-    cursorState.type === "default";
+//   const isDefault =
+//     cursorState.type === "default";
 
   return (
     <motion.div
