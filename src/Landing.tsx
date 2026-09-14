@@ -3,7 +3,7 @@ import Capability from "./components/landing/Capability/Capability";
 import Hero from "./components/landing/Hero";
 import HighlightTimeline from "./components/landing/HighlightTimeline";
 import HorizontalFlow from "./components/landing/HorizontalFlow";
-import TestimonialsPile from "./components/landing/TestimonialsPIle";
+import TestimonialsPile from "./components/landing/TestimonialsPile";
 import { UnlikeAnyTool } from "./components/landing/UnlikeAnyTool";
 
 export default function Landing() {
