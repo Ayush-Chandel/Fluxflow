@@ -3,6 +3,7 @@ import Capability from "./components/landing/Capability/Capability";
 import Hero from "./components/landing/Hero";
 import HighlightTimeline from "./components/landing/HighlightTimeline";
 import HorizontalFlow from "./components/landing/HorizontalFlow";
+import TestimonialsPile from "./components/landing/TestimonialsPIle";
 import { UnlikeAnyTool } from "./components/landing/UnlikeAnyTool";
 
 export default function Landing() {
@@ -13,7 +14,8 @@ export default function Landing() {
       <HorizontalFlow />
       <UnlikeAnyTool />
       <HighlightTimeline />
-      <Capability/>
+      <Capability />
+      <TestimonialsPile />
       <div className="h-[1200px]">
         here
       </div>

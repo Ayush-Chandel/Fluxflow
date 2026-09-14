@@ -15,3 +15,10 @@ export type Capability = {
   description: string;
   visual: "planning" | "automation" | "ai";
 };
+
+export type Testimonial = {
+  quote: string;
+  company: string;
+  description: string;
+  tone: "cyan" | "violet";
+};

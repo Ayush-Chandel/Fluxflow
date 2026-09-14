@@ -24,36 +24,13 @@ import { CapabilityVisual } from "./CapabilityVisual";
  * SCROLL TUNING
  * ========================================================== */
 
-/*
- * Normal scroll → card progress.
- *
- * Lower:
- *   more scrolling required
- *
- * Higher:
- *   less scrolling required
- */
 const SCROLL_TO_PROGRESS = 0.0035;
 
-const MAX_PROGRESS_PER_UPDATE = 0.40;
+const MAX_PROGRESS_PER_UPDATE = 0.4;
 
-/*
- * Tiny floating point values near 1 are treated as complete.
- */
 const COMPLETION_THRESHOLD = 0.995;
 
-/*
- * The normal interaction zone.
- *
- * The section starts responding when its top reaches ~72%
- * of the viewport.
- */
 const ACTIVATION_TOP = 0.72;
-
-/*
- * Normal interaction ends when the section's bottom is above
- * this portion of the viewport.
- */
 const ACTIVATION_BOTTOM = 0.72;
 
 /* ============================================================
@@ -62,28 +39,57 @@ const ACTIVATION_BOTTOM = 0.72;
 
 const COMPACT_HEIGHT = 118;
 
-/*
- * Expanded card gets ~30% more room than its natural content.
- */
 const EXPANDED_CONTENT_MULTIPLIER = 1.3;
 
 /*
- * py-6 = 24px top + 24px bottom.
+ * py-6 = 24px top + 24px bottom
  */
 const CARD_PADDING_Y = 48;
+
+/*
+ * space-y-4 / gap-4 = 16px
+ */
+const CARD_GAP = 16;
+
+/*
+ * Vertical breathing room around the whole stack.
+ *
+ * The Capability section itself has:
+ *
+ * pt-12 = 48px
+ * pb-24 = 96px
+ *
+ * Total = 144px
+ */
+const SECTION_VERTICAL_PADDING = 144;
+
+/* ============================================================
+ * CAPABILITY PANELS
+ * ========================================================== */
 
 export default function CapabilityPanels() {
   const sectionRef = useRef<HTMLElement>(null);
 
+  /*
+   * Persistent target progress for each card.
+   */
   const [cardTargets, setCardTargets] = useState<number[]>(
     () => capabilities.map(() => 0)
   );
 
   /*
-   * Keep the values outside React too.
+   * Expanded heights reported by each card.
    *
-   * This is useful because the scroll callback can get called
-   * many times before React has rendered the previous state.
+   * Example:
+   *
+   * [250, 290, 235]
+   */
+  const [expandedHeights, setExpandedHeights] = useState<number[]>(
+    () => capabilities.map(() => 0)
+  );
+
+  /*
+   * Keep target values outside React as well.
    */
   const cardTargetsRef = useRef<number[]>(
     capabilities.map(() => 0)
@@ -91,28 +97,78 @@ export default function CapabilityPanels() {
 
   const { scrollY } = useScroll();
 
-  /*
-   * Previous page scroll position.
-   */
   const lastScrollY = useRef<number | null>(null);
 
-  /*
-   * Whether the section is currently inside the normal
-   * interaction zone.
-   */
   const sectionActiveRef = useRef(false);
 
-  /*
-   * Whether we have already started interacting with the section.
-   *
-   * This prevents the "complete everything in background" logic
-   * from triggering before the user has actually reached the
-   * capability section.
-   */
   const sectionStartedRef = useRef(false);
 
   /* ==========================================================
-   * SECTION ACTIVITY
+   * EXPANDED STACK HEIGHT
+   * ======================================================== */
+
+  /*
+   * Once all cards have reported their natural expanded height,
+   * reserve enough space for the entire eventual stack.
+   *
+   * This prevents later card expansion from pushing anything
+   * below the section downward.
+   */
+  const measuredHeightComplete =
+    expandedHeights.every(
+      (height) => height > 0
+    );
+
+  const measuredCardsHeight =
+    expandedHeights.reduce(
+      (sum, height) => sum + height,
+      0
+    );
+
+  const totalCardsHeight =
+    measuredCardsHeight +
+    Math.max(
+      0,
+      capabilities.length - 1
+    ) *
+      CARD_GAP;
+
+  const reservedSectionHeight =
+    totalCardsHeight +
+    SECTION_VERTICAL_PADDING;
+
+  /*
+   * Fallback used only during the first render before the cards
+   * have measured themselves.
+   *
+   * It is deliberately conservative so the section doesn't
+   * visually jump when measurements arrive.
+   */
+  const fallbackSectionHeight = 900;
+
+  /* ==========================================================
+   * RECEIVE CARD HEIGHT
+   * ======================================================== */
+
+  const handleExpandedHeight = useCallback(
+    (index: number, height: number) => {
+      setExpandedHeights((current) => {
+        if (current[index] === height) {
+          return current;
+        }
+
+        const next = [...current];
+
+        next[index] = height;
+
+        return next;
+      });
+    },
+    []
+  );
+
+  /* ==========================================================
+   * SECTION STATE
    * ======================================================== */
 
   const getSectionState = useCallback(() => {
@@ -136,20 +192,10 @@ export default function CapabilityPanels() {
       rect.bottom >=
         viewportHeight * ACTIVATION_BOTTOM;
 
-    /*
-     * The whole section has effectively moved above the viewport.
-     *
-     * This can happen when the user scrolls very quickly downward.
-     */
     const passedDown =
       rect.bottom <
       viewportHeight * ACTIVATION_BOTTOM;
 
-    /*
-     * The whole section is effectively below the viewport.
-     *
-     * This happens when the user has scrolled upward past it.
-     */
     const passedUp =
       rect.top >
       viewportHeight * ACTIVATION_TOP;
@@ -190,28 +236,21 @@ export default function CapabilityPanels() {
       sectionActiveRef.current = active;
 
       /* ======================================================
-       * SCROLL DOWN
+       * DOWN
        * ==================================================== */
 
       if (delta > 0) {
-        /*
-         * User has reached the normal interaction zone.
-         */
         if (active) {
           sectionStartedRef.current = true;
         }
 
         /*
-         * If the section has already been entered and the user
-         * scrolls fast enough to pass it completely, finish all
-         * remaining cards in the background.
-         *
          * IMPORTANT:
          *
-         * We're changing TARGETS only.
+         * If the user flies past the section, finish all card
+         * targets in the background.
          *
-         * The actual card animation still takes its normal
-         * amount of time.
+         * This prevents the last card from being left half-open.
          */
         if (
           sectionStartedRef.current &&
@@ -230,17 +269,10 @@ export default function CapabilityPanels() {
           return;
         }
 
-        /*
-         * Before reaching the section, normal page scrolling
-         * should have no effect on the cards.
-         */
         if (!active) {
           return;
         }
 
-        /*
-         * Convert scroll distance into a small progress amount.
-         */
         const nudge = Math.min(
           Math.abs(delta) *
             SCROLL_TO_PROGRESS,
@@ -255,9 +287,8 @@ export default function CapabilityPanels() {
           const next = [...current];
 
           /*
-           * Find the first card that is not fully expanded.
-           *
-           * This preserves:
+           * Only the first incomplete card receives the
+           * scroll movement.
            *
            * 01 → 02 → 03
            */
@@ -278,9 +309,6 @@ export default function CapabilityPanels() {
                 nudge
             );
 
-          /*
-           * Snap tiny remaining values to 1.
-           */
           if (
             next[activeIndex] >=
             COMPLETION_THRESHOLD
@@ -297,15 +325,13 @@ export default function CapabilityPanels() {
       }
 
       /* ======================================================
-       * SCROLL UP
+       * UP
        * ==================================================== */
 
       /*
-       * If the user has scrolled all the way back above the
-       * capability section, reset the state.
+       * Fast upward jump past the whole section:
        *
-       * This handles a very fast upward scroll that completely
-       * jumps over the section.
+       * collapse everything in the background.
        */
       if (
         sectionStartedRef.current &&
@@ -326,10 +352,6 @@ export default function CapabilityPanels() {
         return;
       }
 
-      /*
-       * We only collapse while the section is in its interaction
-       * region.
-       */
       if (!active) {
         return;
       }
@@ -348,9 +370,7 @@ export default function CapabilityPanels() {
         const next = [...current];
 
         /*
-         * Find the LAST card with progress.
-         *
-         * This guarantees reverse order:
+         * Collapse the last card first.
          *
          * 03 → 02 → 01
          */
@@ -378,9 +398,6 @@ export default function CapabilityPanels() {
               nudge
           );
 
-        /*
-         * Avoid tiny leftovers.
-         */
         if (
           next[activeIndex] < 0.005
         ) {
@@ -421,9 +438,22 @@ export default function CapabilityPanels() {
     };
   }, [getSectionState]);
 
+  /* ==========================================================
+   * RENDER
+   * ======================================================== */
+
   return (
     <section
       ref={sectionRef}
+      style={{
+        /*
+         * Once measurements are available, reserve the entire
+         * eventual stack height.
+         */
+        minHeight: measuredHeightComplete
+          ? reservedSectionHeight
+          : fallbackSectionHeight,
+      }}
       className="
         relative
         bg-[#010213]
@@ -434,7 +464,7 @@ export default function CapabilityPanels() {
         lg:px-8
       "
     >
-      <div >
+      <div>
         <div className="space-y-3 sm:space-y-4">
           {capabilities.map(
             (capability, index) => (
@@ -444,6 +474,10 @@ export default function CapabilityPanels() {
                 targetProgress={
                   cardTargets[index]
                 }
+                onExpandedHeight={
+                  handleExpandedHeight
+                }
+                index={index}
               />
             )
           )}
@@ -460,11 +494,18 @@ export default function CapabilityPanels() {
 type CapabilityCardProps = {
   capability: Capability;
   targetProgress: number;
+  index: number;
+  onExpandedHeight: (
+    index: number,
+    height: number
+  ) => void;
 };
 
 function CapabilityCard({
   capability,
   targetProgress,
+  index,
+  onExpandedHeight,
 }: CapabilityCardProps) {
   /*
    * Persistent target.
@@ -473,9 +514,6 @@ function CapabilityCard({
     targetProgress
   );
 
-  /*
-   * Update target whenever scroll state changes.
-   */
   useEffect(() => {
     target.set(targetProgress);
   }, [
@@ -484,21 +522,10 @@ function CapabilityCard({
   ]);
 
   /*
-   * Flow / inertia.
+   * Existing flow/inertia behavior.
    *
-   * This keeps the animation you already liked:
-   *
-   * scroll
-   *   ↓
-   * small movement
-   *   ↓
-   * smooth continuation
-   *   ↓
-   * settle
-   *
-   * No bounce.
+   * Kept intentionally unchanged.
    */
-
   const cardProgress = useSpring(
     target,
     {
@@ -519,15 +546,11 @@ function CapabilityCard({
       mass: 0.7,
     }
   );
+
   /* ==========================================================
    * NATURAL CONTENT MEASUREMENT
    * ======================================================== */
 
-  /*
-   * Header + description + pills are measured.
-   *
-   * Product visual is NOT part of this measurement.
-   */
   const naturalContentRef =
     useRef<HTMLDivElement>(null);
 
@@ -545,9 +568,26 @@ function CapabilityCard({
     }
 
     const updateHeight = () => {
-      setNaturalContentHeight(
+      const height =
         element.getBoundingClientRect()
-          .height
+          .height;
+
+      setNaturalContentHeight(height);
+
+      /*
+       * Report the final card height to
+       * CapabilityPanels.
+       */
+      const expandedHeight =
+        Math.ceil(
+          height *
+            EXPANDED_CONTENT_MULTIPLIER +
+            CARD_PADDING_Y
+        );
+
+      onExpandedHeight(
+        index,
+        expandedHeight
       );
     };
 
@@ -564,10 +604,12 @@ function CapabilityCard({
   }, [
     capability.description,
     capability.visual,
+    index,
+    onExpandedHeight,
   ]);
 
   /*
-   * Content height + 30% breathing room + padding.
+   * Expanded height derived from actual content.
    */
   const expandedHeight =
     naturalContentHeight > 0
@@ -579,7 +621,7 @@ function CapabilityCard({
       : 200;
 
   /* ==========================================================
-   * CARD APPEARANCE
+   * CARD HEIGHT
    * ======================================================== */
 
   const cardHeight = useTransform(
@@ -590,6 +632,10 @@ function CapabilityCard({
       expandedHeight,
     ]
   );
+
+  /* ==========================================================
+   * CARD APPEARANCE
+   * ======================================================== */
 
   const backgroundColor =
     useTransform(
@@ -615,11 +661,12 @@ function CapabilityCard({
    * TITLE
    * ======================================================== */
 
-  const titleY = useTransform(
-    cardProgress,
-    [0, 1],
-    [0, -4]
-  );
+  const titleY =
+    useTransform(
+      cardProgress,
+      [0, 1],
+      [0, -4]
+    );
 
   const titleScale =
     useTransform(
@@ -763,7 +810,7 @@ function CapabilityCard({
         "
       >
         {/* ================================================== */}
-        {/* Measured natural content                            */}
+        {/* Natural content                                     */}
         {/* ================================================== */}
 
         <div

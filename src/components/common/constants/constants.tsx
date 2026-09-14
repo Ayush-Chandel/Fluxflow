@@ -21,7 +21,7 @@ import type { CycleStatus } from "@/types/cycle";
 import { cn } from "@/lib/utils";
 import type { FilterOperator } from "@/components/reui/filters";
 import { PINNED_OPERATOR } from "@/hooks/useIssueFilters";
-import type { Capability } from "@/types/landing";
+import type { Capability, Testimonial } from "@/types/landing";
 
 
 export const ISSUE_MAP: Record<IssueStatus, { label: string; icon: React.ReactNode }> = {
@@ -186,3 +186,42 @@ export  const capabilities: Capability[] = [
     visual: "ai",
   },
 ];
+
+export const testimonials: Testimonial[] = [
+  {
+    quote:
+      "FluxFlow gave our team one clear place to turn scattered ideas into structured work. We spend less time coordinating and more time actually shipping.",
+    company: "NEXORA",
+    description: "Product & Growth",
+    tone: "cyan",
+  },
+  {
+    quote:
+      "The biggest difference is how quickly we can move from a rough thought to an actionable plan. FluxFlow makes the entire process feel connected.",
+    company: "ORBIT",
+    description: "Technology Platform",
+    tone: "violet",
+  },
+  {
+    quote:
+      "Our team finally has a shared workspace where people and AI can work from the same context. It has completely changed how we approach projects.",
+    company: "VECTOR",
+    description: "Creative Technology",
+    tone: "cyan",
+  },
+  {
+    quote:
+      "FluxFlow removed so much of the back-and-forth from our workflow. Everyone knows what needs to happen next, and AI can actually help us get there.",
+    company: "LUMA",
+    description: "Design Studio",
+    tone: "violet",
+  },
+  {
+    quote:
+      "From the first idea to the final deliverable, FluxFlow keeps everything connected. It feels less like another productivity tool and more like an operating layer.",
+    company: "NORTHSTAR",
+    description: "Digital Product Team",
+    tone: "cyan",
+  },
+];
+

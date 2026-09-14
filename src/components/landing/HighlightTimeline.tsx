@@ -470,7 +470,7 @@ function HighlightTimeline() {
         {/* ==========================================================
             SCROLL INDICATOR
            ========================================================== */}
-
+{/* 
         {!shouldReduceMotion && (
           <motion.div
             style={{
@@ -516,7 +516,7 @@ function HighlightTimeline() {
               "
             />
           </motion.div>
-        )}
+        )} */}
       </div>
     </section>
   );
