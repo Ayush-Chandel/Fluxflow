@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import {
   animate,
   motion,
   MotionValue,
   useMotionValue,
   useReducedMotion,
-  useScroll,
-  useSpring,
   useTransform,
 } from "framer-motion";
 import { testimonials } from "../common/constants/constants";
 import { type Testimonial } from "@/types/landing";
-import quoteLogo from '@/assets/quote.svg'
 import { QuoteIcon } from "../icons";
 
 /* ======================================================
