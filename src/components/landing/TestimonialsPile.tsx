@@ -135,17 +135,17 @@ export default function TestimonialsPile() {
         ================================================= */}
 
         <div className="mx-auto mb-16 max-w-[720px] text-center sm:mb-30">
-          <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.25em] text-white/30 sm:text-[11px]">
+          <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.25em] text-cyan-300/70 sm:text-[11px]" data-cursor="link">
             Teams moving forward
           </p>
 
-          <h2 className="text-balance text-4xl font-medium tracking-[-0.055em] text-white sm:text-5xl md:text-6xl">
+          <h2 className="text-balance text-4xl font-medium tracking-[-0.055em] text-white sm:text-5xl md:text-6xl" data-cursor="heading">
             One place to turn
             <br />
             ideas into momentum.
           </h2>
 
-          <p className="mx-auto mt-6 max-w-[590px] text-[15px] leading-7 text-white/40 sm:text-lg">
+          <p className="mx-auto mt-6 max-w-[590px] text-[15px] leading-7 text-white/40 sm:text-lg" data-cursor="description">
             FluxFlow brings your people, plans, context, and
             AI agents together so work can move without the
             usual friction.

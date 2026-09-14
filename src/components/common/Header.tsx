@@ -27,6 +27,7 @@ export default function Header() {
             <button
               key={item}
               type="button"
+              data-cursor="link"
               className="rounded-full px-3 py-1.5 transition-colors hover:bg-white/[0.06] hover:text-white"
             >
               {item}
@@ -37,12 +38,14 @@ export default function Header() {
               <span className="mx-3 h-5 w-px bg-white/[0.12]" aria-hidden="true" />
               <button
                 type="button"
+                 data-cursor="link"
                 className="rounded-full px-3 py-1.5 transition-colors hover:bg-white/[0.06] hover:text-white"
               >
                 Docs
               </button>
               <Link
                 to="/app/issues"
+                 data-cursor="link"
                 className="ml-1 rounded-full bg-[#eeeef5] px-3.5 py-2 font-medium text-[#1b1b2d] transition-colors hover:bg-white"
               >
                 Open app
@@ -53,12 +56,14 @@ export default function Header() {
               <span className="mx-3 h-5 w-px bg-white/[0.12]" aria-hidden="true" />
               <Link
                 to="/login"
+                 data-cursor="link"
                 className="rounded-full px-3 py-1.5 transition-colors hover:bg-white/[0.06] hover:text-white"
               >
                 Log in
               </Link>
               <Link
                 to="/signup"
+                data-cursor="cta"
                 className="rounded-full bg-[#eeeef5] px-3.5 py-1.5 font-medium text-[#1b1b2d] transition-colors hover:bg-white"
               >
                 Sign up

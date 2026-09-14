@@ -117,18 +117,19 @@ export default function HorizontalFlow() {
       ------------------------------------------------ */}
       <div className="mx-auto max-w-7xl px-6 pt-12 sm:px-10 sm:pt-24">
         <div className="max-w-2xl">
-          <p className="mb-5 text-sm font-medium uppercase tracking-[0.2em] text-cyan-300/70">
+          <p className="mb-5 text-sm font-medium uppercase tracking-[0.2em] text-cyan-300/70" data-cursor="link">
             One connected workflow
           </p>
 
           <h2
             id="flow-heading"
+            data-cursor="heading"
             className="text-4xl font-medium tracking-tight text-white sm:text-6xl"
           >
             From first thought to finished work.
           </h2>
 
-          <p className="mt-6 max-w-xl text-lg leading-8 text-white/55">
+          <p className="mt-6 max-w-xl text-lg leading-8 text-white/55" data-cursor="description">
             FluxFlow keeps the whole product system moving
             in one clear direction, from shaping the work to
             learning from it.

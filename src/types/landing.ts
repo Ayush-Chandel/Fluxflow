@@ -22,3 +22,15 @@ export type Testimonial = {
   description: string;
   tone: "cyan" | "violet";
 };
+
+export type CursorType =
+  | "default"
+  | "link"
+  | "cta" 
+  | "description"
+  | "heading";
+
+export type CursorState = {
+  type: CursorType;
+  label: string;
+};
