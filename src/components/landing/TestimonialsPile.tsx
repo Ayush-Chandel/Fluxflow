@@ -1,13 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  useScroll,
-  useSpring,
-  useTransform,
-} from "framer-motion";
+import { useScroll, useSpring, useTransform } from "framer-motion";
 import { easeOutCubic, TestimonialCard } from "./TestimonialsCard";
 import { testimonials } from "../common/constants/constants";
-
-
+import TextReveal from "../common/TextReveal";
 
 /* ======================================================
    RESPONSIVE HOOK
@@ -43,9 +38,7 @@ function useCanHover() {
   const [canHover, setCanHover] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia(
-      "(hover: hover) and (pointer: fine)"
-    );
+    const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
 
     const update = () => {
       setCanHover(mediaQuery.matches);
@@ -62,7 +55,6 @@ function useCanHover() {
 
   return canHover;
 }
-
 
 /* ======================================================
    MAIN COMPONENT
@@ -114,7 +106,7 @@ export default function TestimonialsPile() {
     [0, 0, 0.55, 1],
     {
       ease: easeOutCubic,
-    }
+    },
   );
 
   return (
@@ -135,21 +127,35 @@ export default function TestimonialsPile() {
         ================================================= */}
 
         <div className="mx-auto mb-16 max-w-[720px] text-center sm:mb-30">
-          <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.25em] text-cyan-300/70 sm:text-[11px]" data-cursor="link">
+          <p
+            className="mb-5 text-[10px] font-medium uppercase tracking-[0.25em] text-cyan-300/70 sm:text-[11px]"
+            data-cursor="link"
+          >
             Teams moving forward
           </p>
 
-          <h2 className="text-balance text-4xl font-medium tracking-[-0.055em] text-white sm:text-5xl md:text-6xl" data-cursor="heading">
-            One place to turn
-            <br />
-            ideas into momentum.
-          </h2>
-
-          <p className="mx-auto mt-6 max-w-[590px] text-[15px] leading-7 text-white/40 sm:text-lg" data-cursor="description">
-            FluxFlow brings your people, plans, context, and
-            AI agents together so work can move without the
-            usual friction.
-          </p>
+          <TextReveal
+            mode="viewport"
+            split="lines"
+            stagger={0.08}
+            duration={0.8}
+            lines={["One place to turn", "ideas into momentum."]}
+            className="text-balance text-4xl font-medium tracking-[-0.055em] text-white sm:text-5xl md:text-6xl"
+            data-cursor="heading"
+          />
+          <TextReveal
+            mode="viewport"
+            split="words"
+            duration={0.8}
+            stagger={0.01}
+            delay={0.5}
+            className=" text-[15px] leading-7 text-white/40 sm:text-lg"
+            data-cursor="description"
+            parentClassname="mx-auto mt-6 max-w-[590px] justify-center"
+          >
+            FluxFlow brings your people, plans, context, and AI agents together
+            so work can move without the usual friction.
+          </TextReveal>
         </div>
 
         {/* =================================================
@@ -190,11 +196,7 @@ export default function TestimonialsPile() {
               rounded-full
               bg-violet-500/[0.035]
               blur-[120px]
-              ${
-                isMobile
-                  ? "h-[600px] w-[340px]"
-                  : "h-[480px] w-[760px]"
-              }
+              ${isMobile ? "h-[600px] w-[340px]" : "h-[480px] w-[760px]"}
             `}
           />
 

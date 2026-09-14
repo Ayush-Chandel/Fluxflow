@@ -1,5 +1,6 @@
 import type { flowCards } from "@/components/common/constants/constants";
 import type { useScroll } from "motion/react";
+import type { ReactNode } from "react";
 
 export type FlowCardProps = {
   card: (typeof flowCards)[number];
@@ -34,3 +35,29 @@ export type CursorState = {
   type: CursorType;
   label: string;
 };
+
+export type RevealMode = "load" | "viewport";
+export type SplitMode = "none" | "words" | "lines";
+
+export interface TextRevealProps {
+  children?: ReactNode;
+
+  mode?: RevealMode;
+  split?: SplitMode;
+  lines?: ReactNode[];
+
+  delay?: number;
+  stagger?: number;
+  duration?: number;
+
+  y?: number | string;
+  opacity?: boolean;
+
+  amount?: number;
+  once?: boolean;
+
+  className?: string;
+  dataCursor?: CursorType;
+  id?:string;
+  parentClassname?:string
+}

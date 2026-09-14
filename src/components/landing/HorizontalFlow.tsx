@@ -8,6 +8,7 @@ import {
 import { useLayoutEffect, useRef, useState } from "react";
 import { flowCards } from "../common/constants/constants";
 import FlowCard from "./FlowCard";
+import TextReveal from "../common/TextReveal";
 
 
 export default function HorizontalFlow() {
@@ -121,19 +122,30 @@ export default function HorizontalFlow() {
             One connected workflow
           </p>
 
-          <h2
-            id="flow-heading"
-            data-cursor="heading"
-            className="text-4xl font-medium tracking-tight text-white sm:text-6xl"
-          >
-            From first thought to finished work.
-          </h2>
-
-          <p className="mt-6 max-w-xl text-lg leading-8 text-white/55" data-cursor="description">
-            FluxFlow keeps the whole product system moving
-            in one clear direction, from shaping the work to
-            learning from it.
-          </p>
+                      <TextReveal
+                        mode="viewport"
+                        split='words'
+                        stagger={0.045}
+                        duration={0.8}
+                        id="flow-heading"
+                        data-cursor="heading"
+                        className="text-4xl font-medium tracking-tight text-white sm:text-6xl"
+                        >
+                          From first thought to finished work.
+                        </TextReveal>
+                          <TextReveal
+                              mode="viewport"
+                              split='words'
+                              duration={0.8}
+                              stagger={0.01}
+                              delay={0.2}
+                              className=" text-lg leading-8 text-white/55" data-cursor="description"
+                              parentClassname="mt-6 max-w-xl"
+                              >
+                                                        FluxFlow keeps the whole product system moving
+                                  in one clear direction, from shaping the work to
+                                  learning from it.
+                          </TextReveal>
         </div>
       </div>
 

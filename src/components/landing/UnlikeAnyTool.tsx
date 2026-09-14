@@ -1,6 +1,7 @@
-import { Button, Highlight } from '../common/Button'
-import { CommandMenu } from '../common/CommandMenu';
-import { Container } from '../common/Container';
+import { Button, Highlight } from "../common/Button";
+import { CommandMenu } from "../common/CommandMenu";
+import { Container } from "../common/Container";
+import TextReveal from "../common/TextReveal";
 import { Zap } from "./illustrations/Zap";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import glosslogo from "@/assets/finallogo.svg";
@@ -9,14 +10,28 @@ export const UnlikeAnyTool = () => (
   <div className="text-white">
     <Container>
       <div className="text-center">
-        <h2 className="mb-4 text-4xl md:mb-7 md:text-6xl" data-cursor="heading">
-          Unlike any tool
-          <br className="hidden md:inline-block" /> you've used before
-        </h2>
-        <p className="mx-auto mb-12 max-w-[680px] text-md text-primary-text md:mb-7 md:text-lg" data-cursor="description">
+        <TextReveal
+          mode="viewport"
+          split="lines"
+          stagger={0.08}
+          duration={0.8}
+          lines={["Unlike any tool", "you've used before"]}
+          className="mb-4 md:mb-7 text-4xl md:text-6xl"
+          data-cursor="heading"
+        />
+        <TextReveal
+          mode="viewport"
+          split="words"
+          duration={0.8}
+          stagger={0.01}
+          delay={0.2}
+          className="text-md text-primary-text  md:text-lg text-center"
+          data-cursor="description"
+          parentClassname="justify-center mb-12 max-w-[680px] md:mb-7"
+        >
           Designed to the last pixel and engineered with unforgiving precision,
           Fluxflow combines UI elegance with world-class performance.
-        </p>
+        </TextReveal>
       </div>
     </Container>
     <div className="h-[480px] overflow-hidden md:h-auto md:overflow-auto">
@@ -42,10 +57,10 @@ export const UnlikeAnyTool = () => (
           <div className="pointer-events-none absolute left-[20px] top-[30px] w-[65%]">
             {/* <LogoLightIllustration /> */}
             <img
-            src={glosslogo}
-            alt="Gloss logo"
-            className="w-full object-contain [mask-image:linear-gradient(to_bottom,black,rgba(0,0,0,0.07)_60%,transparent_80%)] [-webkit-mask-image:linear-gradient(to_bottom,black,rgba(0,0,0,0.07)_60%,transparent_80%)]"
-          />
+              src={glosslogo}
+              alt="Gloss logo"
+              className="w-full object-contain [mask-image:linear-gradient(to_bottom,black,rgba(0,0,0,0.07)_60%,transparent_80%)] [-webkit-mask-image:linear-gradient(to_bottom,black,rgba(0,0,0,0.07)_60%,transparent_80%)]"
+            />
           </div>
           <p className="mb-4 text-3xl">Designed for modern software teams</p>
           <p className="text-md text-primary-text">
