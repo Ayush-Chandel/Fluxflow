@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import logo from "@/assets/finallogo.svg";
 import { useAuthStore } from "@/store/authStore";
+import FlowingCTA from "./FlowingCTA";
 
 const navigationItems = ["Product", "Resources", "Customers", "Pricing", "Now", 'Contact'];
 
@@ -61,13 +62,19 @@ export default function Header() {
               >
                 Log in
               </Link>
-              <Link
+              {/* <Link
                 to="/signup"
                 data-cursor="cta"
                 className="rounded-full bg-[#eeeef5] px-3.5 py-1.5 font-medium text-[#1b1b2d] transition-colors hover:bg-white"
               >
                 Sign up
-              </Link>
+              </Link> */}
+              <FlowingCTA
+                to="/signup"
+                className="rounded-full bg-[#eeeef5] px-3 py-1.5 font-medium text-[#1b1b2d] transition-colors hover:bg-white"
+              >
+                Sign up
+              </FlowingCTA>
             </>
           )}
         </div>

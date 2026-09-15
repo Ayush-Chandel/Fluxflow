@@ -1,0 +1,144 @@
+import { motion, useReducedMotion } from "framer-motion";
+import { Link, type LinkProps } from "react-router-dom";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+type FlowingCTAProps = LinkProps & {
+  children: React.ReactNode;
+};
+
+export default function FlowingCTA({
+  children,
+  className = "",
+  ...props
+}: FlowingCTAProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const [hovered, setHovered] = useState(false);
+
+  const duration = shouldReduceMotion ? 0 : 0.40;
+  const ease = [0.76, 0, 0.24, 1] as const;
+
+  return (
+    <Link
+      {...props}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={'p-[1px] bg-white rounded-full'}
+    >
+      <div className={cn('relative inline-flex  h-12 overflow-hidden ',className)}>
+        {/* =====================================================
+          SIZER
+
+          Keeps the outer CTA at its original dimensions.
+      ===================================================== */}
+      <span
+        className="
+          invisible
+          flex
+          h-12
+          px-3
+          items-center
+          justify-center
+          text-[15px]
+          font-medium
+        "
+      >
+        {children}
+      </span>
+
+      {/* =====================================================
+          ORIGINAL WHITE CTA
+
+          Moves upward when hovered.
+      ===================================================== */}
+      <motion.span
+        animate={{
+          y: hovered ? "-100%" : "0%",
+        }}
+        transition={{
+          duration,
+          ease,
+        }}
+        className="
+          absolute
+          inset-0
+          z-10
+          flex
+          h-12
+          items-center
+          justify-center
+          rounded-full
+          bg-white
+          px-3
+          text-[15px]
+          font-medium
+          text-black
+        "
+      >
+        {children}
+      </motion.span>
+
+      {/* =====================================================
+          RISING BLACK CIRCLE
+
+          This is the actual flowing fill.
+
+          It starts underneath the CTA and rises through
+          the center, creating the curved arc at the top.
+      ===================================================== */}
+      <motion.span
+        animate={{
+          y: hovered ? "22%" : "105%",
+        }}
+        transition={{
+          duration,
+          ease,
+        }}
+        className="
+          pointer-events-none
+          absolute
+          bottom-0
+          left-1/2
+          z-20
+          aspect-square
+          w-[115%]
+          -translate-x-1/2
+          rounded-[52px]
+          bg-[#010213]
+        "
+      />
+
+      {/* =====================================================
+          HOVER TEXT
+
+          Comes up with the black fill.
+      ===================================================== */}
+      <motion.span
+        animate={{
+          y: hovered ? "0%" : "100%",
+        }}
+        transition={{
+          duration,
+          ease,
+        }}
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          z-30
+          flex
+          h-12
+          items-center
+          justify-center
+          px-3
+          text-[15px]
+          font-medium
+          text-white
+        "
+      >
+        {children}
+      </motion.span>
+      </div>
+    </Link>
+  );
+}
