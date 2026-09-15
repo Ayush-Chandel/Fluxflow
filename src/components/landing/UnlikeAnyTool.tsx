@@ -17,7 +17,7 @@ export const UnlikeAnyTool = () => (
           duration={0.8}
           lines={["Unlike any tool", "you've used before"]}
           className="mb-4 md:mb-7 text-4xl md:text-6xl"
-          data-cursor="heading"
+          dataCursor="heading"
         />
         <TextReveal
           mode="viewport"
@@ -26,7 +26,7 @@ export const UnlikeAnyTool = () => (
           stagger={0.01}
           delay={0.2}
           className="text-md text-primary-text  md:text-lg text-center"
-          data-cursor="description"
+          dataCursor="description"
           parentClassname="justify-center mb-12 max-w-[680px] md:mb-7"
         >
           Designed to the last pixel and engineered with unforgiving precision,

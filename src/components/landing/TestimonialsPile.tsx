@@ -141,7 +141,7 @@ export default function TestimonialsPile() {
             duration={0.8}
             lines={["One place to turn", "ideas into momentum."]}
             className="text-balance text-4xl font-medium tracking-[-0.055em] text-white sm:text-5xl md:text-6xl"
-            data-cursor="heading"
+            dataCursor="heading"
           />
           <TextReveal
             mode="viewport"
@@ -150,7 +150,7 @@ export default function TestimonialsPile() {
             stagger={0.01}
             delay={0.5}
             className=" text-[15px] leading-7 text-white/40 sm:text-lg"
-            data-cursor="description"
+            dataCursor="description"
             parentClassname="mx-auto mt-6 max-w-[590px] justify-center"
           >
             FluxFlow brings your people, plans, context, and AI agents together

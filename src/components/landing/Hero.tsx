@@ -25,7 +25,7 @@ function Hero({}: Props) {
                     duration={0.8}
                     stagger={0.01}
                     delay={0.2}
-                    className="leading-7 text-slate-300 sm:text-xl sm:leading-8" data-cursor='description'
+                    className="leading-7 text-slate-300 sm:text-xl sm:leading-8" dataCursor='description'
                     parentClassname={ 'mx-auto mt-8 max-w-2xl text-lg'}
                     >
                                   FluxFlow gives people and AI agents one clear place to plan work,

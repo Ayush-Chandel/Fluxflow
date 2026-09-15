@@ -128,7 +128,7 @@ export default function HorizontalFlow() {
                         stagger={0.045}
                         duration={0.8}
                         id="flow-heading"
-                        data-cursor="heading"
+                        dataCursor="heading"
                         className="text-4xl font-medium tracking-tight text-white sm:text-6xl"
                         >
                           From first thought to finished work.
@@ -139,7 +139,7 @@ export default function HorizontalFlow() {
                               duration={0.8}
                               stagger={0.01}
                               delay={0.2}
-                              className=" text-lg leading-8 text-white/55" data-cursor="description"
+                              className=" text-lg leading-8 text-white/55" dataCursor="description"
                               parentClassname="mt-6 max-w-xl"
                               >
                                                         FluxFlow keeps the whole product system moving

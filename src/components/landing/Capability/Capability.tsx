@@ -14,6 +14,7 @@ function Capability() {
                                           "Everything you need",
                                           "to move work forward"
                                         ]}
+                                        dataCursor="heading"
                                         className="mb-4 text-center text-4xl text-white md:mb-7 md:text-6xl" data-cursor="heading"
                                         parentClassname="mb-4 text-center"
                                         />
