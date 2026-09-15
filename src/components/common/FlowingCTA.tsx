@@ -52,6 +52,9 @@ export default function FlowingCTA({
           Moves upward when hovered.
       ===================================================== */}
       <motion.span
+        initial={{
+          y:'0%'
+        }}
         animate={{
           y: hovered ? "-100%" : "0%",
         }}
@@ -87,6 +90,9 @@ export default function FlowingCTA({
           the center, creating the curved arc at the top.
       ===================================================== */}
       <motion.span
+        initial={{
+            y:'105%'
+          }}
         animate={{
           y: hovered ? "22%" : "105%",
         }}
@@ -114,6 +120,9 @@ export default function FlowingCTA({
           Comes up with the black fill.
       ===================================================== */}
       <motion.span
+        initial={{
+          y:'100%'
+        }}
         animate={{
           y: hovered ? "0%" : "100%",
         }}

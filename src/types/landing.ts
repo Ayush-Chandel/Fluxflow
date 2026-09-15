@@ -38,6 +38,7 @@ export type CursorState = {
 
 export type RevealMode = "load" | "viewport";
 export type SplitMode = "none" | "words" | "lines";
+export type RevealAnimation = "transform" | "clip";
 
 export interface TextRevealProps {
   children?: ReactNode;
@@ -60,4 +61,5 @@ export interface TextRevealProps {
   dataCursor?: CursorType;
   id?:string;
   parentClassname?:string
+  animation?: RevealAnimation;
 }

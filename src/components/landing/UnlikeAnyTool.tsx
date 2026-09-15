@@ -25,9 +25,9 @@ export const UnlikeAnyTool = () => (
           duration={0.8}
           stagger={0.01}
           delay={0.2}
-          className="text-md text-primary-text  md:text-lg text-center"
+          className=""
           dataCursor="description"
-          parentClassname="justify-center mb-12 max-w-[680px] md:mb-7"
+          parentClassname="justify-center mb-12 max-w-[680px] md:mb-7 text-md text-primary-text  md:text-lg"
         >
           Designed to the last pixel and engineered with unforgiving precision,
           Fluxflow combines UI elegance with world-class performance.

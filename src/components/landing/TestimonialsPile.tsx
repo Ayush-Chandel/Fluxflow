@@ -149,9 +149,9 @@ export default function TestimonialsPile() {
             duration={0.8}
             stagger={0.01}
             delay={0.5}
-            className=" text-[15px] leading-7 text-white/40 sm:text-lg"
+            className=""
             dataCursor="description"
-            parentClassname="mx-auto mt-6 max-w-[590px] justify-center"
+            parentClassname="mx-auto mt-6 max-w-[590px] justify-center  text-[15px] leading-7 text-white/40 sm:text-lg"
           >
             FluxFlow brings your people, plans, context, and AI agents together
             so work can move without the usual friction.
