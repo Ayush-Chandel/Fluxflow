@@ -12,8 +12,8 @@ const footerLinks = [
 ];
 
 const socialLinks = [
-	{ label: "GitHub", href: "#", Icon: GithubIcon },
-	{ label: "LinkedIn", href: "#", Icon: LinkedinIcon },
+	{ label: "GitHub", href: "https://github.com/Ayush-Chandel", Icon: GithubIcon },
+	{ label: "LinkedIn", href: "https://www.linkedin.com/in/ayushchandel10", Icon: LinkedinIcon },
 	{ label: "YouTube", href: "#", Icon: YoutubeIcon },
 ];
 

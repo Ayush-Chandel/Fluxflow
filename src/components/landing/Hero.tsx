@@ -6,7 +6,7 @@ type Props = {}
 
 function Hero({}: Props) {
   return (
-      <section className='max-w-[1200px]'>
+      <section className='max-w-[1200px] mx-auto'>
         <StyleReveal/>
         <div className="mx-auto max-w-3xl px-6 pb-12 text-center">
             <TextReveal
