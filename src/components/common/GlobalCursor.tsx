@@ -147,8 +147,6 @@ export default function GlobalCursor() {
    * Animate size whenever the cursor state changes.
    */
   useEffect(() => {
-    console.log(cursorState.type);
-    
     targetSize.set(
       CURSOR_SIZES[cursorState.type]
     );

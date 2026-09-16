@@ -23,9 +23,21 @@ export default function FlowingCTA({
       {...props}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={'p-[1px] bg-white rounded-full'}
+      /*
+        inline-flex (not the <a> default of `inline`) so the white ring is sized
+        by the 48px pill inside it, whatever the parent's display is. As an
+        inline element this padding/background collapses to line-height and the
+        ring leaks out as arcs on either side of the button.
+      */
+      /*
+        The ring is a real 1px border, not a 1px padding gap. Padding leaves the
+        ring as the sliver between two independently pixel-snapped rounded
+        boxes, so on fractional DPI (125% Windows scaling) it rounds to 1px on
+        one edge and 2px on the other. A border paints as a single stroke.
+      */
+      className={'inline-flex w-fit shrink-0 items-center align-middle border border-white bg-white rounded-full'}
     >
-      <div className={cn('relative inline-flex  h-12 overflow-hidden ',className)}>
+      <div className={cn('relative inline-flex h-12 overflow-hidden rounded-full',className)}>
         {/* =====================================================
           SIZER
 

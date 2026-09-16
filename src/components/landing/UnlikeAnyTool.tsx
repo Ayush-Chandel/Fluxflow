@@ -7,7 +7,7 @@ import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import glosslogo from "@/assets/finallogo.svg";
 
 export const UnlikeAnyTool = () => (
-  <div className="text-white">
+  <div className="text-white max-w-[1450px] mx-auto">
     <Container>
       <div className="text-center">
         <TextReveal

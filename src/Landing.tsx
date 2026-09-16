@@ -1,5 +1,6 @@
 import GlobalCursor from "./components/common/GlobalCursor";
 import Header from "./components/common/Header";
+import Footer from "./components/common/Footer";
 import Capability from "./components/landing/Capability/Capability";
 import Hero from "./components/landing/Hero";
 import HighlightTimeline from "./components/landing/HighlightTimeline";
@@ -18,9 +19,7 @@ export default function Landing() {
       <HighlightTimeline />
       <Capability />
       <TestimonialsPile />
-      <div className="h-[1200px]">
-        here
-      </div>
+      <Footer />
     </div>
   );
 }

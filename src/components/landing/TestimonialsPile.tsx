@@ -116,6 +116,8 @@ export default function TestimonialsPile() {
         relative
         overflow-hidden
         bg-[#010213]
+        max-w-[1200px]
+        mx-auto
         py-16
         sm:py-36
         ${isMobile ? "min-h-[1750px]" : "min-h-[900px]"}
