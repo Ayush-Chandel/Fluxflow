@@ -119,6 +119,12 @@ export const CHIP_STYLE = cn(
 export const CYCLE_RANK = { active: 0, upcoming: 1, completed: 2 } as const
 
 
+// The landing page's own background, as a utility class. Loaders that sit in
+// front of the landing route wear it so the handoff is one continuous surface
+// rather than a flash of the app theme.
+export const LANDING_BG = 'bg-[#010213]'
+
+
 export const flowCards = [
   {
     number: "01",

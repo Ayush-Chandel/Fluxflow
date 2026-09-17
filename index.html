@@ -9,6 +9,13 @@
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const theme = valid.includes(stored) ? stored : (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
+
+      // The landing page paints its own dark background, not the theme's, so
+      // the boot loader has to know which of the two is about to mount — read
+      // off the path, since nothing else exists this early.
+      if (location.pathname === '/') {
+        document.documentElement.setAttribute('data-boot', 'landing');
+      }
     })();
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -20,6 +27,8 @@
       #ff-boot { position: fixed; inset: 0; display: grid; place-items: center;
                  background: oklch(0.10 0 264); }
       [data-theme="light"] #ff-boot { background: oklch(0.97 0 264); }
+      /* Landing only, and last: it ties with the light rule on specificity. */
+      [data-boot="landing"] #ff-boot { background: #010213; }
 
       /* Nothing shows for the first 200ms, so a warm boot never flashes. */
       .ff-mark { position: relative; width: 133px; height: 111px;

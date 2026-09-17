@@ -1,6 +1,7 @@
 // src/routes/guards.tsx
 import { Navigate, Outlet, useNavigation } from 'react-router-dom'
 import PageLoader from '@/components/common/PageLoader'
+import { LANDING_BG } from '@/components/common/constants/constants'
 import { useAuthStore } from '@/store/authStore'
 
 // The landing page is still a placeholder, so it only shows in local dev.
@@ -12,7 +13,11 @@ const showLanding =
 export function PublicRoute() {
   const { user, loading } = useAuthStore()
 
-  if (loading) return <PageLoader fullscreen /> // avoids a header-state flash during auth boot
+  // Landing background, but only when the landing is what this guard will
+  // actually render: with showLanding off, / lands on themed pages instead and
+  // the loader should stay themed too.
+  if (loading)
+    return <PageLoader fullscreen className={showLanding ? LANDING_BG : undefined} /> // avoids a header-state flash during auth boot
   if (showLanding) return <Outlet />
   return <Navigate to={user ? '/app/issues' : '/login'} replace />
 }
