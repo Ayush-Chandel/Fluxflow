@@ -5,11 +5,18 @@ import { cn } from "@/lib/utils";
 
 type FlowingCTAProps = LinkProps & {
   children: React.ReactNode;
+  /*
+    Corner radius, as a Tailwind class. It has to be threaded through every
+    layer — the white ring, the clipping box and the resting white face all
+    round independently — so it is one prop rather than three className slots.
+  */
+  radius?: string;
 };
 
 export default function FlowingCTA({
   children,
   className = "",
+  radius = "rounded-full",
   ...props
 }: FlowingCTAProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -35,9 +42,9 @@ export default function FlowingCTA({
         boxes, so on fractional DPI (125% Windows scaling) it rounds to 1px on
         one edge and 2px on the other. A border paints as a single stroke.
       */
-      className={'inline-flex w-fit shrink-0 items-center align-middle border border-white bg-white rounded-full'}
+      className={cn('inline-flex w-fit shrink-0 items-center align-middle border border-white bg-white', radius)}
     >
-      <div className={cn('relative inline-flex h-12 overflow-hidden rounded-full',className)}>
+      <div className={cn('relative inline-flex h-12 overflow-hidden', radius, className)}>
         {/* =====================================================
           SIZER
 
@@ -74,21 +81,21 @@ export default function FlowingCTA({
           duration,
           ease,
         }}
-        className="
-          absolute
+        className={cn(
+          `absolute
           inset-0
           z-10
           flex
           h-12
           items-center
           justify-center
-          rounded-full
           bg-white
           px-3
           text-[15px]
           font-medium
-          text-black
-        "
+          text-black`,
+          radius
+        )}
       >
         {children}
       </motion.span>

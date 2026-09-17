@@ -142,7 +142,7 @@ export default function HorizontalFlow() {
                               className="" dataCursor="description"
                               parentClassname="mt-6 max-w-xl text-lg leading-8 text-white/55"
                               >
-                                                        FluxFlow keeps the whole product system moving
+                                                        Fluxflow keeps the whole product system moving
                                   in one clear direction, from shaping the work to
                                   learning from it.
                           </TextReveal>

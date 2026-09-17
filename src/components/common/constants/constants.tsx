@@ -168,7 +168,7 @@ export  const capabilities: Capability[] = [
     number: "01",
     title: "Planning",
     description:
-      "Turn ideas into structured plans. FluxFlow helps you capture goals, break them down into actionable steps, and keep everyone aligned from start to finish.",
+      "Turn ideas into structured plans. Fluxflow helps you capture goals, break them down into actionable steps, and keep everyone aligned from start to finish.",
     visual: "planning",
   },
   {
@@ -190,14 +190,14 @@ export  const capabilities: Capability[] = [
 export const testimonials: Testimonial[] = [
   {
     quote:
-      "FluxFlow gave our team one clear place to turn scattered ideas into structured work. We spend less time coordinating and more time actually shipping.",
+      "Fluxflow gave our team one clear place to turn scattered ideas into structured work. We spend less time coordinating and more time actually shipping.",
     company: "NEXORA",
     description: "Product & Growth",
     tone: "cyan",
   },
   {
     quote:
-      "The biggest difference is how quickly we can move from a rough thought to an actionable plan. FluxFlow makes the entire process feel connected.",
+      "The biggest difference is how quickly we can move from a rough thought to an actionable plan. Fluxflow makes the entire process feel connected.",
     company: "ORBIT",
     description: "Technology Platform",
     tone: "violet",
@@ -211,14 +211,14 @@ export const testimonials: Testimonial[] = [
   },
   {
     quote:
-      "FluxFlow removed so much of the back-and-forth from our workflow. Everyone knows what needs to happen next, and AI can actually help us get there.",
+      "Fluxflow removed so much of the back-and-forth from our workflow. Everyone knows what needs to happen next, and AI can actually help us get there.",
     company: "LUMA",
     description: "Design Studio",
     tone: "violet",
   },
   {
     quote:
-      "From the first idea to the final deliverable, FluxFlow keeps everything connected. It feels less like another productivity tool and more like an operating layer.",
+      "From the first idea to the final deliverable, Fluxflow keeps everything connected. It feels less like another productivity tool and more like an operating layer.",
     company: "NORTHSTAR",
     description: "Digital Product Team",
     tone: "cyan",

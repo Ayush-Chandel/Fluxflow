@@ -155,7 +155,7 @@ export default function TestimonialsPile() {
             dataCursor="description"
             parentClassname="mx-auto mt-6 max-w-[590px] justify-center  text-[15px] leading-7 text-white/40 sm:text-lg"
           >
-            FluxFlow brings your people, plans, context, and AI agents together
+            Fluxflow brings your people, plans, context, and AI agents together
             so work can move without the usual friction.
           </TextReveal>
         </div>
