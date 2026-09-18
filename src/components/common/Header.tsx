@@ -39,7 +39,7 @@ export default function Header() {
               <HoverTextLink
                 to={'#'}
                 text={'Docs'}
-                className="text-sm text-white/70 transition-colors duration-300"
+                className="text-sm px-3 text-white/70 transition-colors duration-300"
                 dataCursor={'link'}
               />
               <FlowingCTA
