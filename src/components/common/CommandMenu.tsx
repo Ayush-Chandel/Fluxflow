@@ -106,7 +106,7 @@ export const CommandMenu = () => {
     <div className={cn(opened && "opened")} ref={commandMenuRef}>
       <motion.div
         className={cn(
-            "absolute left-[calc(50%+75px)] flex w-[90vw] max-w-[640px] -translate-x-1/2 flex-col items-start rounded-xl border border-transparent-white bg-transparent-white shadow-[rgb(0_0_0_/_35%)_0px_7px_32px] transition-[transform,opacity] md:left-1/2",
+            "absolute left-1/2 flex w-[calc(100%-2rem)] max-w-[640px] -translate-x-1/2 flex-col items-start rounded-xl border border-transparent-white bg-transparent-white shadow-[rgb(0_0_0_/_35%)_0px_7px_32px] transition-[translate,opacity] md:w-[90vw]",
             opened && "translate-y-[128px] opacity-100 md:translate-y-[24px]",
             !opened && "translate-y-[128px] opacity-60"
         )}
@@ -124,7 +124,7 @@ export const CommandMenu = () => {
         </span>
         <input
           placeholder="Type a command or search..."
-          className="w-full bg-transparent p-5 text-lg outline-none"
+          className="w-full bg-transparent p-4 text-base outline-none md:p-5 md:text-lg"
           value={searchValue}
           onChange={(ev) => setSearchValue(ev.target.value)}
         />
@@ -146,7 +146,7 @@ export const CommandMenu = () => {
                   ev.stopPropagation();
                 }
               }}
-              className="command-menu-button flex h-[46px] w-full items-center gap-3 px-5 first:bg-white/[0.15] hover:bg-white/[0.05]"
+              className="command-menu-button flex h-[42px] w-full items-center gap-3 px-4 first:bg-white/[0.15] hover:bg-white/[0.05] md:h-[46px] md:px-5"
             >
               <Icon />
               {label}

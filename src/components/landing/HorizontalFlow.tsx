@@ -195,7 +195,7 @@ export default function HorizontalFlow() {
       {/* ------------------------------------------------
           MOBILE
       ------------------------------------------------ */}
-      <div className="space-y-4 px-6 pb-28 lg:hidden sm:px-10">
+      <div className="space-y-4 px-6 pb-14 lg:hidden sm:px-10 sm:pb-28">
         {flowCards.map((card) => (
           <article
             key={card.title}

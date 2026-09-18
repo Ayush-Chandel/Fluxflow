@@ -11,7 +11,7 @@ function Hero({}: Props) {
   return (
       <section className='max-w-[1200px] mx-auto'>
         <StyleReveal/>
-        <div className="mx-auto max-w-3xl px-6 pb-12 text-center">
+        <div className="mx-auto max-w-3xl px-6 pb-8 text-center sm:pb-12">
             <TextReveal
               mode="viewport"
               duration={0.8}

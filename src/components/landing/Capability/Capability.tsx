@@ -4,7 +4,7 @@ import CapabilityPanels from "./CapabilityPanels"
 
 function Capability() {
   return (
-    <div className="mx-auto max-w-[1120px]   pt-20 lg:pt-50">
+    <div className="mx-auto max-w-[1120px]   pt-10 sm:pt-20 lg:pt-50">
                 <TextReveal
                                         mode="viewport"
                                         split='lines'

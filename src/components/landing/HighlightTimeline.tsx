@@ -153,9 +153,11 @@ function HighlightTimeline() {
       ref={sectionRef}
       className="
         relative
-        h-[380vh]
+        h-[260vh]
         bg-[#010213]
-        pt-30
+        pt-12
+        sm:h-[380vh]
+        sm:pt-30
       "
     >
       {/* ============================================================

@@ -78,7 +78,7 @@ export const KeyboardShortcuts = () => {
     <>
       <div
         ref={illustrationWrapperRef}
-        className="mask-keyboard absolute top-0 -left-12 h-full max-h-[300px] w-[200%] md:relative md:left-auto md:w-full"
+        className="mask-keyboard relative mb-auto aspect-[709/227] w-full md:mb-0 md:aspect-auto md:h-full md:max-h-[300px]"
       >
         <KeyboardIllustration />
       </div>

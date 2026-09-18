@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useScroll, useSpring, useTransform } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { easeOutCubic, TestimonialCard } from "./TestimonialsCard";
 import { testimonials } from "../common/constants/constants";
 import TextReveal from "../common/TextReveal";
@@ -65,8 +65,23 @@ export default function TestimonialsPile() {
 
   const [hovered, setHovered] = useState(false);
 
+  /*
+   * Touch devices have no hover, so the pile is spread by tapping it
+   * instead. Desktop keeps the hover behaviour untouched.
+   */
+  const [tapped, setTapped] = useState(false);
+
   const isMobile = useIsMobile();
   const canHover = useCanHover();
+
+  const spread = canHover ? hovered : tapped;
+
+  /*
+   * The pile only needs room for the stacked cards. The full stack
+   * height is reserved once the cards actually spread out, so there is
+   * no empty space below the pile while it is collapsed.
+   */
+  const stageHeight = isMobile ? (tapped ? 1790 : 500) : 680;
 
   /* ----------------------------------------------------
      SCROLL TRACKING
@@ -118,9 +133,9 @@ export default function TestimonialsPile() {
         bg-[#010213]
         max-w-[1200px]
         mx-auto
-        py-16
+        py-10
         sm:py-36
-        ${isMobile ? "min-h-[1750px]" : "min-h-[900px]"}
+        ${isMobile ? "" : "min-h-[900px]"}
       `}
     >
       <div className="mx-auto max-w-[1200px] px-6">
@@ -164,14 +179,11 @@ export default function TestimonialsPile() {
             TESTIMONIAL STAGE
         ================================================= */}
 
-        <div
-          className={`
-            relative
-            mx-auto
-            w-full
-            max-w-[1050px]
-            ${isMobile ? "h-[1760px]" : "h-[680px]"}
-          `}
+        <motion.div
+          initial={false}
+          animate={{ height: stageHeight }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mx-auto w-full max-w-[1050px]"
           onMouseEnter={() => {
             if (canHover) {
               setHovered(true);
@@ -180,6 +192,11 @@ export default function TestimonialsPile() {
           onMouseLeave={() => {
             if (canHover) {
               setHovered(false);
+            }
+          }}
+          onClick={() => {
+            if (!canHover) {
+              setTapped((current) => !current);
             }
           }}
         >
@@ -222,12 +239,26 @@ export default function TestimonialsPile() {
                 testimonial={testimonial}
                 index={index}
                 progress={mappedProgress}
-                hovered={canHover ? hovered : false}
+                hovered={spread}
                 isMobile={isMobile}
               />
             ))}
           </div>
-        </div>
+        </motion.div>
+
+        {/* =================================================
+            MOBILE AFFORDANCE
+        ================================================= */}
+
+        {isMobile && (
+          <button
+            type="button"
+            onClick={() => setTapped((current) => !current)}
+            className="mx-auto mt-8 block text-[10px] font-medium uppercase tracking-[0.22em] text-white/35"
+          >
+            {tapped ? "Collapse" : "Tap to read all"}
+          </button>
+        )}
       </div>
     </section>
   );

@@ -35,8 +35,11 @@ function HighlightTimelineBg({}: Props) {
             relative
             z-[1]
             block
-            h-auto
+            h-[70vh]
             w-full
+            object-cover
+            object-top
+            sm:h-auto
           "
         />
 
