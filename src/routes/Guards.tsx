@@ -3,32 +3,28 @@ import { useEffect } from 'react'
 import { Navigate, Outlet, useNavigation } from 'react-router-dom'
 import PageLoader from '@/components/common/PageLoader'
 import { LANDING_BG } from '@/components/common/constants/constants'
-import { SHOW_LANDING } from '@/lib/landing'
 import { ensureAuthBootstrap, useAuthStore } from '@/store/authStore'
 
 // Any guard that gates on `loading` has to make sure the Firebase listener is
 // actually running, otherwise `loading` never flips and the loader sticks.
-// main.tsx starts it eagerly for non-landing entries; this covers the case
-// where the visitor arrived on the landing page and then navigated in.
+// main.tsx already starts it on boot; this is the belt-and-braces call, and it
+// is idempotent.
 function useAuthBootstrap() {
   useEffect(() => {
     void ensureAuthBootstrap()
   }, [])
 }
 
-// Wraps / — in prod, sends visitors straight to the app instead of the placeholder
+// Wraps / — the landing page, public in every environment.
 export function PublicRoute() {
-  const { user, loading } = useAuthStore()
+  const loading = useAuthStore((state) => state.loading)
   useAuthBootstrap()
 
   // The landing waits for auth before painting. It reads no auth state itself,
   // but Header does: gating here is what lets it render the right CTA on the
-  // first frame instead of guessing and correcting. Landing background, but
-  // only when the landing is what this guard will actually render.
-  if (loading)
-    return <PageLoader fullscreen className={SHOW_LANDING ? LANDING_BG : undefined} />
-  if (SHOW_LANDING) return <Outlet />
-  return <Navigate to={user ? '/app/issues' : '/login'} replace />
+  // first frame instead of guessing and correcting.
+  if (loading) return <PageLoader fullscreen className={LANDING_BG} />
+  return <Outlet />
 }
 
 // Wraps /signup and /login — boots logged-in users away
