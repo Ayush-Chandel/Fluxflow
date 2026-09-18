@@ -29,7 +29,7 @@ function HighlightTimeline() {
 
   const darkOverlayOpacity = useTransform(
     scrollYProgress,
-    [0, 0.68, 0.82, 1],
+    [0, 0.78, 0.89, 1],
     [0.42, 0.42, 0.28, 0.18]
   );
 
@@ -38,7 +38,7 @@ function HighlightTimeline() {
    */
   const washedOverlayOpacity = useTransform(
     scrollYProgress,
-    [0.68, 0.82, 1],
+    [0.78, 0.89, 1],
     [0, 0.04, 0.12]
   );
 
@@ -48,7 +48,7 @@ function HighlightTimeline() {
    */
   const finalGlowOpacity = useTransform(
     scrollYProgress,
-    [0.72, 0.88, 1],
+    [0.83, 0.93, 1],
     [0, 0.06, 0.1]
   );
 
@@ -60,19 +60,19 @@ function HighlightTimeline() {
 
   const statement1Y = useTransform(
     scrollYProgress,
-    [0, 0.08, 0.19, 0.28],
+    [0, 0.075, 0.24, 0.32],
     [110, 0, -24, -70]
   );
 
   const statement1Opacity = useTransform(
     scrollYProgress,
-    [0.015, 0.07, 0.19, 0.255, 0.31],
+    [0.015, 0.07, 0.24, 0.29, 0.335],
     [0, 1, 1, 0.25, 0]
   );
 
   const statement1Scale = useTransform(
     scrollYProgress,
-    [0.04, 0.1, 0.22, 0.29],
+    [0.04, 0.095, 0.26, 0.325],
     [0.975, 1, 1, 0.985]
   );
 
@@ -84,19 +84,19 @@ function HighlightTimeline() {
 
   const statement2Y = useTransform(
     scrollYProgress,
-    [0.26, 0.34, 0.46, 0.55],
+    [0.3, 0.375, 0.545, 0.625],
     [100, 0, -22, -68]
   );
 
   const statement2Opacity = useTransform(
     scrollYProgress,
-    [0.27, 0.34, 0.46, 0.53, 0.58],
+    [0.315, 0.375, 0.545, 0.595, 0.64],
     [0, 1, 1, 0.25, 0]
   );
 
   const statement2Scale = useTransform(
     scrollYProgress,
-    [0.3, 0.37, 0.49, 0.56],
+    [0.345, 0.4, 0.565, 0.63],
     [0.975, 1, 1, 0.985]
   );
 
@@ -108,19 +108,19 @@ function HighlightTimeline() {
 
   const statement3Y = useTransform(
     scrollYProgress,
-    [0.53, 0.61, 0.72, 0.83],
+    [0.61, 0.685, 0.87, 0.95],
     [100, 0, -20, -55]
   );
 
   const statement3Opacity = useTransform(
     scrollYProgress,
-    [0.54, 0.62, 0.74, 0.87, 0.94],
+    [0.625, 0.685, 0.87, 0.96, 1],
     [0, 1, 1, 0.8, 0]
   );
 
   const statement3Scale = useTransform(
     scrollYProgress,
-    [0.57, 0.64, 0.76, 0.84],
+    [0.655, 0.71, 0.885, 0.96],
     [0.975, 1, 1, 0.99]
   );
 
@@ -132,19 +132,19 @@ function HighlightTimeline() {
 
   const eyebrow1Opacity = useTransform(
     scrollYProgress,
-    [0.015, 0.07, 0.24, 0.29],
+    [0.015, 0.07, 0.27, 0.32],
     [0, 1, 1, 0]
   );
 
   const eyebrow2Opacity = useTransform(
     scrollYProgress,
-    [0.27, 0.34, 0.48, 0.56],
+    [0.315, 0.375, 0.575, 0.635],
     [0, 1, 1, 0]
   );
 
   const eyebrow3Opacity = useTransform(
     scrollYProgress,
-    [0.54, 0.62, 0.76, 0.88],
+    [0.625, 0.685, 0.89, 0.97],
     [0, 1, 1, 0]
   );
 
@@ -153,10 +153,10 @@ function HighlightTimeline() {
       ref={sectionRef}
       className="
         relative
-        h-[260vh]
+        h-[340vh]
         bg-[#010213]
         pt-12
-        sm:h-[380vh]
+        sm:h-[500vh]
         sm:pt-30
       "
     >
