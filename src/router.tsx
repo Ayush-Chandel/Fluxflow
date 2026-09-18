@@ -2,16 +2,19 @@
 import { createBrowserRouter,Navigate } from 'react-router'
 import Landing from '@/Landing'
 import PageLoader from '@/components/common/PageLoader'
-import { AuthRoute, LandingRoute, ProtectedRoute } from '@/routes/Guards'
+import { LANDING_BG } from '@/components/common/constants/constants'
+import { AuthRoute, PublicRoute, ProtectedRoute } from '@/routes/Guards'
 import { sidebarHandle } from './types/layout'
 
 const bootFallback = <PageLoader fullscreen />
+// Same loader on the landing branch, on the landing's own background.
+const landingFallback = <PageLoader fullscreen className={LANDING_BG} />
 
 export const router = createBrowserRouter([
   {
     // Landing guard wrapper — in prod, redirects / to /login (or /app/issues)
-    Component: LandingRoute,
-    hydrateFallbackElement: bootFallback,
+    Component: PublicRoute,
+    hydrateFallbackElement: landingFallback,
     children: [
       {
         path: '/',

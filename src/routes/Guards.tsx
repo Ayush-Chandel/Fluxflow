@@ -1,26 +1,38 @@
 // src/routes/guards.tsx
+import { useEffect } from 'react'
 import { Navigate, Outlet, useNavigation } from 'react-router-dom'
 import PageLoader from '@/components/common/PageLoader'
-import { useAuthStore } from '@/store/authStore'
+import { LANDING_BG } from '@/components/common/constants/constants'
+import { ensureAuthBootstrap, useAuthStore } from '@/store/authStore'
 
-// The landing page is still a placeholder, so it only shows in local dev.
-// Set VITE_SHOW_LANDING=true to opt back in once it's real (in any env).
-const showLanding =
-  import.meta.env.DEV || import.meta.env.VITE_SHOW_LANDING === 'true'
+// Any guard that gates on `loading` has to make sure the Firebase listener is
+// actually running, otherwise `loading` never flips and the loader sticks.
+// main.tsx already starts it on boot; this is the belt-and-braces call, and it
+// is idempotent.
+function useAuthBootstrap() {
+  useEffect(() => {
+    void ensureAuthBootstrap()
+  }, [])
+}
 
-// Wraps / — in prod, sends visitors straight to the app instead of the placeholder
-export function LandingRoute() {
-  const { user, loading } = useAuthStore()
+// Wraps / — the landing page, public in every environment.
+export function PublicRoute() {
+  const loading = useAuthStore((state) => state.loading)
+  useAuthBootstrap()
 
-  if (showLanding) return <Outlet />
-  if (loading) return <PageLoader fullscreen />  // avoids a /login flash for signed-in users
-  return <Navigate to={user ? '/app/issues' : '/login'} replace />
+  // The landing waits for auth before painting. It reads no auth state itself,
+  // but Header does: gating here is what lets it render the right CTA on the
+  // first frame instead of guessing and correcting.
+  if (loading) return <PageLoader fullscreen className={LANDING_BG} />
+  return <Outlet />
 }
 
 // Wraps /signup and /login — boots logged-in users away
 export function AuthRoute() {
   const { user, loading } = useAuthStore()
   const navigation = useNavigation()
+  useAuthBootstrap()
+
   const isEnteringWorkspace =
     navigation.state === 'loading' &&
     navigation.location?.pathname.startsWith('/app')
@@ -35,7 +47,8 @@ export function AuthRoute() {
 
 // Wraps all /app/* routes — boots unauthenticated users
 export function ProtectedRoute() {
-  const { user, loading } = useAuthStore();
+  const { user, loading } = useAuthStore()
+  useAuthBootstrap()
 
   if (loading) return <PageLoader fullscreen />
   if (!user) return <Navigate to="/login" replace />

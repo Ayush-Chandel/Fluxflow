@@ -21,6 +21,7 @@ import type { CycleStatus } from "@/types/cycle";
 import { cn } from "@/lib/utils";
 import type { FilterOperator } from "@/components/reui/filters";
 import { PINNED_OPERATOR } from "@/hooks/useIssueFilters";
+import type { Capability, Testimonial } from "@/types/landing";
 
 
 export const ISSUE_MAP: Record<IssueStatus, { label: string; icon: React.ReactNode }> = {
@@ -116,4 +117,117 @@ export const CHIP_STYLE = cn(
 )
 
 export const CYCLE_RANK = { active: 0, upcoming: 1, completed: 2 } as const
+
+
+// The landing page's own background, as a utility class. Loaders that sit in
+// front of the landing route wear it so the handoff is one continuous surface
+// rather than a flash of the app theme.
+export const LANDING_BG = 'bg-[#010213]'
+
+
+export const flowCards = [
+  {
+    number: "01",
+    eyebrow: "Shape the work",
+    title: "Planning",
+    description:
+      "Turn loose ideas into milestones, cycles, and a shared direction before the work begins.",
+    accent: "bg-cyan-400",
+  },
+  {
+    number: "02",
+    eyebrow: "Move with clarity",
+    title: "Execution",
+    description:
+      "Keep issues, ownership, and progress visible as the team moves from next up to done.",
+    accent: "bg-emerald-400",
+  },
+  {
+    number: "03",
+    eyebrow: "Remove repetition",
+    title: "Automations",
+    description:
+      "Chain together the busywork so updates, handoffs, and recurring actions run in the background.",
+    accent: "bg-amber-300",
+  },
+  {
+    number: "04",
+    eyebrow: "See what matters",
+    title: "Intelligence",
+    description:
+      "Give people and AI agents the context they need to make the next decision with confidence.",
+    accent: "bg-violet-400",
+  },
+  {
+    number: "05",
+    eyebrow: "Learn from the flow",
+    title: "Reports",
+    description:
+      "Spot momentum, bottlenecks, and trends with summaries that stay close to the real work.",
+    accent: "bg-rose-400",
+  },
+] as const;
+
+
+export  const capabilities: Capability[] = [
+  {
+    number: "01",
+    title: "Planning",
+    description:
+      "Turn ideas into structured plans. Fluxflow helps you capture goals, break them down into actionable steps, and keep everyone aligned from start to finish.",
+    visual: "planning",
+  },
+  {
+    number: "02",
+    title: "Automations",
+    description:
+      "Automate repetitive work and connect your tools. Let AI agents and workflows handle the busywork, so your team can focus on what matters.",
+    visual: "automation",
+  },
+  {
+    number: "03",
+    title: "AI",
+    description:
+      "Work with AI, not around it. Bring your ideas, data and tools together in one place and let AI help you move faster, think clearer, and achieve more.",
+    visual: "ai",
+  },
+];
+
+export const testimonials: Testimonial[] = [
+  {
+    quote:
+      "Fluxflow gave our team one clear place to turn scattered ideas into structured work. We spend less time coordinating and more time actually shipping.",
+    company: "NEXORA",
+    description: "Product & Growth",
+    tone: "cyan",
+  },
+  {
+    quote:
+      "The biggest difference is how quickly we can move from a rough thought to an actionable plan. Fluxflow makes the entire process feel connected.",
+    company: "ORBIT",
+    description: "Technology Platform",
+    tone: "violet",
+  },
+  {
+    quote:
+      "Our team finally has a shared workspace where people and AI can work from the same context. It has completely changed how we approach projects.",
+    company: "VECTOR",
+    description: "Creative Technology",
+    tone: "cyan",
+  },
+  {
+    quote:
+      "Fluxflow removed so much of the back-and-forth from our workflow. Everyone knows what needs to happen next, and AI can actually help us get there.",
+    company: "LUMA",
+    description: "Design Studio",
+    tone: "violet",
+  },
+  {
+    quote:
+      "From the first idea to the final deliverable, Fluxflow keeps everything connected. It feels less like another productivity tool and more like an operating layer.",
+    company: "NORTHSTAR",
+    description: "Digital Product Team",
+    tone: "cyan",
+  },
+];
 

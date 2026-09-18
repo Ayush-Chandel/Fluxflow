@@ -1,0 +1,159 @@
+import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "motion/react";
+import {
+  AssignToIcon,
+  BacklogIcon,
+  NoPriorityIcon,
+  ChangePriorityIcon,
+  ChangeStatusIcon,
+  DoneIcon,
+  InProgressIcon,
+  LabelIcon,
+  PersonIcon,
+  TodoIcon,
+  UrgentIcon,
+  HighIcon,
+  MediumIcon,
+  LowIcon,
+  AddLabels,
+} from '../commandbar'
+
+const commandOptions = [
+  {
+    label: "Assign to..",
+    icon: AssignToIcon,
+    subOptions: [
+      { label: "Dean", icon: PersonIcon },
+      { label: "Sean", icon: PersonIcon },
+      { label: "John", icon: PersonIcon },
+    ],
+  },
+  {
+    label: "Change status...",
+    icon: ChangeStatusIcon,
+    subOptions: [
+      { label: "Backlog", icon: BacklogIcon },
+      { label: "Todo", icon: TodoIcon },
+      { label: "In Progress", icon: InProgressIcon },
+      { label: "Done", icon: DoneIcon },
+    ],
+  },
+  {
+    label: "Change priority...",
+    icon: ChangePriorityIcon,
+    subOptions: [
+      { label: "No priority", icon: NoPriorityIcon },
+      { label: "Urgent", icon: UrgentIcon },
+      { label: "High", icon: HighIcon },
+      { label: "Medium", icon: MediumIcon },
+      { label: "Low", icon: LowIcon },
+    ],
+  },
+  {
+    label: "Add labels...",
+    icon: AddLabels,
+    subOptions: [
+      { label: "Bug", icon: () => <LabelIcon type="bug" /> },
+      { label: "Feature", icon: () => <LabelIcon type="feature" /> },
+      { label: "Improvement", icon: () => <LabelIcon type="improvement" /> },
+    ],
+  },
+] as const;
+
+export const CommandMenu = () => {
+  const [opened, setOpened] = useState(false);
+  const [selectedOption, setSetSelectedOption] = useState<number | null>(null);
+  const commandMenuRef = useRef<HTMLDivElement>(null);
+  const [searchValue, setSearchValue] = useState("");
+
+  useEffect(() => {
+    const toggleCommandMenu = (e: MouseEvent) => {
+      if (!commandMenuRef.current) return;
+      const isMenuButton =
+        e.target instanceof Element &&
+        e.target.classList.contains("command-menu-button");
+      const clickedOutside =
+        !isMenuButton && !commandMenuRef.current?.contains(e.target as Node);
+
+      setOpened(clickedOutside ? false : true);
+      if (clickedOutside) setSearchValue("");
+    };
+
+    window.addEventListener("click", toggleCommandMenu);
+
+    return () => {
+      window.removeEventListener("click", toggleCommandMenu);
+    };
+  }, []);
+
+  const currentOptions = useMemo(() => {
+    const options =
+      selectedOption === null
+        ? commandOptions
+        : commandOptions[selectedOption].subOptions;
+
+    // If no search value is provided, we return all options.
+    if (searchValue === "") return options;
+
+    // If a search value is provided, we do a simple search based on that input.
+    return [...options].filter((option) =>
+      option.label.toLowerCase().includes(searchValue.toLowerCase())
+    );
+  }, [selectedOption, searchValue]);
+
+  return (
+    <div className={cn(opened && "opened")} ref={commandMenuRef}>
+      <motion.div
+        className={cn(
+            "absolute left-1/2 flex w-[calc(100%-2rem)] max-w-[640px] -translate-x-1/2 flex-col items-start rounded-xl border border-transparent-white bg-transparent-white shadow-[rgb(0_0_0_/_35%)_0px_7px_32px] transition-[translate,opacity] md:w-[90vw]",
+            opened && "translate-y-[128px] opacity-100 md:translate-y-[24px]",
+            !opened && "translate-y-[128px] opacity-60"
+        )}
+        animate={{
+          opacity: opened ? 1 : 0.6,
+          scale: selectedOption === null ? 1 : [1, 0.98, 1],
+        }}
+        transition={{
+          opacity: { duration: 0.2 },
+          scale: { duration: 0.24, ease: "easeOut" },
+        }}
+      >
+        <span className="ml-4 mt-2 bg-white/[0.05] px-2 text-xs leading-10 text-white/50">
+          LIN-111 Walkway lightning
+        </span>
+        <input
+          placeholder="Type a command or search..."
+          className="w-full bg-transparent p-4 text-base outline-none md:p-5 md:text-lg"
+          value={searchValue}
+          onChange={(ev) => setSearchValue(ev.target.value)}
+        />
+        <div className="flex w-full flex-col text-sm text-off-white">
+          {currentOptions.map(({ label, icon: Icon, ...menuItem }, index) => (
+            <button
+              key={label}
+              onClick={(ev) => {
+                const clickedRootItem = "subOptions" in menuItem;
+                setSetSelectedOption(clickedRootItem ? index : null);
+                setSearchValue("");
+                if (!clickedRootItem) {
+                  setOpened(false);
+                  // We stop propagation to prevent the click event from
+                  // bubbling up to the window and triggering toggleCommandMenu.
+                  // This should be prevented because if that funtion ran, it would
+                  // oterwise reopen the menu again, because it registers a click
+                  // INSIDE the menu.
+                  ev.stopPropagation();
+                }
+              }}
+              className="command-menu-button flex h-[42px] w-full items-center gap-3 px-4 first:bg-white/[0.15] hover:bg-white/[0.05] md:h-[46px] md:px-5"
+            >
+              <Icon />
+              {label}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+};

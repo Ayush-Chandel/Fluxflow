@@ -9,7 +9,7 @@ import {
   type QueryDocumentSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db } from '@/lib/firestore'
 import { idb } from '@/lib/idb'
 import { notify } from '@/lib/notify'
 import { withoutOptimistic } from '@/lib/optimistic'
