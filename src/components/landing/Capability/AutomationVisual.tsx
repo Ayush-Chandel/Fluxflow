@@ -1,10 +1,15 @@
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
 
 export function AutomationVisual() {
   const bars = [76, 124, 172, 220];
 
+  const ref = useRef<HTMLDivElement>(null);
+  // Ambient loop — stopped while off-screen.
+  const inView = useInView(ref, { amount: 0.1 });
+
   return (
-    <div className="relative h-full w-full">
+    <div ref={ref} className="relative h-full w-full">
       {/* Background glow */}
 
       <div
@@ -39,24 +44,32 @@ export function AutomationVisual() {
         {bars.map((barHeight, index) => (
           <motion.div
             key={barHeight}
-            animate={{
-              y: [
-                0,
-                index % 2 === 0 ? -4 : -7,
-                0,
-              ],
-              opacity: [
-                0.32 + index * 0.05,
-                0.48 + index * 0.05,
-                0.32 + index * 0.05,
-              ],
-            }}
-            transition={{
-              duration: 3.5 + index * 0.35,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: index * 0.12,
-            }}
+            animate={
+              inView
+                ? {
+                    y: [
+                      0,
+                      index % 2 === 0 ? -4 : -7,
+                      0,
+                    ],
+                    opacity: [
+                      0.32 + index * 0.05,
+                      0.48 + index * 0.05,
+                      0.32 + index * 0.05,
+                    ],
+                  }
+                : { y: 0, opacity: 0.32 + index * 0.05 }
+            }
+            transition={
+              inView
+                ? {
+                    duration: 3.5 + index * 0.35,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: index * 0.12,
+                  }
+                : { duration: 0 }
+            }
             style={{
               height: barHeight,
             }}

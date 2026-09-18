@@ -1,5 +1,6 @@
 
-import { motion } from "motion/react";
+import { motion, useInView } from "motion/react";
+import { useRef } from "react";
 
 const boltRadialPaths = [
   "M223.031 111.534a2.535 2.535 0 012.534-2.534h8.869a2.535 2.535 0 110 5.068h-8.869a2.534 2.534 0 01-2.534-2.534z",
@@ -35,8 +36,17 @@ const boltRadialPaths = [
 
 ];
 
-export const Zap = () => (
+export const Zap = () => {
+  const ref = useRef<SVGSVGElement>(null)
+
+  // 30 simultaneous fill-opacity tweens. fill-opacity is not compositable, so
+  // every frame is a repaint of the whole bolt — it must not keep running
+  // while the section is nowhere near the viewport.
+  const inView = useInView(ref, { amount: 0.1 })
+
+  return (
   <svg
+    ref={ref}
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 425 518"
     width="425"
@@ -250,17 +260,23 @@ export const Zap = () => (
       fill="#ffffff"
       fillOpacity="0"
       stroke="none"
-      animate={{
-        fillOpacity: [0, 0, 0.72, 0, 0],
-      }}
-      transition={{
-        duration: 2.25,
-        repeat: Infinity,
-        repeatType: "loop",
-        ease: "linear",
-        times: [0, 0.09, 0.10, 0.11, 1],
-        delay: index * 0.02,
-      }}
+      animate={
+        inView
+          ? { fillOpacity: [0, 0, 0.72, 0, 0] }
+          : { fillOpacity: 0 }
+      }
+      transition={
+        inView
+          ? {
+              duration: 2.25,
+              repeat: Infinity,
+              repeatType: "loop",
+              ease: "linear",
+              times: [0, 0.09, 0.10, 0.11, 1],
+              delay: index * 0.02,
+            }
+          : { duration: 0 }
+      }
     />
   ))}
 </g>
@@ -305,5 +321,6 @@ export const Zap = () => (
       </filter>
     </defs>
   </svg>
-);
+  )
+};
 

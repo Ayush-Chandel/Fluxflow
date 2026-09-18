@@ -164,7 +164,11 @@ export default function GlobalCursor() {
       pointerX.set(event.clientX);
       pointerY.set(event.clientY);
 
-      setVisible(true);
+      // Only on the first move — otherwise this queues a state update on
+      // every single pointermove for a value that never changes.
+      if (!visible) {
+        setVisible(true);
+      }
     };
 
     const handlePointerOver = (
@@ -253,6 +257,7 @@ export default function GlobalCursor() {
     enabled,
     pointerX,
     pointerY,
+    visible,
   ]);
 
   if (!enabled) {

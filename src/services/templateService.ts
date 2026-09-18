@@ -6,7 +6,7 @@ import {
   writeBatch,
   type WriteBatch,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db } from '@/lib/firestore'
 import type { CreateTemplateInput, NewTemplateDoc } from '@/types/template'
 
 const templatesCollection = (ws: string) => collection(db, `workspaces/${ws}/templates`)

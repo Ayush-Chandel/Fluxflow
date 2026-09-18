@@ -9,7 +9,7 @@ import {
   setDoc,
   updateDoc,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db } from '@/lib/firestore'
 import type { Milestone, NewProjectDoc, Project } from '@/types/project'
 
 const projectsCollection = (ws: string) => collection(db, `workspaces/${ws}/projects`)

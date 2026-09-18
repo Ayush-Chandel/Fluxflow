@@ -1,8 +1,14 @@
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
 
 export function PlanningVisual() {
+  const ref = useRef<HTMLDivElement>(null);
+  // This one also carries backdrop-blur-xl, so every frame of the loop makes
+  // the compositor re-sample the backdrop. Must not run off-screen.
+  const inView = useInView(ref, { amount: 0.1 });
+
   return (
-    <div className="relative h-full w-full">
+    <div ref={ref} className="relative h-full w-full">
       {/* ===================================================== */}
       {/* Glow                                                    */}
       {/* ===================================================== */}
@@ -43,15 +49,16 @@ export function PlanningVisual() {
       {/* ===================================================== */}
 
       <motion.div
-        animate={{
-          rotate: [-2.5, -1, -2.5],
-          y: [10, 0, 10],
-        }}
-        transition={{
-          duration: 7,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        animate={
+          inView
+            ? { rotate: [-2.5, -1, -2.5], y: [10, 0, 10] }
+            : { rotate: -2.5, y: 10 }
+        }
+        transition={
+          inView
+            ? { duration: 7, repeat: Infinity, ease: "easeInOut" }
+            : { duration: 0 }
+        }
         className="
           absolute
           right-[-2%]

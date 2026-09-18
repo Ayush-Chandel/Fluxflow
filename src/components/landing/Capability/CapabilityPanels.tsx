@@ -256,7 +256,13 @@ export default function CapabilityPanels() {
           sectionStartedRef.current &&
           passedDown
         ) {
-          setCardTargets(() => {
+          setCardTargets((current) => {
+            // Already finished. Returning a fresh array here re-rendered the
+            // whole section on every scroll event for the rest of the page.
+            if (current.every((value) => value === 1)) {
+              return current;
+            }
+
             const next = capabilities.map(
               () => 1
             );
@@ -337,14 +343,20 @@ export default function CapabilityPanels() {
         sectionStartedRef.current &&
         passedUp
       ) {
-        setCardTargets(() => {
+        setCardTargets((current) => {
+          sectionStartedRef.current = false;
+
+          // Same bail-out as the downward branch: don't hand React a new
+          // array when the value is unchanged.
+          if (current.every((value) => value === 0)) {
+            return current;
+          }
+
           const next = capabilities.map(
             () => 0
           );
 
           cardTargetsRef.current = next;
-
-          sectionStartedRef.current = false;
 
           return next;
         });

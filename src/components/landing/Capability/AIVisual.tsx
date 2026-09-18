@@ -1,8 +1,14 @@
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
 
 export function AIVisual() {
+  const ref = useRef<HTMLDivElement>(null);
+  // Ambient loop — stopped while off-screen so it isn't driving a 60fps
+  // frame loop from the far end of the page.
+  const inView = useInView(ref, { amount: 0.1 });
+
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div ref={ref} className="relative h-full w-full overflow-hidden">
       {/* ===================================================== */}
       {/* Outer glow                                              */}
       {/* ===================================================== */}
@@ -100,16 +106,20 @@ export function AIVisual() {
       {/* ===================================================== */}
 
       <motion.div
-        animate={{
-          scale: [1, 1.07, 1],
-          rotate: [0, 8, 0],
-          opacity: [0.75, 1, 0.75],
-        }}
-        transition={{
-          duration: 4.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        animate={
+          inView
+            ? {
+                scale: [1, 1.07, 1],
+                rotate: [0, 8, 0],
+                opacity: [0.75, 1, 0.75],
+              }
+            : { scale: 1, rotate: 0, opacity: 0.75 }
+        }
+        transition={
+          inView
+            ? { duration: 4.5, repeat: Infinity, ease: "easeInOut" }
+            : { duration: 0 }
+        }
         className="
           absolute
           bottom-[93px]

@@ -2,7 +2,8 @@
 // Client Firestore SDK for update/delete; the sequential-ID create is the one
 // server hop (Vercel Fn → real 'LIN-xxx'), reusing authService's Bearer pattern.
 // In dev, MSW mocks /api/createIssue (build order 6); the real Fn lands in 7.
-import { auth, db } from '@/lib/firebase'
+import { auth } from '@/lib/firebase'
+import { db } from '@/lib/firestore'
 import { deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import type { CreateIssueInput, Issue } from '@/types/issue'
 

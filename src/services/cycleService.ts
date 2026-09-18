@@ -1,5 +1,6 @@
 
-import { auth, db } from '@/lib/firebase'
+import { auth } from '@/lib/firebase'
+import { db } from '@/lib/firestore'
 import { deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import type { CreateCycleInput, Cycle } from '@/types/cycle'
 
